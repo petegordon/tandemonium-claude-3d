@@ -408,8 +408,8 @@ def main():
                  bake_extrusion_m=EXTRUSION, bake_ray_dist_m=RAY_DIST)
     hi.hide_render = False
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND), compress=True)
-    (OUT / f"{CHAR}_goose_game.json").write_text(json.dumps(stats, indent=1))
-    log("DONE", json.dumps(stats))
+    (OUT / f"{CHAR}_goose_game.json").write_text(json.dumps(stats, indent=1, default=fixes._jsonable))
+    log("DONE", json.dumps(stats, default=fixes._jsonable))
 
 
 main()

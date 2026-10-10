@@ -36,6 +36,20 @@
           -0.105
         ]
       }
+    },
+    {
+      "fix": "beak_split",
+      "label": "P1.7 lower bill split along the mouth line (tip/gape from the bill profile + v3 reference: mouth line ~30% up the bill)",
+      "mouth": {
+        "tip": [
+          -0.2875,
+          1.5
+        ],
+        "gape": [
+          -0.15,
+          1.522
+        ]
+      }
     }
   ],
   "notes": "Shared unclothed base goose (D6). Right view for generation = mirrored left (symmetry); right_drawn kept as a check. height_m is provisional: absolute game scale is set with the bike (P4.3). Sheet: refs/v3 (2x2, arms fixed so all views agree).",

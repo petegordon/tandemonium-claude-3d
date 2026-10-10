@@ -483,3 +483,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   with shared materials, lid colour matched to the head. Base game GLB **13,470 tris, validator 0/0, 9 draws,
   4 materials**. `glb_fix_tangents.py` now also drops unused tangents; MikkTSpace needs n-gons triangulated.
   Previews: `preview_eyes.py` (pre-integration), `eye_states_glb.py` (states on the final GLB).
+- **P1.7 beak split** — new game-stage plugin **`beak_split`**: plane through the mouth line (tip [-0.2875, 1.500] →
+  gape [-0.150, 1.522], ~30 % up the bill as in refs/v3) bisects the bill in front of the gape; cut edges split so
+  the halves separate but stay joined at the mouth corners; roof/floor caps in a mouth colour (reserved atlas strip);
+  vertex group `beak_lower` (face-side aware on the cut; fades 15 mm behind the gape); props `beak_hinge_point`,
+  `beak_hinge_axis`, `beak_open_deg`. Preview `scripts/beak_preview.py`. Base GLB 13,548 tris, validator 0/0.

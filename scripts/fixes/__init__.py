@@ -49,6 +49,14 @@ def load_config(root, char):
     return json.loads(p.read_text()) if p.exists() else {}
 
 
+def _jsonable(o):
+    """Blender ID-property arrays / mathutils vectors in fix stats -> plain lists."""
+    try:
+        return [float(x) for x in o]
+    except TypeError:
+        return str(o)
+
+
 def run(ctx, specs, stage):
     reg = registry()
     results = []
@@ -72,5 +80,5 @@ def run(ctx, specs, stage):
         print(f"[fix] {name} {json.dumps(params)}", flush=True)
         res = mod.apply(ctx, **params)
         results.append({"fix": name, "label": label, "params": params, "result": res})
-        print(f"[fix] {name} -> {json.dumps(res)}", flush=True)
+        print(f"[fix] {name} -> {json.dumps(res, default=_jsonable)}", flush=True)
     return results
