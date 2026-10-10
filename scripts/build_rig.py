@@ -1,7 +1,7 @@
 """P2.1/P2.2: build the standard goose skeleton on the base goose (Pete: keep the model's own
 pose as bind pose; Mixamo-style humanoid names + goose extras).
 
-  blender -b --factory-startup --python scripts/build_rig.py -- --char base [--render]
+  blender -b --factory-startup --python scripts/build_rig.py -- --char base [--hip-offset 0.14] [--render]
 
 Joints are measured from the game mesh, not hand-placed:
 - legs: hip = where the legs merge into the torso, knee = top of the dark scaly lower leg,
@@ -85,7 +85,8 @@ for z in np.arange(0.12, 0.45, 0.005) * H:               # top of the dark lower
         knee_z = z
         break
 J["LeftUpLeg"] = centroid(leg(crotch - 0.03))
-J["LeftUpLeg"].z = crotch + 0.06              # hip joint sits inside the pelvis (Pete: was low)
+HIP_OFFSET = float(argv[argv.index("--hip-offset") + 1]) if "--hip-offset" in argv else 0.14   # Pete chose 14 cm (riding)
+J["LeftUpLeg"].z = crotch + HIP_OFFSET        # hip joint sits inside the pelvis (Pete: raise it)
 J["LeftLeg"] = centroid(leg(knee_z))
 ankle_z = 0.07 * H
 J["LeftFoot"] = centroid(leg(ankle_z))
@@ -123,7 +124,7 @@ J["LeftShoulder"] = Vector((0.04, J["LeftArm"].y, J["LeftArm"].z + 0.01))
 
 # ---- spine / neck / head (centre line)
 torso = lambda z: next(s for s in segments(z) if co[s, 0].min() < 0.01 and co[s, 0].max() > -0.01)
-J["Hips"] = Vector((0, centroid(torso(crotch + 0.08)).y, crotch + 0.08))
+J["Hips"] = Vector((0, centroid(torso(crotch + HIP_OFFSET + 0.02)).y, crotch + HIP_OFFSET + 0.02))
 neck_base = shoulder_z + 0.05
 for k, name in enumerate(("Spine", "Spine1", "Spine2")):
     z = J["Hips"].z + (neck_base - J["Hips"].z) * (k + 1) / 4

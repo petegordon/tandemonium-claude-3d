@@ -495,3 +495,10 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   again after the quad remesh (Instant Meshes left two 7-vertex specks by a hand and a foot).
 - **P1 complete** — base goose game GLB **14,166 tris**, validator 0/0: body (Instant Meshes quads), shared eyes,
   split beak + tongue + serrations. Rig data in object props / vertex groups (eyes, beak_lower, tongue).
+- **P2 standard rig DONE** — `build_rig.py` (35 bones, Mixamo-style + Neck1-3, Jaw, Tongue, Left/Right Eye + Eyelids,
+  Tail, HatSocket; joints measured from the mesh; hip joint 14 cm above the crotch per Pete), `skin_rig.py` (bone-heat,
+  face bones excluded, jaw/tongue from P1 groups, ≤4 influences, eye parts bone-parented, skinned mesh as root node),
+  `pose_test.py` (T / A / riding / neck / honk+blink: ≤1.1 % edges past 1.6× or 0.5×, all at the riding hip crease),
+  `make_anims.py` (idle, blink, look_around, honk as NLA tracks), `tools/threejs_check/check.mjs` (headless Chrome +
+  the game's three r161 from ../tandemonium/node_modules: 1 skinned mesh, 35 bones, 4 clips, every clip moves its bones).
+  `base_goose_rigged.glb` validator 0/0.
