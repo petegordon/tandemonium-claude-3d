@@ -274,10 +274,14 @@ def cmd_prep(a):
     names = {}
     for view, stem in VIEW_FILES.items():
         names[view] = upload(src / f"{stem}_raw.png", f"{a.char}_{view}_raw.png")
-    # Right = mirrored left profile (costume is near-symmetric; flagged in PLAN.md).
-    mirrored = src / "right_mirrored_raw.png"
-    ImageOps.mirror(Image.open(src / "left_raw.png")).save(mirrored)
-    names["right"] = upload(mirrored, f"{a.char}_right_raw.png")
+    # Right view: mirrored left profile (forces symmetry; default) or the sheet's drawn right
+    # profile (--right drawn) for asymmetric costumes (female plume / bustle).
+    if a.right == "drawn" and (src / "right_drawn_raw.png").exists():
+        names["right"] = upload(src / "right_drawn_raw.png", f"{a.char}_right_raw.png")
+    else:
+        mirrored = src / "right_mirrored_raw.png"
+        ImageOps.mirror(Image.open(src / "left_raw.png")).save(mirrored)
+        names["right"] = upload(mirrored, f"{a.char}_right_raw.png")
     preflight(3.0)
     outs, dt, peak = run(g_prep(names, f"claude3d_{a.char}_prep"))
     files = collect(outs, src / "prepped")
@@ -330,6 +334,7 @@ def main():
     common.add_argument("--seed", type=int, default=42)
     common.add_argument("--min-free", type=float, default=MIN_FREE_GB)
     common.add_argument("--views", default="front,left,back,right")
+    common.add_argument("--right", default="mirror", choices=["mirror", "drawn"])
     common.add_argument("--fov", type=float, default=20.0)
     common.add_argument("--upsample", type=int, default=1024, help="0 = skip, 1024, 1536")
     common.add_argument("--steps-struct", type=int, default=12)

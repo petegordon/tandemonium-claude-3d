@@ -502,3 +502,6 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   `make_anims.py` (idle, blink, look_around, honk as NLA tracks), `tools/threejs_check/check.mjs` (headless Chrome +
   the game's three r161 from ../tandemonium/node_modules: 1 skinned mesh, 35 bones, 4 clips, every clip moves its bones).
   `base_goose_rigged.glb` validator 0/0.
+- **P3.1 started** — `comfy_job.py prep --right drawn` option (female costume is asymmetric: drawn right view
+  instead of mirrored left). Male + female outfit views prepped (mattes clean). The 8-run seed sweep was stopped by
+  Claude Code's low-memory reaper before any run finished; restart from `RESUME.md` after the reboot.

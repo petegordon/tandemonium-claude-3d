@@ -6,6 +6,12 @@ Plan of record for building the Tandemonium characters and bike from the **v3 re
 (`[Pn.m]` in the title) under a milestone per phase. Each step ends in an **evaluation gate**:
 measured checks + renders, and the questions Pete needs to answer before the next step.
 
+## Status (2026-10-10)
+
+P0 done · **P1 base goose done** (release `base-goose-p1`) · **P2 standard rig done** (release
+`base-goose-p2-rigged`) · **P3 in progress**: P3.1 outfit views prepped, seed sweep next · P4–P6 not started.
+Restart instructions: `RESUME.md`.
+
 ## Architecture: one goose, many outfits
 
 - **One base goose** (unclothed, sex-neutral, `refs/v2/mannequin-*.png`) with **one standard rig**,
@@ -31,6 +37,7 @@ front-facing heads, soft even light, one shared body, clothed views drawn over t
 | D4 | Skirt / coat tails: bone chains + weight painting, no cloth sim; the mesh must never break. |
 | D5 | Wardrobe and colour changes before riding in the game. |
 | D6 | One shared base body; male/female are outfits. |
+| D9 | Rig: bind pose = model rest pose; Mixamo-style names + goose extras; hip joint 14 cm above the crotch. |
 | D8 | Hands are **mittens** (fingers fused; no finger bones) — "They are Canadian Geese." |
 | D7 | v3 reference set is the source of truth: 2x2 sheets, one master pose with arms that agree in every view (v2 produced an extra hand per side). Riding/pose sheet deferred until P5. |
 
