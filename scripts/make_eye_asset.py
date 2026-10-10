@@ -11,7 +11,8 @@ eyeball, so a blink is a pure rotation of the upper (and lower) lid about the X 
 the centre: rig with one eye bone (eyeball) + two lid bones, all pivoting at the origin.
 The catchlight is its own static object (parent it to the head bone) so it stays put while
 the eyeball looks around and the lids blink. blink_angles() gives the closed-lid rotations.
-All numbers live in SPEC (sizes in metres for a 1.65 m goose, taken from refs/v3).
+All numbers live in SPEC (sizes in metres for a 1.65 m goose, taken from refs/v3). The sphere is
+large relative to the visible opening so the eye sits nearly flush with the head surface.
 """
 import json
 import math
@@ -26,17 +27,18 @@ from mathutils import Euler, Vector
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "goose_eye"
 SPEC = {
-    "eyeball_radius": 0.0160,
-    "lid_radius_scale": 1.07,          # lid shell radius / eyeball radius
-    "opening_half_angle_deg": [47, 42, 39],   # anterior-horizontal, posterior-horizontal, vertical
-    "opening_power": 2.3,              # superellipse exponent (2 = ellipse; higher = rounder-squarer)
-    "lid_coverage_deg": [130, 110],    # upper, lower: how far back each shell reaches (hidden in the head)
-    "close_el_deg": -14,               # where the lids meet when closed (below centre, like a bird)
-    "iris_deg": 36, "pupil_deg": 19, "limbal_deg": 3.5, "sclera_ring_deg": 9,
+    "eyeball_radius": 0.0240,           # large, flat sphere: the eye hugs the head surface
+    "lid_radius_scale": 1.04,          # lid shell radius / eyeball radius
+    "opening_half_angle_deg": [40, 26, 21],   # anterior-horizontal, posterior-horizontal, vertical
+    "opening_power": [1.5, 2.4],      # superellipse exponent anterior / posterior (<2 = pointed almond corner)
+    "gaze_rest_az_deg": -8,           # eyeball rest rotation: iris turned back, cream shows toward the bill
+    "lid_coverage_deg": [62, 52],      # upper, lower: how far back each shell reaches (hidden in the head)
+    "close_el_deg": -6,                # where the lids meet when closed (below centre, like a bird)
+    "iris_deg": 19.5, "pupil_deg": 10, "limbal_deg": 2.0, "sclera_ring_deg": 30,
     "iris_rgb": [[0.62, 0.36, 0.10], [0.42, 0.20, 0.05]],   # inner -> outer (sRGB)
     "limbal_rgb": [0.10, 0.05, 0.02], "pupil_rgb": [0.015, 0.012, 0.01],
     "sclera_rgb": [0.90, 0.86, 0.76], "lid_rgb": [0.045, 0.040, 0.036], "rim_rgb": [0.02, 0.018, 0.016],
-    "catchlight": {"az_deg": 14, "el_deg": 16, "radius": 0.0014},
+    "catchlight": {"az_deg": 1, "el_deg": 9, "radius": 0.0013},
     "eyeball_segments": [20, 12], "lid_segments": [40, 7], "tex": 512,
 }
 
@@ -121,22 +123,25 @@ def build_eyeball(img):
         for lp in f.loops:
             c = lp.vert.co / R
             lp[uvl].uv = (0.5 + 0.5 * c.x, 0.5 + 0.5 * c.z) if c.y < 0.05 else (0.01, 0.01)  # back = dark
-    return _obj("eyeball", bm, _material("goose_eye", image=img, rough=0.06))
+    ob = _obj("eyeball", bm, _material("goose_eye", image=img, rough=0.06))
+    ob.rotation_euler = (0, 0, math.radians(SPEC["gaze_rest_az_deg"]))    # rest gaze (rig: eye bone rest); - = toward the back
+    return ob
 
 
 def _inside_opening(az, el):
     ha = SPEC["opening_half_angle_deg"]
     h = ha[0] if az >= 0 else ha[1]
-    p = SPEC["opening_power"]
+    p = SPEC["opening_power"][0 if az >= 0 else 1]
     return (abs(az) / h) ** p + (abs(el) / ha[2]) ** p < 1.0
 
 
 def _opening_radius(phi):
     """Angular distance (deg) from the look axis to the opening curve in direction phi
     (phi measured in the az/el plane: 0 = anterior, 90 = up)."""
-    ha, p = SPEC["opening_half_angle_deg"], SPEC["opening_power"]
+    ha = SPEC["opening_half_angle_deg"]
     c, s = math.cos(phi), math.sin(phi)
     h = ha[0] if c >= 0 else ha[1]
+    p = SPEC["opening_power"][0 if c >= 0 else 1]
     return 1.0 / ((abs(c) / h) ** p + (abs(s) / ha[2]) ** p) ** (1.0 / p)
 
 
@@ -198,7 +203,7 @@ def render_review(objs):
     sc.world.color = (0.25, 0.25, 0.25)
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
     cam.data.type = "ORTHO"
-    cam.data.ortho_scale = 0.05
+    cam.data.ortho_scale = 0.06
     sc.collection.objects.link(cam)
     sc.camera = cam
     key = bpy.data.objects.new("key", bpy.data.lights.new("key", "SUN"))

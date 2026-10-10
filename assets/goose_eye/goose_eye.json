@@ -1,22 +1,26 @@
 {
  "spec": {
-  "eyeball_radius": 0.016,
-  "lid_radius_scale": 1.07,
+  "eyeball_radius": 0.024,
+  "lid_radius_scale": 1.04,
   "opening_half_angle_deg": [
-   47,
-   42,
-   39
+   40,
+   26,
+   21
   ],
-  "opening_power": 2.3,
+  "opening_power": [
+   1.5,
+   2.4
+  ],
+  "gaze_rest_az_deg": -8,
   "lid_coverage_deg": [
-   130,
-   110
+   62,
+   52
   ],
-  "close_el_deg": -14,
-  "iris_deg": 36,
-  "pupil_deg": 19,
-  "limbal_deg": 3.5,
-  "sclera_ring_deg": 9,
+  "close_el_deg": -6,
+  "iris_deg": 19.5,
+  "pupil_deg": 10,
+  "limbal_deg": 2.0,
+  "sclera_ring_deg": 30,
   "iris_rgb": [
    [
     0.62,
@@ -55,9 +59,9 @@
    0.016
   ],
   "catchlight": {
-   "az_deg": 14,
-   "el_deg": 16,
-   "radius": 0.0014
+   "az_deg": 1,
+   "el_deg": 9,
+   "radius": 0.0013
   },
   "eyeball_segments": [
    20,
@@ -77,7 +81,7 @@
   "total_tris_one_eye": 1088
  },
  "blink_closed_deg": {
-  "lid_upper": 55,
-  "lid_lower": -27
+  "lid_upper": 29,
+  "lid_lower": -17
  }
 }

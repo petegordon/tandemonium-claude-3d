@@ -15,8 +15,9 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 CHAR = argv[argv.index("--char") + 1] if "--char" in argv else "male"
 OBJ = argv[argv.index("--obj") + 1] if "--obj" in argv else "hi"
 ROOT = Path(__file__).resolve().parents[1]
-RES, SPAN = 800, 0.40          # px, metres covered by the view
-ZC_FRAC = 0.86                 # view centre height (fraction of model height)
+RES = 800
+SPAN = float(argv[argv.index("--span") + 1]) if "--span" in argv else 0.40   # metres covered by the view
+ZC_FRAC = float(argv[argv.index("--zc") + 1]) if "--zc" in argv else 0.86   # view centre (fraction of height)
 
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_goose.blend"))
 ob = bpy.data.objects[f"{CHAR}_goose_{OBJ}"]
