@@ -1,0 +1,194 @@
+{
+  "char": "female",
+  "sheet_row": "bottom",
+  "height_m": 1.8,
+  "chosen_seed": 123,
+  "yaw_steps": 0,
+  "fixes": [
+    {
+      "fix": "recolor",
+      "label": "iris yellow-green -> brown (superseded by eyes plugin)",
+      "z_frac": [
+        0.84,
+        0.9
+      ],
+      "hue_deg": [
+        50,
+        165
+      ],
+      "sat": [
+        0.25,
+        1.0
+      ],
+      "val": [
+        0.05,
+        1.0
+      ],
+      "target_rgb": [
+        0.3,
+        0.18,
+        0.09
+      ],
+      "enabled": false
+    },
+    {
+      "fix": "region_delete",
+      "label": "F1 detached cream strip behind left cheek, under brim",
+      "x": [
+        0.06,
+        0.11
+      ],
+      "y": [
+        -0.03,
+        0.05
+      ],
+      "z": [
+        1.47,
+        1.61
+      ],
+      "sat": [
+        0.0,
+        0.35
+      ],
+      "val": [
+        0.55,
+        1.0
+      ]
+    },
+    {
+      "fix": "region_groups",
+      "groups": [
+        {
+          "name": "beak_head_neck",
+          "z_frac": [
+            0.62,
+            0.95
+          ],
+          "val": [
+            0.0,
+            0.25
+          ]
+        },
+        {
+          "name": "cheek_patch",
+          "z_frac": [
+            0.76,
+            0.92
+          ],
+          "sat": [
+            0.0,
+            0.35
+          ],
+          "val": [
+            0.55,
+            1.0
+          ]
+        },
+        {
+          "name": "hat_plume",
+          "z_frac": [
+            0.84,
+            1.0
+          ]
+        },
+        {
+          "name": "collar",
+          "z_frac": [
+            0.68,
+            0.78
+          ],
+          "sat": [
+            0.0,
+            0.35
+          ],
+          "val": [
+            0.55,
+            1.0
+          ]
+        },
+        {
+          "name": "brooch_lace",
+          "z_frac": [
+            0.6,
+            0.76
+          ],
+          "hue_deg": [
+            25,
+            60
+          ],
+          "sat": [
+            0.35,
+            1.0
+          ]
+        },
+        {
+          "name": "gloves",
+          "z_frac": [
+            0.35,
+            0.6
+          ],
+          "val": [
+            0.0,
+            0.18
+          ]
+        },
+        {
+          "name": "boots",
+          "z_frac": [
+            0.0,
+            0.08
+          ],
+          "val": [
+            0.0,
+            0.25
+          ]
+        },
+        {
+          "name": "dress",
+          "z_frac": [
+            0.0,
+            0.8
+          ],
+          "hue_deg": [
+            330,
+            25
+          ],
+          "sat": [
+            0.25,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "fix": "eyes",
+      "label": "shared eyeball assets/goose_eye.json (head_views.py picks front:315:382 (left eye) and left:610:395 (right eye); head yawed ~38 deg to her right, as on the sheet)",
+      "left": {
+        "point": [
+          -0.0319,
+          -0.1525,
+          1.557
+        ],
+        "normal": [
+          0.212,
+          -0.976,
+          -0.046
+        ]
+      },
+      "right": {
+        "point": [
+          -0.1163,
+          -0.0877,
+          1.5505
+        ],
+        "normal": [
+          -0.999,
+          -0.031,
+          -0.018
+        ]
+      },
+      "clean_radius_m": 0.024
+    }
+  ],
+  "notes": "Seed 123 iris came out yellow-green (diag: z 0.864-0.871 of height, hue ~68, sat ~0.64); sheet has brown eyes. Do NOT reuse male hat_recolor: its hue window would catch the brown plume. v2 window widened: right iris is darker/cooler green (missed by hue<=130/val>=0.15); target darkened (first pass read orange). F1: region_delete box found by cream-face depth profile (+X side has a separate cream piece at y -0.02..0.04 behind the cheek); dry-run verified."
+}

@@ -1,0 +1,9 @@
+# generated outputs (GLBs are published as GitHub Release assets)
+out/
+renders/
+*.blend
+*.blend1
+__pycache__/
+# third-party binary (fetch from https://github.com/wjakob/instant-meshes)
+tools/instant-meshes/
+workflows/

@@ -1,0 +1,246 @@
+{
+  "char": "male",
+  "sheet_row": "top",
+  "height_m": 1.8,
+  "chosen_seed": 42,
+  "yaw_steps": 0,
+  "fixes": [
+    {
+      "fix": "trim_fins",
+      "label": "M1 boot toe wing-flap tips",
+      "z_frac": [
+        0.0,
+        0.06
+      ],
+      "radius_mm": 8.0,
+      "seed_mm": 8.0
+    },
+    {
+      "fix": "material_override",
+      "label": "M2 boots non-metal (metallic patches up to 1.0)",
+      "z_frac": [
+        0.0,
+        0.17
+      ],
+      "metallic": 0.0
+    },
+    {
+      "fix": "recolor",
+      "label": "M2 cyan/teal reflections painted into boot albedo",
+      "z_frac": [
+        0.0,
+        0.12
+      ],
+      "hue_deg": [
+        140,
+        220
+      ],
+      "sat": [
+        0.08,
+        1.0
+      ],
+      "val": [
+        0.05,
+        1.0
+      ],
+      "target_rgb": [
+        0.11,
+        0.095,
+        0.085
+      ]
+    },
+    {
+      "fix": "recolor",
+      "label": "M2 white glints painted into boot albedo",
+      "z_frac": [
+        0.0,
+        0.12
+      ],
+      "sat": [
+        0.0,
+        0.25
+      ],
+      "val": [
+        0.35,
+        1.0
+      ],
+      "target_rgb": [
+        0.11,
+        0.095,
+        0.085
+      ]
+    },
+    {
+      "fix": "hat_recolor",
+      "z_frac": 0.88
+    },
+    {
+      "fix": "region_groups",
+      "groups": [
+        {
+          "name": "hat",
+          "z_frac": [
+            0.88,
+            1.0
+          ]
+        },
+        {
+          "name": "beak_head_neck_bowtie",
+          "z_frac": [
+            0.62,
+            0.88
+          ],
+          "val": [
+            0.0,
+            0.22
+          ]
+        },
+        {
+          "name": "cheek_patch",
+          "z_frac": [
+            0.75,
+            0.88
+          ],
+          "sat": [
+            0.0,
+            0.35
+          ],
+          "val": [
+            0.55,
+            1.0
+          ]
+        },
+        {
+          "name": "collar_shirt",
+          "z_frac": [
+            0.6,
+            0.78
+          ],
+          "sat": [
+            0.0,
+            0.3
+          ],
+          "val": [
+            0.6,
+            1.0
+          ]
+        },
+        {
+          "name": "gloves",
+          "z_frac": [
+            0.35,
+            0.55
+          ],
+          "val": [
+            0.0,
+            0.16
+          ]
+        },
+        {
+          "name": "boots",
+          "z_frac": [
+            0.0,
+            0.2
+          ],
+          "val": [
+            0.0,
+            0.25
+          ]
+        },
+        {
+          "name": "waistcoat",
+          "z_frac": [
+            0.45,
+            0.7
+          ],
+          "hue_deg": [
+            20,
+            50
+          ],
+          "sat": [
+            0.1,
+            0.45
+          ],
+          "val": [
+            0.25,
+            0.75
+          ]
+        },
+        {
+          "name": "breeches",
+          "z_frac": [
+            0.15,
+            0.48
+          ],
+          "hue_deg": [
+            20,
+            55
+          ],
+          "sat": [
+            0.1,
+            0.5
+          ],
+          "val": [
+            0.25,
+            0.8
+          ]
+        },
+        {
+          "name": "tail_feathers",
+          "z_frac": [
+            0.3,
+            0.5
+          ],
+          "sat": [
+            0.0,
+            0.25
+          ]
+        },
+        {
+          "name": "coat",
+          "z_frac": [
+            0.3,
+            0.8
+          ],
+          "hue_deg": [
+            5,
+            45
+          ],
+          "sat": [
+            0.4,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "fix": "eyes",
+      "label": "shared eyeball assets/goose_eye.json (head_views.py picks right:260:275 (+X eye) and left:462:282 (-X eye); head yawed ~15 deg to his right)",
+      "left": {
+        "point": [
+          0.0338,
+          -0.1641,
+          1.6105
+        ],
+        "normal": [
+          0.874,
+          -0.481,
+          0.067
+        ]
+      },
+      "right": {
+        "point": [
+          -0.1074,
+          -0.1251,
+          1.607
+        ],
+        "normal": [
+          -0.938,
+          -0.337,
+          -0.083
+        ]
+      }
+    }
+  ],
+  "notes": "hat_recolor M7: seed 42 bowler olive -> sheet brown. trim_fins M1: removes the thin flap tips (~52+44 cm2, radius 8/seed 8); the remaining flared sole 'wings' are thick -> M3 sculpt (silhouette_carve dry-run would also chop the sole edge, so not used). M2: metallic patches (max 1.0) zeroed + cyan/white reflections painted into the albedo recolored to dark leather."
+}

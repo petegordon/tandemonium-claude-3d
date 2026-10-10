@@ -1,0 +1,18 @@
+{
+  "_doc": "Shared goose eyeball, used unchanged by every goose (PLAN F5/M9). Polar sphere around the look axis; theta = degrees from the look axis. Colours are sRGB, matched by eye to refs/characters-turnaround.png: black pupil, warm brown iris darkening to a limbal ring, thin cream rim, dark lid line. The sphere meets the head at embed_deg; the rest is buried. Eye bones for rigging pivot at the sphere centre.",
+  "radius_m": 0.0163,
+  "segments": 16,
+  "rings_deg": [0, 14, 24, 34, 42, 50, 80, 130, 180],
+  "embed_deg": 50,
+  "profile": [
+    {"deg": 0,    "rgb": [0.02, 0.02, 0.02], "roughness": 0.12},
+    {"deg": 13,   "rgb": [0.02, 0.02, 0.02], "roughness": 0.12},
+    {"deg": 15,   "rgb": [0.55, 0.28, 0.10], "roughness": 0.12},
+    {"deg": 29,   "rgb": [0.36, 0.17, 0.06], "roughness": 0.12},
+    {"deg": 32.5, "rgb": [0.13, 0.06, 0.03], "roughness": 0.12},
+    {"deg": 34.5, "rgb": [0.93, 0.90, 0.84], "roughness": 0.15},
+    {"deg": 40.5, "rgb": [0.93, 0.90, 0.84], "roughness": 0.15},
+    {"deg": 42.5, "rgb": [0.03, 0.03, 0.03], "roughness": 0.45},
+    {"deg": 180,  "rgb": [0.03, 0.03, 0.03], "roughness": 0.45}
+  ]
+}
