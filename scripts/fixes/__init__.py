@@ -57,6 +57,9 @@ def run(ctx, specs, stage):
         name = spec.pop("fix")
         if spec.pop("enabled", True) is False:
             continue
+        label = spec.get("label", "")
+        if "label" not in reg.get(name, type("m", (), {"DEFAULTS": {}})).DEFAULTS:
+            spec.pop("label", None)          # every fix may carry a human label in config
         mod = reg.get(name)
         if mod is None:
             raise KeyError(f"unknown fix '{name}'; available: {sorted(reg)}")
@@ -68,6 +71,6 @@ def run(ctx, specs, stage):
         params = {**mod.DEFAULTS, **spec}
         print(f"[fix] {name} {json.dumps(params)}", flush=True)
         res = mod.apply(ctx, **params)
-        results.append({"fix": name, "params": params, "result": res})
+        results.append({"fix": name, "label": label, "params": params, "result": res})
         print(f"[fix] {name} -> {json.dumps(res)}", flush=True)
     return results

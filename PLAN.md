@@ -466,3 +466,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
 - **P1.1 done** — `comfy_job.py prep --char base`: mattes clean incl. hands, webbed feet, tail
   (right = mirrored left for symmetry; drawn right kept as `right_drawn_raw.png`).
 - **P1.2 running** — Pixal3D multi-view 1024, seeds 42 / 7 / 123 / 2026.
+- **v3 references** (`refs/v3/`, Pete via Codex): 2x2 sheets, one master pose with arms that agree in every view.
+  v2 gave every seed an extra hand per side (front vs side views disagreed). `check_hands.py` gate added.
+- **P1.2 done** — v3 sweep: all 4 seeds pass the hand gate; IoU 42 0.936 / **7 0.940** / 123 0.931 / 2026 0.932. Pete chose **seed 7**.
+- **P1.3 / P1.4 done** — `clean_hi.py --char base` (1 island, 1.65 m) + new `symmetrize` plugin: mirror plane yaw -0.25°,
+  offset -1.3 mm; L/R deviation before 2.0 / 3.3 / 8.5 mm (p50/p95/max, ~vertex spacing) → 0 after. Kept −X half (+X hip
+  had a stronger baked hand-shadow smudge).
+- **P1.5 (first pass)** — Instant Meshes quads: **10,796 tris**, 1.65 m, validator 0/0, 1 draw call. Even quad grid; head,
+  beak, body good. **Fingers fuse into mittens** at this budget with either remesher (fingers ~1 cm, touching); IM feet
+  webbing blocky. Hands/feet are covered by gloves/boots in both outfits — Pete to decide (see issue #8).

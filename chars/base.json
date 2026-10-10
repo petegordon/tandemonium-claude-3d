@@ -15,6 +15,17 @@
   },
   "height_m": 1.65,
   "yaw_steps": 0,
-  "fixes": [],
-  "notes": "Shared unclothed base goose (D6). Right view for generation = mirrored left (symmetry); right_drawn kept as a check. height_m is provisional: absolute game scale is set with the bike (P4.3). Sheet: refs/v3 (2x2, arms fixed so all views agree)."
+  "fixes": [
+    {
+      "fix": "symmetrize",
+      "label": "P1.4 mirror the -X (character's right) half; +X hip has a stronger baked hand-shadow smudge",
+      "keep": "-X"
+    }
+  ],
+  "notes": "Shared unclothed base goose (D6). Right view for generation = mirrored left (symmetry); right_drawn kept as a check. height_m is provisional: absolute game scale is set with the bike (P4.3). Sheet: refs/v3 (2x2, arms fixed so all views agree).",
+  "chosen_seed": 7,
+  "retopo": {
+    "tris": 12000,
+    "remesher": "instant"
+  }
 }
