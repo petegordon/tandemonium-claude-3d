@@ -1,0 +1,31 @@
+{
+  "generator": "built-in image_gen",
+  "source": "source-reference.png",
+  "shared_body": true,
+  "files": [
+    {
+      "name": "mannequin-turnaround.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-1aea4c40-3a90-4e85-adb0-def572ff2bd8.png"
+    },
+    {
+      "name": "mannequin-poses.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-0fe62b30-3867-4f43-aabc-55d0d515a1c0.png"
+    },
+    {
+      "name": "male-character-turnaround.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-db6b7efd-a13e-4889-ad8c-2ec092cc05fb.png"
+    },
+    {
+      "name": "female-character-turnaround.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-d1ae55a2-38f5-4e36-9220-7eeaeabc83df.png"
+    },
+    {
+      "name": "bicycle-turnaround.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-b3dd7fba-828a-4bef-9bb9-6acd67abc9df.png"
+    },
+    {
+      "name": "assembly-turnaround.png",
+      "generated_from": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-9be707f8-2e95-4a9f-9881-b0dcd620992d.png"
+    }
+  ]
+}
