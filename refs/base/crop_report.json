@@ -1,0 +1,48 @@
+{
+ "front": {
+  "box": [
+   63,
+   4,
+   436,
+   493
+  ],
+  "fig_h": 476,
+  "fig_w": 357,
+  "touches_edge": false,
+  "lr_symmetry_iou": 0.936
+ },
+ "left": {
+  "box": [
+   676,
+   4,
+   900,
+   494
+  ],
+  "fig_h": 476,
+  "fig_w": 208,
+  "touches_edge": false
+ },
+ "right_drawn": {
+  "box": [
+   1149,
+   4,
+   1375,
+   494
+  ],
+  "fig_h": 476,
+  "fig_w": 210,
+  "touches_edge": false
+ },
+ "rear": {
+  "box": [
+   64,
+   516,
+   441,
+   997
+  ],
+  "fig_h": 469,
+  "fig_w": 361,
+  "touches_edge": false
+ },
+ "_height_spread_pct": 1.5
+}

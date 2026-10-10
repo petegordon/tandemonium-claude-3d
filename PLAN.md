@@ -454,3 +454,15 @@ Observation: both heads are yawed toward −X (male ~15°, female ~38°, as draw
 rig's neck/head bones should absorb this rest pose.
 
 Still open: M3/F4 sculpt (toe/sole, heels), F2 plume cards, M1 remainder (→ M3). Then the bike.
+
+## v2 pipeline — progress (2026-10-10)
+
+Plan of record moved to `ROADMAP.md` (P0–P6). Reference set v2 in `refs/v2/` (Pete, Codex image_gen).
+New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (configs in `chars/`).
+
+- **P0.1 done** — `scripts/crop_sheet.py <char>` crops labelled grid sheets (caption components painted
+  out). Height spread across views: base 1.5 %, outfits 2.7 %; front L/R symmetry IoU base 0.936,
+  male 0.927, female 0.826 (asymmetric plume/bustle, expected). Report: `refs/<char>/crop_report.json`.
+- **P1.1 done** — `comfy_job.py prep --char base`: mattes clean incl. hands, webbed feet, tail
+  (right = mirrored left for symmetry; drawn right kept as `right_drawn_raw.png`).
+- **P1.2 running** — Pixal3D multi-view 1024, seeds 42 / 7 / 123 / 2026.

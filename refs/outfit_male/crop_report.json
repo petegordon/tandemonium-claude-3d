@@ -1,0 +1,70 @@
+{
+ "front": {
+  "box": [
+   66,
+   4,
+   435,
+   495
+  ],
+  "fig_h": 477,
+  "fig_w": 353,
+  "touches_edge": false,
+  "lr_symmetry_iou": 0.927
+ },
+ "left": {
+  "box": [
+   674,
+   4,
+   885,
+   496
+  ],
+  "fig_h": 478,
+  "fig_w": 195,
+  "touches_edge": false
+ },
+ "rear": {
+  "box": [
+   1104,
+   4,
+   1450,
+   496
+  ],
+  "fig_h": 478,
+  "fig_w": 330,
+  "touches_edge": false
+ },
+ "tpose_front": {
+  "box": [
+   12,
+   516,
+   508,
+   995
+  ],
+  "fig_h": 469,
+  "fig_w": 481,
+  "touches_edge": false
+ },
+ "apose_front": {
+  "box": [
+   575,
+   516,
+   962,
+   992
+  ],
+  "fig_h": 465,
+  "fig_w": 371,
+  "touches_edge": false
+ },
+ "riding_34": {
+  "box": [
+   1124,
+   516,
+   1447,
+   1005
+  ],
+  "fig_h": 476,
+  "fig_w": 307,
+  "touches_edge": false
+ },
+ "_height_spread_pct": 2.7
+}

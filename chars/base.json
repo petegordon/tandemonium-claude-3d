@@ -1,0 +1,9 @@
+{
+  "char": "base",
+  "sheet": {"file": "refs/v2/mannequin-turnaround.png", "grid": [3, 2],
+            "views": {"front": 0, "left": 1, "right_drawn": 2, "rear": 3}},
+  "height_m": 1.65,
+  "yaw_steps": 0,
+  "fixes": [],
+  "notes": "Shared unclothed base goose (D6). Right view for generation = mirrored left (symmetry); right_drawn kept as a check. height_m is provisional: absolute game scale is set with the bike (P4.3)."
+}
