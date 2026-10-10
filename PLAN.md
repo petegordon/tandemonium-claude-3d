@@ -488,3 +488,10 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   the halves separate but stay joined at the mouth corners; roof/floor caps in a mouth colour (reserved atlas strip);
   vertex group `beak_lower` (face-side aware on the cut; fades 15 mm behind the gape); props `beak_hinge_point`,
   `beak_hinge_axis`, `beak_open_deg`. Preview `scripts/beak_preview.py`. Base GLB 13,548 tris, validator 0/0.
+- **P1.8 lighting check** — `scripts/delight_check.py`: per colour cluster, luminance vs face normal-z and baked AO.
+  Up-facing vs down-facing luminance differs only ~10-13 % (dark 0.144/0.117, brown 0.277/0.244, cream 0.695/0.624;
+  light-brown reversed) and a lighting model explains R² 0.10-0.18 → **no de-light pass** (would flatten the painted
+  feather-edge detail). The v3 references' flat lighting did its job. Also: `retopo_bake.py` now drops speck islands
+  again after the quad remesh (Instant Meshes left two 7-vertex specks by a hand and a foot).
+- **P1 complete** — base goose game GLB **14,166 tris**, validator 0/0: body (Instant Meshes quads), shared eyes,
+  split beak + tongue + serrations. Rig data in object props / vertex groups (eyes, beak_lower, tongue).

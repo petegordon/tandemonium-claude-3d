@@ -106,6 +106,7 @@ def retopo(hi):
         except RuntimeError as e:
             log("quadriflow failed:", e)
         log(f"quadriflow -> {len(game.data.polygons)} faces / {tri_count(game)} tris ({time.time()-t:.0f}s)")
+    log(f"dropped {drop_small_islands(game)} post-remesh speck verts")     # IM can leave tiny islands
     if tri_count(game) > TRIS:
         m = game.modifiers.new("dec", "DECIMATE")
         m.ratio = (TRIS - RESERVE_TRIS) / tri_count(game) * 0.98
