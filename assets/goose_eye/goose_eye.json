@@ -1,0 +1,83 @@
+{
+ "spec": {
+  "eyeball_radius": 0.016,
+  "lid_radius_scale": 1.07,
+  "opening_half_angle_deg": [
+   47,
+   42,
+   39
+  ],
+  "opening_power": 2.3,
+  "lid_coverage_deg": [
+   130,
+   110
+  ],
+  "close_el_deg": -14,
+  "iris_deg": 36,
+  "pupil_deg": 19,
+  "limbal_deg": 3.5,
+  "sclera_ring_deg": 9,
+  "iris_rgb": [
+   [
+    0.62,
+    0.36,
+    0.1
+   ],
+   [
+    0.42,
+    0.2,
+    0.05
+   ]
+  ],
+  "limbal_rgb": [
+   0.1,
+   0.05,
+   0.02
+  ],
+  "pupil_rgb": [
+   0.015,
+   0.012,
+   0.01
+  ],
+  "sclera_rgb": [
+   0.9,
+   0.86,
+   0.76
+  ],
+  "lid_rgb": [
+   0.045,
+   0.04,
+   0.036
+  ],
+  "rim_rgb": [
+   0.02,
+   0.018,
+   0.016
+  ],
+  "catchlight": {
+   "az_deg": 14,
+   "el_deg": 16,
+   "radius": 0.0014
+  },
+  "eyeball_segments": [
+   20,
+   12
+  ],
+  "lid_segments": [
+   40,
+   7
+  ],
+  "tex": 512
+ },
+ "tris": {
+  "eyeball": 440,
+  "lid_upper": 320,
+  "lid_lower": 320,
+  "catchlight": 8,
+  "total_tris_one_eye": 1088
+ },
+ "blink_closed_deg": {
+  "lid_upper": 55,
+  "lid_lower": -27
+ }
+}

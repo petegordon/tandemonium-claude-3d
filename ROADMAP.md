@@ -31,6 +31,7 @@ front-facing heads, soft even light, one shared body, clothed views drawn over t
 | D4 | Skirt / coat tails: bone chains + weight painting, no cloth sim; the mesh must never break. |
 | D5 | Wardrobe and colour changes before riding in the game. |
 | D6 | One shared base body; male/female are outfits. |
+| D8 | Hands are **mittens** (fingers fused; no finger bones) — "They are Canadian Geese." |
 | D7 | v3 reference set is the source of truth: 2x2 sheets, one master pose with arms that agree in every view (v2 produced an extra hand per side). Riding/pose sheet deferred until P5. |
 
 ## P0 — Reference set (done by Pete) → intake
