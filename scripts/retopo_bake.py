@@ -70,6 +70,8 @@ def only_select(*obs):
 def retopo(hi):
     old = bpy.data.objects.get(f"{CHAR}_goose_game")
     if old:
+        for child in old.children_recursive:              # attached parts (eyes) from a previous run
+            bpy.data.objects.remove(child)
         bpy.data.objects.remove(old)
     game = hi.copy()
     game.data = hi.data.copy()
@@ -389,7 +391,7 @@ def main():
         cfg = fixes.load_config(ROOT, CHAR)
         ctx = fixes.FixContext(ob=game, char=CHAR, height=cfg.get("height_m", 1.8), root=ROOT, stats=stats)
         stats["fixes"] = fixes.run(ctx, cfg.get("fixes", []), stage="game")
-        only_select(game)
+        only_select(*game.children_recursive, game)       # head + attached parts (eyes)
         glb = OUT / f"{CHAR}_goose_game.glb"
         bpy.ops.export_scene.gltf(filepath=str(glb), export_format="GLB", use_selection=True,
                                   export_yup=True, export_apply=True, export_image_format="AUTO",

@@ -125,3 +125,40 @@ def texel_mask(ob, w, h, tri_select):
         l2 = ((c[1] - a[1]) * (xs - c[0]) + (a[0] - c[0]) * (ys - c[1])) / d
         mask[y0:y1 + 1, x0:x1 + 1] |= (l1 >= -0.02) & (l2 >= -0.02) & (1 - l1 - l2 >= -0.02)
     return mask
+
+
+def texel_positions(ob, w, h):
+    """Rasterize every UV triangle -> (h, w, 3) object-space position per texel (NaN where no
+    triangle covers the texel). Lets texture edits select texels by exact 3D distance instead
+    of by whole-face centroids (coarse game meshes have ~1 cm faces)."""
+    me = ob.data
+    me.calc_loop_triangles()
+    n = len(me.loop_triangles)
+    tri_loops = np.empty(n * 3, np.int32)
+    me.loop_triangles.foreach_get("loops", tri_loops)
+    tri_verts = np.empty(n * 3, np.int32)
+    me.loop_triangles.foreach_get("vertices", tri_verts)
+    co = np.empty(len(me.vertices) * 3, np.float32)
+    me.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)[tri_verts.reshape(-1, 3)]
+    uv = np.empty(len(me.loops) * 2, np.float32)
+    me.uv_layers.active.data.foreach_get("uv", uv)
+    tuv = uv.reshape(-1, 2)[tri_loops.reshape(-1, 3)] * (w, h)
+    pos = np.full((h, w, 3), np.nan, np.float32)
+    for (a, b, c), (pa, pb, pc) in zip(tuv, co):
+        x0 = int(max(0, np.floor(min(a[0], b[0], c[0]))))
+        x1 = int(min(w - 1, np.ceil(max(a[0], b[0], c[0]))))
+        y0 = int(max(0, np.floor(min(a[1], b[1], c[1]))))
+        y1 = int(min(h - 1, np.ceil(max(a[1], b[1], c[1]))))
+        d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if abs(d) < 1e-12 or x1 < x0 or y1 < y0:
+            continue
+        xs, ys = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        l1 = ((b[1] - c[1]) * (xs - c[0]) + (c[0] - b[0]) * (ys - c[1])) / d
+        l2 = ((c[1] - a[1]) * (xs - c[0]) + (a[0] - c[0]) * (ys - c[1])) / d
+        l3 = 1 - l1 - l2
+        m = (l1 >= -0.02) & (l2 >= -0.02) & (l3 >= -0.02)
+        p = l1[..., None] * pa + l2[..., None] * pb + l3[..., None] * pc
+        blk = pos[y0:y1 + 1, x0:x1 + 1]
+        blk[m] = p[m]
+    return pos

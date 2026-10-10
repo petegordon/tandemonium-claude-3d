@@ -51,6 +51,7 @@ def load(sc, glb):
     before = set(sc.objects)
     bpy.ops.import_scene.gltf(filepath=str(glb))
     new = [o for o in sc.objects if o not in before]
+    new_names = [o.name for o in new]
     meshes = [o for o in new if o.type == "MESH"]
     bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
@@ -65,8 +66,9 @@ def load(sc, glb):
     lo, hi = co.min(0), co.max(0)
     c = Vector(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, lo[2]))
     ob.data.transform(Matrix.Scale(1.0 / (hi[2] - lo[2]), 4) @ Matrix.Translation(-c))
-    for o in new:
-        if o is not ob and o.name in bpy.data.objects:
+    for name in new_names:                      # joined objects are already gone; drop leftovers
+        o = bpy.data.objects.get(name)
+        if o is not None and o is not ob:
             bpy.data.objects.remove(o)
     return ob
 

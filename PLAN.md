@@ -475,3 +475,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
 - **P1.5 (first pass)** — Instant Meshes quads: **10,796 tris**, 1.65 m, validator 0/0, 1 draw call. Even quad grid; head,
   beak, body good. **Fingers fuse into mittens** at this budget with either remesher (fingers ~1 cm, touching); IM feet
   webbing blocky. Hands/feet are covered by gloves/boots in both outfits — Pete to decide (see issue #8).
+- **P1.6 eye asset** — `scripts/make_eye_asset.py` → `assets/goose_eye/` (eyeball 440 + lids 2×320 + catchlight 8
+  tris per eye; almond opening pointed toward the bill, iris rests 8° back so cream shows toward the bill; blink =
+  lid rotation about the eye centre; catchlight static). Fitted by new game-stage plugin **`eye_sockets`**: per-texel
+  painted-eye erase (`common.texel_positions`), local subdivide + rim-following socket (faces in front of the opening
+  deleted, edge verts snapped to the rim, skin wrapped 0.75 mm over the lid shell), eyes as child objects *_L/_R
+  with shared materials, lid colour matched to the head. Base game GLB **13,470 tris, validator 0/0, 9 draws,
+  4 materials**. `glb_fix_tangents.py` now also drops unused tangents; MikkTSpace needs n-gons triangulated.
+  Previews: `preview_eyes.py` (pre-integration), `eye_states_glb.py` (states on the final GLB).

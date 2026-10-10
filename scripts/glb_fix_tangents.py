@@ -1,7 +1,9 @@
-"""Replace zero-length TANGENTs in a GLB (MikkTSpace emits 0 on zero-area UV triangles).
+"""Tidy TANGENTs in a GLB for the glTF validator. Edits in place.
 
-Each bad tangent becomes a unit vector orthogonal to that vertex's normal (w = +1),
-which keeps the glTF validator clean (ACCESSOR_VECTOR3_NON_UNIT). Edits in place.
+- Zero-length tangents (MikkTSpace emits 0 on zero-area UV triangles) become a unit vector
+  orthogonal to the vertex normal, w = +1 (ACCESSOR_VECTOR3_NON_UNIT).
+- Primitives whose material has no normal map drop their TANGENT attribute
+  (UNUSED_MESH_TANGENT), e.g. the eye parts attached to the game mesh.
 
   python scripts/glb_fix_tangents.py out/male-goose/male_goose_game.glb
 """
@@ -46,8 +48,23 @@ def main(path):
                 start = bin_off + bv.get("byteOffset", 0) + acc.get("byteOffset", 0)
                 data[start:start + tan.nbytes] = tan.astype(np.float32).tobytes()
                 fixed += int(bad.sum())
+    dropped = 0
+    mats = gltf.get("materials", [])
+    for mesh in gltf["meshes"]:
+        for prim in mesh["primitives"]:
+            mat = mats[prim["material"]] if "material" in prim else {}
+            if "TANGENT" in prim["attributes"] and "normalTexture" not in mat:
+                del prim["attributes"]["TANGENT"]
+                dropped += 1
+    if dropped:                                   # rewrite the container with the new JSON chunk
+        js = json.dumps(gltf, separators=(",", ":")).encode()
+        js += b" " * (-len(js) % 4)
+        rest = data[20 + jlen:]                   # BIN chunk (header + payload)
+        out = bytearray(struct.pack("<III", 0x46546C67, 2, 12 + 8 + len(js) + len(rest)))
+        out += struct.pack("<II", len(js), 0x4E4F534A) + js + rest
+        data = out
     open(path, "wb").write(data)
-    print(f"fixed {fixed} zero tangents in {path}")
+    print(f"fixed {fixed} zero tangents, dropped {dropped} unused TANGENT attributes in {path}")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,22 @@
       "fix": "symmetrize",
       "label": "P1.4 mirror the -X (character's right) half; +X hip has a stronger baked hand-shadow smudge",
       "keep": "-X"
+    },
+    {
+      "fix": "eye_sockets",
+      "label": "P1.6 shared eye asset fitted into carved sockets (pick: head_views.py --char base --zc 0.93 --span 0.25 --pick right:398:213)",
+      "left": {
+        "point": [
+          0.0533,
+          -0.1004,
+          1.5929
+        ],
+        "normal": [
+          0.865,
+          -0.491,
+          -0.105
+        ]
+      }
     }
   ],
   "notes": "Shared unclothed base goose (D6). Right view for generation = mirrored left (symmetry); right_drawn kept as a check. height_m is provisional: absolute game scale is set with the bike (P4.3). Sheet: refs/v3 (2x2, arms fixed so all views agree).",

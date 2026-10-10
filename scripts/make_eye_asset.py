@@ -32,7 +32,7 @@ SPEC = {
     "opening_half_angle_deg": [40, 26, 21],   # anterior-horizontal, posterior-horizontal, vertical
     "opening_power": [1.5, 2.4],      # superellipse exponent anterior / posterior (<2 = pointed almond corner)
     "gaze_rest_az_deg": -8,           # eyeball rest rotation: iris turned back, cream shows toward the bill
-    "lid_coverage_deg": [62, 52],      # upper, lower: how far back each shell reaches (hidden in the head)
+    "lid_coverage_deg": [54, 45],      # upper, lower: how far back each shell reaches (hidden in the head)
     "close_el_deg": -6,                # where the lids meet when closed (below centre, like a bird)
     "iris_deg": 19.5, "pupil_deg": 10, "limbal_deg": 2.0, "sclera_ring_deg": 30,
     "iris_rgb": [[0.62, 0.36, 0.10], [0.42, 0.20, 0.05]],   # inner -> outer (sRGB)
@@ -174,7 +174,7 @@ def build_lid(upper):
     for f in bm.faces:                             # outward = away from the eye centre
         if f.normal.dot(f.calc_center_median()) < 0:
             f.normal_flip()
-    return _obj("lid_upper" if upper else "lid_lower", bm, _material("goose_lid", rgb=SPEC["lid_rgb"], rough=0.55))
+    return _obj("lid_upper" if upper else "lid_lower", bm, _material("goose_lid", rgb=SPEC["lid_rgb"], rough=0.85))
 
 
 def build_catchlight():
