@@ -38,7 +38,8 @@ DEFAULTS = {
     "mouth_rgb": [0.30, 0.14, 0.14],
     "tongue": {"length_frac": 0.6, "half_width": 0.017, "thickness": 0.007, "rgb": [0.78, 0.45, 0.47],
                "spikes_per_side": 7, "spike_len": 0.0028},
-    "serrations": {"spacing": 0.007, "height": 0.0021, "inset": 0.0032, "rgb": [0.72, 0.68, 0.62]},
+    "serrations": {"spacing": 0.005, "height": 0.0016, "base": 0.0009, "inset": 0.0032,
+                   "rgb": [0.34, 0.30, 0.28], "roughness": 0.75},
     "open_deg": 28,
 }
 U_MOUTH, U_TONGUE, U_TEETH = 1 / 6, 0.5, 5 / 6        # strip thirds
@@ -146,7 +147,8 @@ def _add_serrations(bm, uvl, path, point_dir, gape, no, spec, uv):
         inward = centre - p
         inward = (inward - inward.dot(no) * no).normalized()
         c = p + inward * spec["inset"]
-        b = [bm.verts.new(c - tang * 0.0012), bm.verts.new(c + tang * 0.0012), bm.verts.new(c + inward * 0.0012)]
+        bh = spec["base"]
+        b = [bm.verts.new(c - tang * bh), bm.verts.new(c + tang * bh), bm.verts.new(c + inward * bh)]
         apex = bm.verts.new(c + inward * 0.0004 + point_dir * spec["height"])
         faces += [bm.faces.new([b[0], b[1], apex]), bm.faces.new([b[1], b[2], apex]),
                   bm.faces.new([b[2], b[0], apex])]
@@ -251,8 +253,8 @@ def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, tongue, s
         t_rgb = tongue["rgb"] if tongue else mouth_rgb
         _paint_strip(input_image(ob, "Base Color"), rows, [mouth_rgb, t_rgb, serrations["rgb"]])
         orm = input_image(ob, "Roughness")
-        if orm is not None:                                 # AO 1; rough mouth 0.6 / wet tongue 0.35 / teeth 0.45
-            _paint_strip(orm, rows, [[1.0, 0.6, 0.0], [1.0, 0.35, 0.0], [1.0, 0.45, 0.0]])
+        if orm is not None:                                 # AO 1; rough mouth 0.6 / wet tongue 0.35 / matte serrations
+            _paint_strip(orm, rows, [[1.0, 0.6, 0.0], [1.0, 0.35, 0.0], [1.0, serrations["roughness"], 0.0]])
         nrm = input_image(ob, "Normal")
         if nrm is not None:
             _paint_strip(nrm, rows, [[0.5, 0.5, 1.0]] * 3)
