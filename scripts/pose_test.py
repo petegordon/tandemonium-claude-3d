@@ -106,8 +106,8 @@ def pose_neck():
 
 
 def pose_face():
-    rot_local("Jaw", "X", 26)
-    rot_local("Tongue", "X", -20)
+    rot_local("Jaw", "X", -26)        # rig convention: -X opens the jaw
+    rot_local("Tongue", "X", 15)      # +X lifts the tongue
     for s in ("Left", "Right"):
         rot_local(f"{s}EyelidUpper", "X", -28)
         rot_local(f"{s}EyelidLower", "X", 16)

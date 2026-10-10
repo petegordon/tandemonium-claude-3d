@@ -213,6 +213,8 @@ bones = {b.name: [list(map(lambda x: round(x, 4), b.head_local)), list(map(lambd
          for b in arm.bones}
 (ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_rig.json").write_text(json.dumps(
     {"bind_pose": "model rest pose (arms ~30 deg out)", "naming": "Mixamo-style + goose extras",
+     "conventions": {"Jaw": "local -X opens (down)", "Tongue": "local +X lifts, local +Y slides out",
+                     "EyelidUpper": "local -X closes", "EyelidLower": "local +X closes", "Eye": "local Z yaw"},
      "crotch_z": round(float(crotch), 4), "knee_z": round(float(knee_z), 4), "shoulder_z": round(float(shoulder_z), 4),
      "bones": bones}, indent=1))
 print("RIG", len(arm.bones), "bones")

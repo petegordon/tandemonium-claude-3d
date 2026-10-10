@@ -4,7 +4,7 @@
 
 Clips (24 fps, looping, keyed in bone-local rotations so they retarget to any goose that uses
 the standard rig): idle (breathing + small head sway, 2 s), blink (0.5 s), look_around (eyes
-lead, head follows, 3 s), honk (neck stretch, jaw open + tongue lift, 1.25 s).
+lead, head follows, 3 s), honk (neck stretch, jaw open 30 deg, tongue slides forward onto the floor, 1.25 s).
 Each clip is its own action (pushed to an NLA track so the glTF exporter writes them all).
 Writes out/<char>-goose/<char>_goose_rigged.glb (mesh + skin + clips).
 """
@@ -32,11 +32,14 @@ for t in list(rig.animation_data.nla_tracks):
     rig.animation_data.nla_tracks.remove(t)
 
 
-def key(action, frame, bone, rot_deg):
-    """Key a bone's local XYZ Euler rotation (degrees) at frame."""
+def key(action, frame, bone, rot_deg, loc=None):
+    """Key a bone's local XYZ Euler rotation (degrees) and optional local translation at frame."""
     pb = rig.pose.bones[bone]
     pb.rotation_euler = [math.radians(r) for r in rot_deg]
     pb.keyframe_insert("rotation_euler", frame=frame, group=bone)
+    if loc is not None:
+        pb.location = loc
+        pb.keyframe_insert("location", frame=frame, group=bone)
 
 
 def clip(name, length_s, keys):
@@ -45,9 +48,10 @@ def clip(name, length_s, keys):
     rig.animation_data.action = act
     for pb in rig.pose.bones:
         pb.rotation_euler = (0, 0, 0)
+        pb.location = (0, 0, 0)
     for bone, ks in keys.items():
-        for t, rot in ks:
-            key(act, round(t * FPS) + 1, bone, rot)
+        for k in ks:
+            key(act, round(k[0] * FPS) + 1, bone, k[1], k[2] if len(k) > 2 else None)
     act.use_fake_user = True
     track = rig.animation_data.nla_tracks.new()
     track.name = name
@@ -82,11 +86,15 @@ clip("honk", 1.25, {
     "Neck": [(0, Z), (0.3, (-6, 0, 0)), (0.85, (-6, 0, 0)), (1.25, Z)],
     "Neck1": [(0, Z), (0.3, (-5, 0, 0)), (0.85, (-5, 0, 0)), (1.25, Z)],
     "Head": [(0, Z), (0.3, (8, 0, 0)), (0.85, (8, 0, 0)), (1.25, Z)],
-    "Jaw": [(0, Z), (0.3, (24, 0, 0)), (0.5, (16, 0, 0)), (0.7, (26, 0, 0)), (0.95, Z), (1.25, Z)],
-    "Tongue": [(0, Z), (0.3, (-18, 0, 0)), (0.7, (-22, 0, 0)), (0.95, Z), (1.25, Z)],
+    # rig convention: Jaw / Tongue local -X = down (open); +X = up (the bones point forward-down)
+    "Jaw": [(0, Z), (0.3, (-28, 0, 0)), (0.5, (-20, 0, 0)), (0.7, (-30, 0, 0)), (0.95, Z), (1.25, Z)],
+    # tongue slides forward (bone Y = along the tongue) and dips onto the open floor so it reads
+    "Tongue": [(0, Z, (0, 0, 0)), (0.3, (-4, 0, 0), (0, 0.02, 0)), (0.7, (-6, 0, 0), (0, 0.022, 0)),
+               (0.95, Z, (0, 0, 0)), (1.25, Z, (0, 0, 0))],
 })
 for pb in rig.pose.bones:
     pb.rotation_euler = (0, 0, 0)
+    pb.location = (0, 0, 0)
 bpy.ops.wm.save_as_mainfile(filepath=str(BLEND), compress=True)
 
 eyes = [o for o in bpy.data.objects if o.parent is rig and o.parent_type == "BONE"]

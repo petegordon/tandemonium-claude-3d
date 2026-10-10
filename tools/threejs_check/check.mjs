@@ -57,6 +57,26 @@ try {
     snap(clip.name);
     act.stop();
   }
+  // honk close-ups at the widest open (t = 0.7 s) from three angles
+  const honk = gltf.animations.find(c => c.name === "honk");
+  if (honk) {
+    mixer.stopAllAction(); const a = mixer.clipAction(honk); a.reset().play(); mixer.setTime(0.7);
+    const jaw = gltf.scene.getObjectByName("Jaw"); const jp = new THREE.Vector3(); jaw.getWorldPosition(jp);
+    for (const [label, dx, dy, dz] of [["honk side", 0.55, 0.0, 0.0], ["honk front-low", 0.18, -0.12, 0.5], ["honk 3/4", 0.4, 0.05, 0.4],
+                                         ["honk into mouth", 0.12, 0.16, 0.32]]) {
+      cam.position.set(jp.x + dx, jp.y + dy, jp.z + dz); cam.lookAt(jp.x, jp.y - 0.02, jp.z + 0.08); snap(label);
+    }
+    if (location.search.includes("debug")) {      // unlit texture colour, single- vs double-sided
+      const mats = new Map();
+      gltf.scene.traverse(o => { if (o.isSkinnedMesh) mats.set(o, o.material); });
+      for (const [label, side] of [["unlit front-side", THREE.FrontSide], ["unlit double-side", THREE.DoubleSide]]) {
+        for (const [o, m] of mats) o.material = new THREE.MeshBasicMaterial({ map: m.map, side });
+        cam.position.set(jp.x + 0.18, jp.y - 0.12, jp.z + 0.5); cam.lookAt(jp.x, jp.y - 0.02, jp.z + 0.08); snap(label);
+      }
+      for (const [o, m] of mats) o.material = m;
+    }
+    a.stop();
+  }
   out.ok = skinned > 0 && out.clips.length > 0 && Object.values(out.motion).every(m => m.length > 0);
   window.__frames = frames;
 } catch (e) { out.error = String(e && e.stack || e); }
@@ -78,7 +98,7 @@ const port = server.address().port;
 const browser = await puppeteer.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const page = await browser.newPage();
 page.on("console", m => { if (m.type() === "error") console.log("[page]", m.text()); });
-await page.goto(`http://127.0.0.1:${port}/`);
+await page.goto(`http://127.0.0.1:${port}/${process.env.DEBUG ? "?debug" : ""}`);
 await page.waitForFunction("window.__result", { timeout: 120000 });
 const result = await page.evaluate(() => window.__result);
 const frames = await page.evaluate(() => window.__frames || []);

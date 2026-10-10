@@ -35,8 +35,8 @@ DEFAULTS = {
     "half_width": 0.06,              # |x| limit of the bill region (m)
     "z_band": [0.04, 0.06],          # region below / above the mouth line (m)
     "fade_behind_gape": 0.015,       # beak_lower weight fades to 0 over this distance behind the gape
-    "mouth_rgb": [0.30, 0.14, 0.14],
-    "tongue": {"length_frac": 0.6, "half_width": 0.017, "thickness": 0.007, "rgb": [0.78, 0.45, 0.47],
+    "mouth_rgb": [0.56, 0.25, 0.25],      # bright enough to read inside a small, shaded opening
+    "tongue": {"length_frac": 0.6, "half_width": 0.017, "thickness": 0.007, "rgb": [0.95, 0.56, 0.58],
                "spikes_per_side": 7, "spike_len": 0.0028},
     "serrations": {"spacing": 0.005, "height": 0.0016, "base": 0.0009, "inset": 0.0032,
                    "rgb": [0.34, 0.30, 0.28], "roughness": 0.75},

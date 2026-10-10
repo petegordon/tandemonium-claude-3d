@@ -3,7 +3,7 @@
   blender -b --factory-startup --python scripts/retopo_bake.py -- [--char male] \
       [--tris 20000] [--voxel 0.004] [--tex 2048] [--stage all|retopo|bake] \
       [--extrusion 0.04] [--ray-dist 0.1] [--remesher decimate|instant] \
-      [--reserve-rows 16] [--reserve-tris 500]
+      [--reserve-rows 64] [--reserve-tris 500]
 
 retopo: copy hi -> voxel remesh (watertight, fuses gloves/buttons) -> QEM decimate to
         tris - reserve (or --remesher instant: Instant Meshes quads; fuses layered cloth,
@@ -35,7 +35,7 @@ TEX = opt("--tex", 2048, int)
 STAGE = opt("--stage", "all")
 EXTRUSION = opt("--extrusion", 0.04, float)   # bake cage extrusion (m); 0.01 left ray-miss smudges (M4)
 RAY_DIST = opt("--ray-dist", 0.1, float)      # bake max ray distance (m)
-RESERVE_ROWS = opt("--reserve-rows", 16, int)  # top atlas rows kept free (eyes plugin strip)
+RESERVE_ROWS = opt("--reserve-rows", 64, int)  # top atlas rows kept free for game-fix colour strips; 64 so they survive mip blur in-engine
 RESERVE_TRIS = opt("--reserve-tris", 500, int) # tri budget kept for meshes added by game fixes (eyes)
 REMESHER = opt("--remesher", "decimate")      # decimate | instant (M5: IM fuses coat skirt+tail, see PLAN)
 IM_EXE = Path(__file__).resolve().parents[1] / "tools" / "instant-meshes" / "Instant Meshes.exe"
