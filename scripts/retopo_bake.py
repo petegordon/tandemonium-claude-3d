@@ -157,7 +157,11 @@ def instant_meshes(ob, quads):
     for attempt in range(4):
         dst.unlink(missing_ok=True)
         cmd = [str(IM_EXE), str(src), "-o", str(dst), "-f", str(int(f)), "-d", "-r", "4", "-p", "4"]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        try:                                      # IM is a GUI app in batch mode; it can hang
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired:
+            log(f"instant meshes timed out (attempt {attempt + 1}); retrying")
+            continue
         if not dst.exists():
             raise RuntimeError(f"Instant Meshes failed ({r.returncode}): {r.stdout[-500:]} {r.stderr[-500:]}")
         n = sum(1 for line in dst.open() if line.startswith("f "))

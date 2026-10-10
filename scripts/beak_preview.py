@@ -3,7 +3,7 @@
   blender -b --factory-startup --python scripts/beak_preview.py -- --char base [--angles 0,14,28]
 
 Uses the .blend game object (vertex groups don't survive a static GLB). Writes
-renders/<char>_beak_preview.png (rows: side, front 3/4; columns: angles).
+renders/<char>_beak_preview.png (rows: side, front 3/4 from below, front 3/4 from above; columns: angles).
 """
 import math
 import sys
@@ -45,7 +45,7 @@ sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
 sun.data.energy = 3.5
 sc.collection.objects.link(sun)
 target = Vector((0, hinge.y - 0.06, hinge.z))
-views = [Vector((1, 0, 0.05)), Vector((0.6, -0.8, -0.25))]
+views = [Vector((1, 0, 0.05)), Vector((0.6, -0.8, -0.25)), Vector((0.35, -0.8, 0.5))]
 tmp = ROOT / "renders" / "_tmp"
 grid = []
 for vi, d in enumerate(views):

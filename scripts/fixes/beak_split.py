@@ -5,7 +5,7 @@ The generated bill is one closed shape. A plane through the mouth line (from the
 the mouth corners, containing the X axis) cuts the bill in front of the gape; the cut edges
 are split so upper and lower bill separate, but stay joined at the two mouth corners. Each half
 gets a cap over its cut (roof / floor of the mouth) in a mouth colour painted into the
-reserved atlas strip. When the lower bill rotates about the hinge (the line through the two
+reserved atlas strip, and a simple tongue sits on the floor (same strip, tongue colour). When the lower bill rotates about the hinge (the line through the two
 mouth corners) the caps open like a wedge, hinged at the back of the mouth.
 
 Outputs: vertex group "beak_lower" (1 in front of the gape, fading to 0 just behind it so the
@@ -14,6 +14,8 @@ beak_open_deg for the jaw bone.
 
 mouth: {"tip": [y, z], "gape": [y, z]} in metres on the model's centre plane (x = 0).
 """
+import math
+
 import bmesh
 import numpy as np
 from mathutils import Vector
@@ -28,14 +30,17 @@ DEFAULTS = {
     "z_band": [0.04, 0.06],          # region below / above the mouth line (m)
     "fade_behind_gape": 0.015,       # beak_lower weight fades to 0 over this distance behind the gape
     "mouth_rgb": [0.30, 0.14, 0.14],
+    "tongue": {"length_frac": 0.58, "half_width": 0.014, "thickness": 0.0045, "rgb": [0.78, 0.45, 0.47]},
     "open_deg": 28,
 }
 
 
-def _paint_strip(img, rows, rgb):
+def _paint_strip(img, rows, left, right=None):
+    """Fill the reserved top rows: left half `left`, right half `right` (default = left)."""
     px = read_pixels(img)
-    h = px.shape[0]
-    px[h - rows:, :, :3] = rgb
+    h, w = px.shape[:2]
+    px[h - rows:, : w // 2, :3] = left
+    px[h - rows:, w // 2:, :3] = left if right is None else right
     px[h - rows:, :, 3] = 1.0
     write_pixels(img, px)
 
@@ -58,7 +63,45 @@ def _order_chain(edges):
     return path
 
 
-def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, open_deg):
+def _add_tongue(bm, uvl, gape, tip, no, spec, uv):
+    """Tapered, rounded, slightly domed tongue on the mouth floor (its underside on the mouth
+    plane). Hidden inside the closed bill; rides with the lower bill when it opens."""
+    a = (tip - gape).normalized()
+    side = Vector((1, 0, 0))
+    length = (tip - gape).length * spec["length_frac"]
+    w0, th = spec["half_width"], spec["thickness"]
+    n_s, n_r = 9, 10                                  # sections along, points around each section
+    start = 0.06 * (tip - gape).length                 # root a little in front of the hinge
+    rings = []
+    for i in range(n_s + 1):
+        t = i / n_s
+        width = w0 * (1 - 0.45 * t ** 1.6) * (math.sqrt(max(0.0, 1 - ((t - 0.82) / 0.18) ** 2)) if t > 0.82 else 1)
+        height = th * (1 - 0.5 * t)
+        centre = gape + a * (start + length * t) + no * 0.0004
+        ring = []
+        for j in range(n_r):                           # dome on top, flat underside
+            ang = math.pi * j / (n_r - 1)
+            ring.append(bm.verts.new(centre + side * (math.cos(ang) * max(width, 0.0008))
+                                     + no * (math.sin(ang) * height)))
+        rings.append(ring)
+    faces = []
+    for i in range(n_s):
+        for j in range(n_r - 1):
+            faces.append(bm.faces.new([rings[i][j], rings[i + 1][j], rings[i + 1][j + 1], rings[i][j + 1]]))
+        faces.append(bm.faces.new([rings[i][-1], rings[i + 1][-1], rings[i + 1][0], rings[i][0]]))   # underside
+    faces.append(bm.faces.new(rings[0][::-1]))                                                        # root cap
+    faces.append(bm.faces.new(rings[-1]))                                                             # tip cap
+    bmesh.ops.recalc_face_normals(bm, faces=faces)
+    for f in faces:
+        f.smooth = True
+        for lp in f.loops:
+            lp[uvl].uv = uv
+    tri = bmesh.ops.triangulate(bm, faces=[f for f in faces if len(f.verts) > 4])["faces"]
+    verts = {v for r in rings for v in r}
+    return verts, len(faces) + len(tri)
+
+
+def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, tongue, open_deg):
     if mouth is None:
         raise ValueError("beak_split: give mouth={'tip': [y, z], 'gape': [y, z]}")
     ob, me = ctx.ob, ctx.ob.data
@@ -99,9 +142,12 @@ def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, open_deg)
         if f.normal.dot(want) < 0:
             f.normal_flip()
         for lp in f.loops:
-            lp[uvl].uv = (0.5, v_mid)
+            lp[uvl].uv = (0.25, v_mid)
         caps.append(f)
     tri = bmesh.ops.triangulate(bm, faces=caps)["faces"]
+    tongue_verts, tongue_faces = (set(), 0)
+    if tongue:
+        tongue_verts, tongue_faces = _add_tongue(bm, uvl, gape, tip, no, tongue, (0.75, v_mid))
     # bisect leaves n-gons; tangent export (MikkTSpace) needs tris/quads
     bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
     for f in tri:
@@ -114,6 +160,9 @@ def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, open_deg)
     weights = {}
     for v in bm.verts:
         d = (v.co - gape).dot(no)
+        if v in tongue_verts:
+            weights[v.index] = 1.0
+            continue
         if abs(v.co.x) >= half_width or v.co.y > gape.y + fade_behind_gape or d < -z_band[0]:
             continue
         if abs(d) <= 1e-4:
@@ -138,12 +187,12 @@ def apply(ctx, mouth, half_width, z_band, fade_behind_gape, mouth_rgb, open_deg)
     ob["beak_open_deg"] = open_deg
     # mouth colour into the reserved strip (base colour; flat normal; AO 1 / rough 0.6 / metal 0)
     if rows:
-        _paint_strip(input_image(ob, "Base Color"), rows, mouth_rgb)
+        _paint_strip(input_image(ob, "Base Color"), rows, mouth_rgb, tongue["rgb"] if tongue else None)
         orm = input_image(ob, "Roughness")
         if orm is not None:
-            _paint_strip(orm, rows, [1.0, 0.6, 0.0])
+            _paint_strip(orm, rows, [1.0, 0.6, 0.0], [1.0, 0.35, 0.0])          # wet tongue
         nrm = input_image(ob, "Normal")
         if nrm is not None:
             _paint_strip(nrm, rows, [0.5, 0.5, 1.0])
-    return {"cut_edges": len(cut), "cap_tris": len(tri), "lower_verts": int(len(sel)),
+    return {"cut_edges": len(cut), "cap_tris": len(tri), "tongue_faces": tongue_faces, "lower_verts": int(len(sel)),
             "hinge_point": ob["beak_hinge_point"], "corners_x": [round(c.x, 4) for c in corners]}
