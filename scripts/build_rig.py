@@ -85,7 +85,7 @@ for z in np.arange(0.12, 0.45, 0.005) * H:               # top of the dark lower
         knee_z = z
         break
 J["LeftUpLeg"] = centroid(leg(crotch - 0.03))
-J["LeftUpLeg"].z = crotch + 0.01
+J["LeftUpLeg"].z = crotch + 0.06              # hip joint sits inside the pelvis (Pete: was low)
 J["LeftLeg"] = centroid(leg(knee_z))
 ankle_z = 0.07 * H
 J["LeftFoot"] = centroid(leg(ankle_z))
@@ -123,7 +123,7 @@ J["LeftShoulder"] = Vector((0.04, J["LeftArm"].y, J["LeftArm"].z + 0.01))
 
 # ---- spine / neck / head (centre line)
 torso = lambda z: next(s for s in segments(z) if co[s, 0].min() < 0.01 and co[s, 0].max() > -0.01)
-J["Hips"] = Vector((0, centroid(torso(crotch + 0.05)).y, crotch + 0.04))
+J["Hips"] = Vector((0, centroid(torso(crotch + 0.08)).y, crotch + 0.08))
 neck_base = shoulder_z + 0.05
 for k, name in enumerate(("Spine", "Spine1", "Spine2")):
     z = J["Hips"].z + (neck_base - J["Hips"].z) * (k + 1) / 4
@@ -140,7 +140,9 @@ J["HatSocket"] = J["HeadTop_End"].copy()
 # ---- tail: rearmost feather fan
 back = np.where(body & (co[:, 2] > crotch - 0.1) & (co[:, 2] < crotch + 0.2) & (np.abs(co[:, 0]) < 0.08))[0]
 tail_tip = Vector(co[back[np.argmax(co[back, 1])]])
-J["Tail"] = Vector((0, J["Hips"].y + 0.06, J["Hips"].z + 0.03))
+tail_root_z = J["Hips"].z + 0.16                   # where the fan attaches on the back (Pete: was low)
+back_at = np.where(body & (np.abs(co[:, 2] - tail_root_z) < 0.01) & (np.abs(co[:, 0]) < 0.05))[0]
+J["Tail"] = Vector((0, co[back_at, 1].max() - 0.035, tail_root_z))
 J["Tail_End"] = Vector((0, tail_tip.y, tail_tip.z))
 
 # ---- face (from the P1 fix props / eye objects)
