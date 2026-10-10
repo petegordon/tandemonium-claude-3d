@@ -2,7 +2,7 @@
 
   <ComfyUI-claude venv python> scripts/crop_sheet.py <char>
 
-Reads chars/<char>.json "sheet": {"file": "refs/v2/...png", "grid": [cols, rows],
+Cell boundaries snap to drawn divider lines when present. Reads chars/<char>.json "sheet": {"file": "refs/v2/...png", "grid": [cols, rows],
 "views": {"front": 0, "left": 1, "rear": 3, "right_drawn": 2}} (cell index row-major).
 Each cell's figure = union of foreground components bigger than MIN_FRAC of the cell (drops
 the small label letters), padded; written to refs/<char>/<view>_raw.png. Prints per-view figure
@@ -19,6 +19,20 @@ from scipy import ndimage
 ROOT = Path(__file__).resolve().parents[1]
 MIN_FRAC = 0.002
 PAD = 8
+
+
+def _bounds(a, n, axis):
+    """Cell boundaries along one axis: a drawn divider line near each nominal split if there is
+    one (generated sheets put them a few px off-centre), else the even split."""
+    size = a.shape[1] if axis == 1 else a.shape[0]
+    dark = (a.max(-1) < 70).mean(axis=0 if axis == 1 else 1)   # fraction of the line that is dark
+    out = [0]
+    for k in range(1, n):
+        c = int(k * size / n)
+        lo, hi = c - int(0.06 * size), c + int(0.06 * size)
+        seg = dark[lo:hi]
+        out.append(lo + int(np.argmax(seg)) if seg.max() > 0.9 else c)
+    return out + [size]
 
 
 def figure_box(fg):
@@ -43,14 +57,14 @@ def main(char):
     a = np.asarray(img).astype(np.float32)
     h, w, _ = a.shape
     cols, rows = cfg["grid"]
-    cw, ch = w / cols, h / rows
+    xs, ys = _bounds(a, cols, 1), _bounds(a, rows, 0)
     out = ROOT / "refs" / char
     out.mkdir(parents=True, exist_ok=True)
     report = {}
     for view, cell in cfg["views"].items():
         cx, cy = cell % cols, cell // cols
-        x0, y0 = int(cx * cw) + 4, int(cy * ch) + 4          # skip the white gutters
-        x1, y1 = int((cx + 1) * cw) - 4, int((cy + 1) * ch) - 4
+        x0, y0 = xs[cx] + 6, ys[cy] + 6                    # skip gutters / drawn divider lines
+        x1, y1 = xs[cx + 1] - 6, ys[cy + 1] - 6
         c = a[y0:y1, x0:x1]
         bg = np.median(np.concatenate([c[:, -6:].reshape(-1, 3), c[-6:].reshape(-1, 3)]), 0)
         fg = np.abs(c - bg).max(-1) > 30

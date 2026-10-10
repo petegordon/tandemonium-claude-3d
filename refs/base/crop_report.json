@@ -1,48 +1,48 @@
 {
  "front": {
   "box": [
-   63,
-   4,
-   436,
-   493
+   53,
+   18,
+   475,
+   742
   ],
-  "fig_h": 476,
-  "fig_w": 357,
+  "fig_h": 708,
+  "fig_w": 406,
   "touches_edge": false,
-  "lr_symmetry_iou": 0.936
+  "lr_symmetry_iou": 0.86
  },
  "left": {
   "box": [
-   676,
-   4,
+   643,
+   18,
    900,
-   494
+   741
   ],
-  "fig_h": 476,
-  "fig_w": 208,
-  "touches_edge": false
- },
- "right_drawn": {
-  "box": [
-   1149,
-   4,
-   1375,
-   494
-  ],
-  "fig_h": 476,
-  "fig_w": 210,
+  "fig_h": 707,
+  "fig_w": 241,
   "touches_edge": false
  },
  "rear": {
   "box": [
-   64,
-   516,
-   441,
-   997
+   55,
+   776,
+   471,
+   1496
   ],
-  "fig_h": 469,
-  "fig_w": 361,
+  "fig_h": 704,
+  "fig_w": 400,
   "touches_edge": false
  },
- "_height_spread_pct": 1.5
+ "right_drawn": {
+  "box": [
+   618,
+   777,
+   874,
+   1503
+  ],
+  "fig_h": 710,
+  "fig_w": 240,
+  "touches_edge": false
+ },
+ "_height_spread_pct": 0.8
 }

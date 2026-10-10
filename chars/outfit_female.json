@@ -1,9 +1,20 @@
 {
   "char": "outfit_female",
-  "sheet": {"file": "refs/v2/female-character-turnaround.png", "grid": [3, 2],
-            "views": {"front": 0, "left": 1, "rear": 2, "tpose_front": 3, "apose_front": 4, "riding_34": 5}},
+  "sheet": {
+    "file": "refs/v3/female-character-turnaround.png",
+    "grid": [
+      2,
+      2
+    ],
+    "views": {
+      "front": 0,
+      "left": 1,
+      "rear": 2,
+      "right_drawn": 3
+    }
+  },
   "height_m": null,
   "yaw_steps": 0,
   "fixes": [],
-  "notes": "Clothed female outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m."
+  "notes": "Clothed female outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m. Sheet: refs/v3 (2x2, arms fixed so all views agree)."
 }

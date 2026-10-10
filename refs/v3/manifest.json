@@ -1,0 +1,98 @@
+{
+  "version": 3,
+  "generator": "built-in image_gen",
+  "source": {
+    "file": "source-reference.png",
+    "original_path": "C:\\Users\\pete\\AppData\\Local\\Temp\\codex-clipboard-b6128cb7-8fde-4b35-a256-790b7e6fbad7.png",
+    "sha256": "4D5B89EF6C66DC49AC7557F02DB03A60B48F5BD6508E9D4FE65A3E05902B8069",
+    "byte_identical_to_original": true
+  },
+  "shared_body_design": true,
+  "same_3d_mesh_rendered": false,
+  "requested_pose": "straight arms 30 degrees laterally from vertical, no elbow bend, hands beside hips, feet flat",
+  "camera_calibrated": false,
+  "qa": {
+    "visual_review_completed": true,
+    "exact_geometric_consistency_verified": false,
+    "remaining_limitations": [
+      "Small residual joint/proportion and accessory variations",
+      "Approximate panel divider and floor registration",
+      "Bicycle axial/profile height registration remains approximate"
+    ]
+  },
+  "sheets": [
+    {
+      "file": "mannequin-turnaround.png",
+      "width": 1024,
+      "height": 1536,
+      "grid": {
+        "columns": 2,
+        "rows": 2
+      },
+      "panel_order": [
+        "FRONT",
+        "LEFT",
+        "REAR",
+        "RIGHT"
+      ],
+      "generated_file": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-c3f8996d-15bc-4b2b-8d13-b68bd6c563af.png",
+      "sha256": "16B28897F78EC498533F7A538B8058C4F2A95C6B9468296243E60BF6FB4494CC",
+      "dimensions_verified": true
+    },
+    {
+      "file": "male-character-turnaround.png",
+      "width": 1024,
+      "height": 1536,
+      "grid": {
+        "columns": 2,
+        "rows": 2
+      },
+      "panel_order": [
+        "FRONT",
+        "LEFT",
+        "REAR",
+        "RIGHT"
+      ],
+      "generated_file": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-2e40cbf1-bf13-445c-b79d-13038ef80324.png",
+      "sha256": "374C0F0F1BA145638414C0E438737517692ED9CAFEF7E83F5E1CEBDEC7802BAF",
+      "dimensions_verified": true
+    },
+    {
+      "file": "female-character-turnaround.png",
+      "width": 1024,
+      "height": 1536,
+      "grid": {
+        "columns": 2,
+        "rows": 2
+      },
+      "panel_order": [
+        "FRONT",
+        "LEFT",
+        "REAR",
+        "RIGHT"
+      ],
+      "generated_file": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-62c303e9-1a42-4b5b-9975-cfef13867a2e.png",
+      "sha256": "1CD015B4F972EAF3827E250289B837A414940F8292E991E6D951FA1CA16AA118",
+      "dimensions_verified": true
+    },
+    {
+      "file": "bicycle-turnaround.png",
+      "width": 1536,
+      "height": 1024,
+      "grid": {
+        "columns": 2,
+        "rows": 2
+      },
+      "panel_order": [
+        "LEFT",
+        "RIGHT",
+        "FRONT",
+        "REAR"
+      ],
+      "generated_file": "C:\\Users\\pete\\.codex\\generated_images\\01a12242-a6f0-7b73-afec-19b43fde387d\\exec-3d6d58e2-a68b-4468-b4c7-790182a787a6.png",
+      "sha256": "460646944CE947EB62C2C055599279874C3D58B8F03659EFA708A9A51E5974F1",
+      "dimensions_verified": true
+    }
+  ],
+  "prompt_count": 11
+}

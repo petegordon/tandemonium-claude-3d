@@ -1,70 +1,48 @@
 {
  "front": {
   "box": [
-   75,
-   4,
-   413,
-   497
+   56,
+   6,
+   466,
+   751
   ],
-  "fig_h": 483,
-  "fig_w": 322,
+  "fig_h": 733,
+  "fig_w": 394,
   "touches_edge": false,
-  "lr_symmetry_iou": 0.826
+  "lr_symmetry_iou": 0.888
  },
  "left": {
   "box": [
-   644,
-   4,
-   895,
-   498
+   655,
+   6,
+   961,
+   751
   ],
-  "fig_h": 484,
-  "fig_w": 235,
+  "fig_h": 733,
+  "fig_w": 290,
   "touches_edge": false
  },
  "rear": {
   "box": [
-   1129,
-   4,
-   1460,
-   499
+   58,
+   765,
+   465,
+   1508
   ],
-  "fig_h": 485,
-  "fig_w": 315,
+  "fig_h": 727,
+  "fig_w": 391,
   "touches_edge": false
  },
- "tpose_front": {
+ "right_drawn": {
   "box": [
-   4,
-   516,
-   500,
-   999
+   588,
+   765,
+   896,
+   1512
   ],
-  "fig_h": 473,
-  "fig_w": 480,
+  "fig_h": 735,
+  "fig_w": 292,
   "touches_edge": false
  },
- "apose_front": {
-  "box": [
-   571,
-   516,
-   951,
-   998
-  ],
-  "fig_h": 472,
-  "fig_w": 364,
-  "touches_edge": false
- },
- "riding_34": {
-  "box": [
-   1141,
-   516,
-   1441,
-   1008
-  ],
-  "fig_h": 481,
-  "fig_w": 284,
-  "touches_edge": false
- },
- "_height_spread_pct": 2.7
+ "_height_spread_pct": 1.1
 }
