@@ -37,89 +37,20 @@ for v in me.vertices:
     dominant.append(max(ws)[1] if ws else "-")
 
 
-def reset():
-    for pb in pbs:
-        pb.rotation_mode = "XYZ"
-        pb.matrix_basis = Matrix.Identity(4)
-    bpy.context.view_layer.update()
+sys.path.insert(0, str(Path(__file__).parent))
+from rig_poses import Poser  # noqa: E402
 
-
-def aim(name, direction, twist_up=None):
-    """Rotate bone so it points along `direction` (armature space), keeping its head."""
-    pb = pbs[name]
-    bpy.context.view_layer.update()
-    cur = pb.matrix.copy()
-    d = Vector(direction).normalized()
-    R = cur.to_3x3().col[1].normalized().rotation_difference(d).to_matrix()
-    new = (R @ cur.to_3x3()).to_4x4()
-    new.translation = cur.translation
-    pb.matrix = new
-    bpy.context.view_layer.update()
-
-
-def rot_local(name, axis, deg):
-    pb = pbs[name]
-    pb.rotation_euler["XYZ".index(axis)] += math.radians(deg)
-    bpy.context.view_layer.update()
-
-
-def bone_dir(name):
-    b = rig.data.bones[name]
-    return (b.tail_local - b.head_local).normalized()
-
-
-def mirror(v):
-    return Vector((-v[0], v[1], v[2]))
-
-
-def pose_t():
-    for s, sx in (("Left", 1), ("Right", -1)):
-        aim(f"{s}Arm", (sx, 0, 0))
-        aim(f"{s}ForeArm", (sx, 0, 0))
-        aim(f"{s}Hand", (sx, 0, -0.15))
-
-
-def pose_a():
-    for s, sx in (("Left", 1), ("Right", -1)):
-        d = (sx * math.cos(math.radians(45)), 0, -math.sin(math.radians(45)))
-        aim(f"{s}Arm", d)
-        aim(f"{s}ForeArm", d)
-        aim(f"{s}Hand", d)
-
-
-def pose_riding():
-    rot_local("Spine", "X", 8)
-    rot_local("Spine1", "X", 6)
-    for s, sx in (("Left", 1), ("Right", -1)):
-        aim(f"{s}UpLeg", (sx * 0.12, -1.0, -0.25))
-        aim(f"{s}Leg", (0, 0.15 if s == "Left" else -0.05, -1.0))
-        aim(f"{s}Foot", (0, -1, -0.25))
-        aim(f"{s}Arm", (sx * 0.25, -0.7, -0.45))
-        aim(f"{s}ForeArm", (sx * 0.1, -1.0, -0.1))
-        aim(f"{s}Hand", (0, -1, -0.3))
-
-
-def pose_neck():
-    for n, deg in (("Neck", -12), ("Neck1", 10), ("Neck2", 16), ("Neck3", 10)):
-        rot_local(n, "X", deg)
-    rot_local("Head", "Y", 30)
-
-
-def pose_face():
-    rot_local("Jaw", "X", -26)        # rig convention: -X opens the jaw
-    rot_local("Tongue", "X", 15)      # +X lifts the tongue
-    for s in ("Left", "Right"):
-        rot_local(f"{s}EyelidUpper", "X", -28)
-        rot_local(f"{s}EyelidLower", "X", 16)
-        rot_local(f"{s}Eye", "Z", 12)
+poser = Poser(rig)
+reset = poser.reset
+POSE_FNS = {"t_pose": poser.t_pose, "a_pose": poser.a_pose, "riding": poser.riding,
+            "neck_curve": poser.neck_curve, "honk_blink": poser.honk_blink}
 
 
 for o in bpy.data.objects:                                # only the game mesh + its eye parts render
     if o.type == "MESH":
         o.hide_render = not (o is g or (o.name.split("_")[0] in ("eyeball", "lid", "catchlight")
                                         and o.name[-2:] in ("_L", "_R")))
-POSES = [("rest", None), ("t_pose", pose_t), ("a_pose", pose_a), ("riding", pose_riding),
-         ("neck_curve", pose_neck), ("honk_blink", pose_face)]
+POSES = [("rest", None)] + list(POSE_FNS.items())
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
 sc.render.resolution_x, sc.render.resolution_y = 480, 640

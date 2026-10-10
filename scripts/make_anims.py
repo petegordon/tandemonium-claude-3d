@@ -92,6 +92,25 @@ clip("honk", 1.25, {
     "Tongue": [(0, Z, (0, 0, 0)), (0.3, (-4, 0, 0), (0, 0.02, 0)), (0.7, (-6, 0, 0), (0, 0.022, 0)),
                (0.95, Z, (0, 0, 0)), (1.25, Z, (0, 0, 0))],
 })
+# one-frame reference poses (shared with pose_test.py) as "pose_*" clips
+sys.path.insert(0, str(Path(__file__).parent))
+from rig_poses import POSES, Poser  # noqa: E402
+poser = Poser(rig)
+for pname in POSES:
+    act = bpy.data.actions.new(f"pose_{pname}")
+    rig.animation_data.action = act
+    poser.reset()
+    getattr(poser, pname)()
+    for pb in rig.pose.bones:
+        for f in (1, 2):
+            pb.keyframe_insert("rotation_euler", frame=f, group=pb.name)
+    act.use_fake_user = True
+    track = rig.animation_data.nla_tracks.new()
+    track.name = act.name
+    track.strips.new(act.name, 1, act)
+    track.mute = True
+    rig.animation_data.action = None
+poser.reset()
 for pb in rig.pose.bones:
     pb.rotation_euler = (0, 0, 0)
     pb.location = (0, 0, 0)

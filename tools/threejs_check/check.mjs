@@ -77,7 +77,24 @@ try {
     }
     a.stop();
   }
-  out.ok = skinned > 0 && out.clips.length > 0 && Object.values(out.motion).every(m => m.length > 0);
+  // full-body sheet of the one-frame pose_* clips (front, side, 3/4) -> window.__poseFrames
+  const poseClips = gltf.animations.filter(c => c.name.startsWith("pose_"));
+  const poseFrames = [];
+  const center = box.getCenter(new THREE.Vector3());
+  for (const view of [[0, 1], [1, 0], [0.7, 0.7]]) {
+    for (const clip of [null, ...poseClips]) {
+      mixer.stopAllAction();
+      if (clip) { const a = mixer.clipAction(clip); a.reset().play(); }
+      mixer.setTime(0.01);
+      cam.position.set(center.x + view[0] * 4.2, center.y + 0.1, center.z + view[1] * 4.2);
+      cam.lookAt(center.x, center.y, center.z);
+      renderer.render(scene, cam);
+      poseFrames.push({ label: (clip ? clip.name.slice(5) : "rest"), url: renderer.domElement.toDataURL("image/png") });
+    }
+  }
+  window.__poseFrames = poseFrames; out.poses = poseClips.map(c => c.name);
+  out.ok = skinned > 0 && out.clips.length > 0 &&
+    Object.entries(out.motion).every(([k, m]) => k.startsWith("pose_") || m.length > 0);
   window.__frames = frames;
 } catch (e) { out.error = String(e && e.stack || e); }
 window.__result = out;
@@ -113,6 +130,21 @@ if (frames.length) {
   }, frames);
   fs.writeFileSync(shot, Buffer.from(stitched.split(",")[1], "base64"));
   result.screenshot = shot;
+}
+const poseFrames = await page.evaluate(() => window.__poseFrames || []);
+if (poseFrames.length) {
+  const per = poseFrames.length / 3;
+  const sheet = await page.evaluate(async (fr, per) => {
+    const imgs = await Promise.all(fr.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = f.url; })));
+    const c = document.createElement("canvas"); c.width = 360 * per; c.height = 480 * 3;
+    const g = c.getContext("2d"); imgs.forEach((im, k) => { const col = k % per, row = Math.floor(k / per);
+      g.drawImage(im, col * 360, row * 480); g.fillStyle = "#fff"; g.font = "22px sans-serif";
+      if (row === 0) g.fillText(fr[k].label, col * 360 + 10, 28); });
+    return c.toDataURL("image/png");
+  }, poseFrames, per);
+  const posePath = shot.replace(/\.png$/, "_poses.png");
+  fs.writeFileSync(posePath, Buffer.from(sheet.split(",")[1], "base64"));
+  result.pose_sheet = posePath;
 }
 console.log("THREEJS", JSON.stringify(result, null, 1));
 await browser.close();
