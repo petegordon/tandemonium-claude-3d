@@ -96,7 +96,7 @@ front-facing heads, soft even light, one shared body, clothed views drawn over t
 |---|---|---|
 | P5.1 | Seated riding pose from the rig (captain front, stoker rear) vs `mannequin-poses.png` riding row + assembly sheet. | Contact distances. |
 | P5.2 | Coat-tail + skirt weighting through the pedalling range (D4). | No mesh breaking. |
-| P5.3 | Pedal (crank-driven leg IK, 180° out of phase) + lean (captain/stoker independent). | Loop renders. |
+| P5.3 | Pedal (crank-driven leg IK, 180° out of phase -- D15, Pete: players alternate) + lean (captain/stoker independent). | Loop renders. |
 | P5.4 | **Game integration**: replace the fused Track 1 riders behind *Show Riders*; outfits + colours selectable; versus clones. | In-game check by Pete. |
 
 ## P6 — Delivery

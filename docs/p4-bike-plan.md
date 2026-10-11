@@ -1,6 +1,6 @@
 # P4/P5 plan: the tandem, pedalling and leaning geese
 
-Status: **draft for Pete's review** (2026-10-11). Nothing in here is built yet. Start the new session from this
+Status: **approved with Pete's answers (2026-10-11, section 3a)**. Nothing in here is built yet. Start the new session from this
 file and `RESUME.md`.
 
 ## 1. The two candidates
@@ -128,6 +128,17 @@ Then game integration on a branch in the tandemonium repo:
    bars fixed? (It's a mechanic, so it's your call.)
 5. **Delivery:** separate GLBs with sockets *(recommended)* or one combined GLB?
 6. **Triangle budget for the bike:** keep 58.7k, or decimate spokes and tyres toward about 25k?
+
+## 3a. Pete's answers (2026-10-11) — decisions D13–D18
+
+| # | Decision |
+|---|---|
+| D13 | **Bike source:** the game's `tandem_bicycle.glb`. Keep every mesh name, because the colour presets and `bike-model.js` depend on them. |
+| D14 | **Seating:** male captain in front, female stoker behind. |
+| D15 | **Pedal phase: 180° out of phase.** Pete has always had the players alternating. This also matches the game: each player's tap is their own leg's push. Captain crank = θ, stoker crank = θ + π. The two chainrings stay linked by the timing chain with a half-turn offset, so it is still a plausible tandem setup. |
+| D16 | **Handlebars fixed for now.** First pass is lean and pedalling only. No steering bone animation; a `Steer` pivot is still measured so it can be added later. |
+| D17 | **Delivery:** a separate rigged bike GLB with sockets. The geese attach at runtime. |
+| D18 | **Bike budget: below 30k tris** (from 58.7k). Decimate the tyres, rims, spokes, chainrings and frame tubes. Keep the silhouette and the mesh names: decimate each mesh in place. |
 
 ## 4. Facts for the new session
 
