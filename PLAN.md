@@ -687,4 +687,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   hidden only where it ends up *outside* the breeches (inward ray ≤ 4 cm; no flat hide line → no jagged hem).
   Breeches seat: the tail hole (257 mm rim) is capped on a quadric fitted to the surrounding seat, subdivided and
   relaxed, rim band blended outward only → no flat patch. Faces oriented outward consistently. Validator 0/0, three.js ok.
+- **Round cuffs (Pete: cuffs too long, shrink-wrapped over the palm)** — cuff ends at the visible wrist (feather line,
+  no extra offset); inside the 4.5 cm cuff band the sleeve is rebuilt as a round tube around the axis through the
+  sleeve's own centroid at the cuff top (the bone runs off-centre), radius = sleeve radius there + 7 mm (≈ 41 mm),
+  blended back to the fitted sleeve over 4 cm. The old extracted gloves' ragged cuff still overlaps it.
 

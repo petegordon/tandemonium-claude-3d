@@ -396,7 +396,7 @@
       "rise_y0": -0.1,
       "tris": 3200,
       "cuff": 0.045,
-      "wrist_offset": 0.045,
+      "wrist_offset": 0.0,
       "cover_margin": 0.012,
       "ease": {
         "torso": 0.007,
@@ -435,7 +435,8 @@
         "margin": 0.012,
         "hide": false
       },
-      "hem_zone": 0.14
+      "hem_zone": 0.14,
+      "cuff_clear": 0.007
     }
   },
   "accessory_drop": {

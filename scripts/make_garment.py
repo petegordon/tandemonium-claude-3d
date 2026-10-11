@@ -593,6 +593,31 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
+if KIND == "shirt":
+    # cuffs are round tubes around the wrist, not shrink-wrapped over the hand: inside the cuff band each
+    # vertex goes to the forearm axis + one radius per side (largest wrist radius + clearance), blended
+    # back to the fitted sleeve over "cuff_blend" above the cuff
+    cuff = R.get("cuff", 0.045)
+    for s_, sg in SIDES:
+        co_, dd_ = WRIST[sg]
+        on = (P[:, 0] * sg > 0.2) & (dwr < cuff + R.get("cuff_blend", 0.04))
+        if not on.any():
+            continue
+        # axis through the centroid of the sleeve ring at the cuff top (the bone runs off-centre)
+        top = on & (np.abs(dwr - cuff) < 0.008)
+        rel0 = Pm[top] - co_
+        cen = co_ + (rel0 - np.outer(rel0 @ dd_, dd_)).mean(0)
+        rel = Pm[on] - cen
+        along = rel @ dd_
+        radial = rel - along[:, None] * dd_
+        rr = np.linalg.norm(radial, axis=1)
+        rtop = np.linalg.norm(rel0 - np.outer(rel0 @ dd_, dd_) - (cen - co_), axis=1)
+        r_cuff = float(np.median(rtop)) + R.get("cuff_clear", 0.004)    # the sleeve's own radius at the wrist
+        w_ = np.clip(1 - (dwr[on] - cuff) / R.get("cuff_blend", 0.04), 0, 1)
+        w_ = w_ * w_ * (3 - 2 * w_)
+        tgt = cen + along[:, None] * dd_ + radial / np.maximum(rr, 1e-6)[:, None] * r_cuff
+        Pm[on] = Pm[on] * (1 - w_[:, None]) + tgt * w_[:, None]
+        log("cuff", s_, "radius mm", round(r_cuff * 1000, 1))
 mid.data.vertices.foreach_set("co", Pm.ravel())
 mid.data.update()
 mid.name = mid.data.name = f"{PIECE}_mid"
