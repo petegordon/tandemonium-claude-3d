@@ -189,3 +189,24 @@ Then game integration on a branch in the tandemonium repo:
 - `n.includes('pedal')` would also catch the new `Pedal_*` bones and `PedalPin_*` sockets and spin them; with the rigged bike
   the cranks should be driven by the `Pedal` clip instead.
 - `isRiders = animations.length > 0` would treat the rigged bike as the old riders GLB (yaw + lean setup); needs its own check.
+
+## 6. Pete's answers at the P4.1 gate (2026-10-11) — D19-D21
+
+| # | Decision |
+|---|---|
+| D19 | **Drivetrain side:** Claude's call -> keep the model as is (drive chain on the rider's left). Mirroring would also mirror the texture detail, and the game already shows it this way. |
+| D20 | **True size:** the game sizes the rigged bike by its true (precise) bounds. **Riding harness** in this repo only (`tools/ride_harness/`), nothing else from the game comes over. |
+| D21 | **Game code at integration** (Claude's call): detect the rigged bike by its `Pedal` clip; then drive cranks from the clip (no `includes('pedal')` spin), skip the old riders yaw / lean setup, scale with `setFromObject(model, true)`. |
+
+## 7. P4.2 scale + fit (2026-10-11): the goose's legs set the bike size
+
+`ride_fit.py --scales auto,0.8,1.0 --tag p42` + `fit_sheet.py` -> `docs/img/p42_fit.png`.
+- The male's leg is short for his height (thigh + shin 0.60 m, hip joint 0.72 m, standing 1.70 m with the hat). Seated with the
+  hip joints 0.11 m above the saddle, the foot reaches the bottom pedal with a slight knee bend (reach 0.95) only at
+  **k = 0.627**: wheel 45 cm (18 in), bike 1.71 m, saddle 0.69 m. The saddles can't drop (springs sit 2.5 cm above the top tube).
+- At that size the grips (0.66 m) are far below his shoulders: bars raised **24 cm** on a quill along the steer axis, 15 deg lean.
+- The assembly sheet draws a 28 in wheel at goose scale (eye-to-bill length -> wheel ~ 71 cm) but its boots stop at crank
+  height: it isn't physically consistent. At k = 0.8 the foot misses the bottom pedal by 14 cm, at k = 1.0 by 33 cm.
+- **Open for Pete:** the bike size (or longer legs while riding), see the gate options.
+
+Harness: `node tools/ride_harness/serve.mjs` -> http://127.0.0.1:8190/?k=0.627 (A / L pedal, Q/E and U/O lean, 1-4 cameras).

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ride Harness</title>
+<style>
+  :root { --ink: #1d1d1b; --panel: rgba(255, 255, 255, 0.86); --accent: #8a4b18; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #cfd6d9; font: 14px/1.4 system-ui, sans-serif; color: var(--ink); }
+  #hud { position: fixed; left: 12px; top: 12px; background: var(--panel); padding: 10px 14px; border-radius: 8px; max-width: 360px; }
+  #hud h1 { font-size: 15px; margin: 0 0 6px; }
+  #hud kbd { background: #eee; border: 1px solid #bbb; border-radius: 3px; padding: 0 4px; font-size: 12px; }
+  #hud .row { display: flex; justify-content: space-between; gap: 12px; }
+  #hud .warn { color: #a01010; }
+  #stats { margin-top: 6px; font-variant-numeric: tabular-nums; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="hud">
+  <h1>Ride harness</h1>
+  <div><kbd>A</kbd> captain pedal · <kbd>L</kbd> stoker pedal (alternate them)</div>
+  <div><kbd>Q</kbd>/<kbd>E</kbd> captain lean · <kbd>U</kbd>/<kbd>O</kbd> stoker lean · <kbd>S</kbd> brake</div>
+  <div><kbd>1</kbd> chase · <kbd>2</kbd> side · <kbd>3</kbd> front · <kbd>4</kbd> orbit (drag) · <kbd>R</kbd> reset</div>
+  <div id="stats"></div>
+  <div id="msgs"></div>
+</div>
+<script type="module">
+// Riding test harness (P5): the rigged bike (out/bike/bike_rigged.glb) at bike scale k, geese seated on its
+// sockets at their own size (D1). Bike clips: Pedal (time = crank / 2pi), WheelSpin (time = distance / circumference).
+// Goose clips used when present: Pedal_Captain / Pedal_Stoker (time = crank / 2pi; stoker is half a turn on, D15),
+// Lean_L / Lean_R (weights from that rider's lean); otherwise the old one-frame pose_riding clip.
+// URL: ?k=0.627&captain=out/outfit_male-goose/outfit_male_dressed.glb&stoker=<glb>&hipup=0.11
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const P = new URLSearchParams(location.search);
+const K = +(P.get("k") || 0.627);
+const HIP_UP = +(P.get("hipup") || 0.11);
+const RIDERS = { Captain: P.has("captain") ? P.get("captain") : "out/outfit_male-goose/outfit_male_dressed.glb",
+                 Stoker: P.get("stoker") || "" };
+const WHEEL_M = 0.7112 * K;
+const HIP_MID = new THREE.Vector3(0, 0.717, -0.025);       // goose rest hip-joint midpoint (glTF axes)
+const msgs = document.getElementById("msgs");
+const note = (t, warn) => { const d = document.createElement("div"); d.textContent = t; if (warn) d.className = "warn"; msgs.appendChild(d); };
+
+// ---- scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfd6d9);
+scene.fog = new THREE.Fog(0xcfd6d9, 40, 140);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x556655, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(6, 10, 4); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 0.5, far: 40 });
+scene.add(sun, sun.target);
+const tex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "#8fa37e"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#86996f";
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) if ((i + j) % 2) g.fillRect(i * 32, j * 32, 32, 32);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(200, 200);
+  t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ map: tex, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(4, 800), new THREE.MeshStandardMaterial({ color: 0x9a9183, roughness: 1 }));
+road.rotation.x = -Math.PI / 2; road.position.y = 0.01; road.receiveShadow = true; scene.add(road);
+for (let z = -400; z < 400; z += 6) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 2.5), new THREE.MeshBasicMaterial({ color: 0xf2efe6 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(0, 0.015, z); scene.add(m);
+}
+
+// ---- bike rig: yaw node (position + heading) > roll node (lean about the contact line) > scale node (k)
+const yawNode = new THREE.Group(), rollNode = new THREE.Group(), kNode = new THREE.Group();
+kNode.scale.setScalar(K); yawNode.add(rollNode); rollNode.add(kNode); scene.add(yawNode);
+const loader = new GLTFLoader();
+const state = { crank: 0, crankTarget: 0, dist: 0, v: 0, heading: 0, x: 0, z: 0,
+                lean: { Captain: 0, Stoker: 0 }, leanT: { Captain: 0, Stoker: 0 } };
+let bike = null; const riders = {};
+
+function scrub(mixer, clip) { const a = mixer.clipAction(clip); a.play(); a.paused = true; return a; }
+function setTime(action, frac) { if (action) action.time = ((frac % 1) + 1) % 1 * action.getClip().duration; }
+
+loader.load("/out/bike/bike_rigged.glb", (g) => {
+  g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  kNode.add(g.scene);
+  const mixer = new THREE.AnimationMixer(g.scene);
+  const clip = n => g.animations.find(c => c.name === n);
+  bike = { root: g.scene, mixer, pedal: clip("Pedal") && scrub(mixer, clip("Pedal")),
+           wheels: clip("WheelSpin") && scrub(mixer, clip("WheelSpin")) };
+  note(`bike: k = ${K} -> ${(2.722 * K).toFixed(2)} m long, wheel ${(WHEEL_M * 100).toFixed(0)} cm`);
+  for (const [seat, url] of Object.entries(RIDERS)) if (url) loadRider(seat, url);
+}, undefined, () => note("missing out/bike/bike_rigged.glb (run scripts/make_bike.py)", true));
+
+function loadRider(seat, url) {
+  loader.load("/" + url, (g) => {
+    const socket = bike.root.getObjectByName("Seat_" + seat);
+    if (!socket) { note("bike has no Seat_" + seat, true); return; }
+    g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.name.includes("__")) o.visible = false; } });
+    // the socket lives inside the k-scaled bike: undo k so the goose keeps its own size (D1)
+    g.scene.scale.setScalar(1 / K);
+    g.scene.position.copy(new THREE.Vector3(0, HIP_UP, 0).sub(HIP_MID)).multiplyScalar(1 / K);
+    socket.add(g.scene);
+    const mixer = new THREE.AnimationMixer(g.scene);
+    const clip = n => g.animations.find(c => c.name === n);
+    const r = { mixer, pedal: clip("Pedal_" + seat) && scrub(mixer, clip("Pedal_" + seat)), leanL: null, leanR: null };
+    if (clip("Lean_L")) { r.leanL = mixer.clipAction(clip("Lean_L")); r.leanL.play(); }
+    if (clip("Lean_R")) { r.leanR = mixer.clipAction(clip("Lean_R")); r.leanR.play(); }
+    if (!r.pedal && clip("pose_riding")) { scrub(mixer, clip("pose_riding")); note(`${seat}: no Pedal_${seat} clip yet -> static pose_riding`); }
+    riders[seat] = r;
+    note(`${seat}: ${url.split("/").pop()}`);
+  }, undefined, () => note(`missing ${url}`, true));
+}
+
+// ---- input
+const keys = new Set();
+addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (e.repeat) return;
+  keys.add(k);
+  if (k === "a" || k === "l") {                        // a tap = a quarter turn + a push (D15: players alternate)
+    const alt = state.lastTap && state.lastTap !== k;
+    state.crankTarget += Math.PI / 2;
+    state.v = Math.min(9, state.v + (alt ? 0.55 : 0.3));
+    state.lastTap = k; state.lastTapAt = performance.now();
+  }
+  if (k === "r") Object.assign(state, { v: 0, x: 0, z: 0, heading: 0, dist: 0 });
+  if ("1234".includes(k)) camMode = +k;
+});
+addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+// ---- cameras
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 400);
+camera.position.set(4, 2, -4);
+const orbit = new OrbitControls(camera, renderer.domElement);
+orbit.enabled = false;
+let camMode = 1;
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+// ---- loop
+const clock = new THREE.Clock();
+const stats = document.getElementById("stats");
+const tmp = new THREE.Vector3();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(0.05, clock.getDelta());
+  // speed: drag, brake; coasting keeps the crank turning slowly with the wheels
+  state.v *= Math.exp(-(keys.has("s") ? 2.5 : 0.18) * dt);
+  if (state.v < 0.02) state.v = 0;
+  if (performance.now() - (state.lastTapAt || 0) > 1200) state.crankTarget += state.v * dt * 1.2;
+  state.crank += (state.crankTarget - state.crank) * Math.min(1, 18 * dt);
+  // lean: each rider by their own keys; the bike tilts by the sum and steers by the tilt
+  state.leanT.Captain = (keys.has("e") ? 1 : 0) - (keys.has("q") ? 1 : 0);
+  state.leanT.Stoker = (keys.has("o") ? 1 : 0) - (keys.has("u") ? 1 : 0);
+  for (const s of ["Captain", "Stoker"]) state.lean[s] += (state.leanT[s] - state.lean[s]) * Math.min(1, 6 * dt);
+  const tilt = (state.lean.Captain + state.lean.Stoker) / 2 * THREE.MathUtils.degToRad(22);
+  state.heading -= tilt * Math.min(state.v, 6) * 0.35 * dt;
+  state.x += Math.sin(state.heading) * state.v * dt;
+  state.z += Math.cos(state.heading) * state.v * dt;
+  state.dist += state.v * dt;
+  yawNode.position.set(state.x, 0, state.z);
+  yawNode.rotation.y = state.heading;
+  rollNode.rotation.z = tilt;                          // + = lean right (rider's right = -X)
+  if (bike) {
+    setTime(bike.pedal, state.crank / (2 * Math.PI));
+    setTime(bike.wheels, state.dist / (Math.PI * WHEEL_M));
+    bike.mixer.update(0);
+  }
+  for (const [seat, r] of Object.entries(riders)) {
+    setTime(r.pedal, state.crank / (2 * Math.PI));
+    const l = state.lean[seat];
+    if (r.leanL) r.leanL.setEffectiveWeight(Math.max(0, -l));
+    if (r.leanR) r.leanR.setEffectiveWeight(Math.max(0, l));
+    r.mixer.update(0);
+  }
+  sun.position.set(state.x + 6, 10, state.z + 4); sun.target.position.set(state.x, 0, state.z);
+  // camera
+  const c = yawNode.position;
+  orbit.enabled = camMode === 4;
+  if (camMode === 4) { orbit.target.lerp(tmp.set(c.x, 0.9, c.z), 0.2); orbit.update(); }
+  else {
+    const offs = { 1: [0, 2.2, -5.5], 2: [5.5, 1.2, 0], 3: [0, 1.4, 5] }[camMode];
+    tmp.set(...offs).applyAxisAngle(new THREE.Vector3(0, 1, 0), state.heading).add(c);
+    camera.position.lerp(tmp, Math.min(1, 6 * dt));
+    camera.lookAt(c.x, 0.9, c.z);
+  }
+  renderer.render(scene, camera);
+  stats.innerHTML = `<div class="row"><span>speed</span><span>${(state.v * 3.6).toFixed(1)} km/h</span></div>` +
+    `<div class="row"><span>crank</span><span>${(THREE.MathUtils.radToDeg(state.crank) % 360).toFixed(0)}°</span></div>` +
+    `<div class="row"><span>lean C / S / bike</span><span>${state.lean.Captain.toFixed(2)} / ${state.lean.Stoker.toFixed(2)} / ${THREE.MathUtils.radToDeg(tilt).toFixed(1)}°</span></div>`;
+});
+</script>
+</body>
+</html>
