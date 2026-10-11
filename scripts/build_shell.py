@@ -3,7 +3,9 @@
   blender -b --factory-startup --python scripts/build_shell.py -- --char outfit_male --piece gloves \
       [--tris 1600] [--voxel 0.003] [--offset 0.003] [--tex 1024]
 
-Input: out/<char>-goose/pieces/<piece>.glb (transfer_garments.py: the piece on the body it is worn on)
+Input: out/<char>-goose/pieces/<piece>.glb (geometry; colour is baked from the whole
+<char>_outfit_on_base.glb unless --bake-src piece; chars json "shell_tris" overrides budgets,
+"shell_mirror" {piece: "+x"} rebuilds a symmetric pair from its good half) (transfer_garments.py: the piece on the body it is worn on)
 and that body (chars json "body_shape" via bodyshape.py: base game mesh, or deformed by
 <char>_rigfit.json). Same recipe as retopo_bake.py for the base goose:
   1. solidify --solid (cut pieces are open sheets), voxel remesh (one closed solid), drop specks;
@@ -42,7 +44,10 @@ CHAR = opt("--char", "outfit_male")
 PIECE = opt("--piece", "gloves")
 BUDGET = {"hat": 800, "coat": 6000, "chest": 1500, "waistcoat": 900, "shirt": 500, "bowtie": 200, "breeches": 2500, "gloves": 3000, "boots": 1600,
           "dress": 9000, "collar": 400}
-TRIS = opt("--tris", BUDGET.get(PIECE, 2000), int)
+_cfg = json.loads((Path(__file__).resolve().parents[1] / "chars" / f"{CHAR}.json").read_text())
+TRIS = opt("--tris", _cfg.get("shell_tris", {}).get(PIECE, BUDGET.get(PIECE, 2000)), int)
+MIRROR = opt("--mirror", _cfg.get("shell_mirror", {}).get(PIECE, ""))   # "+x": keep the +X half, mirror it to -X
+BAKE_SRC = opt("--bake-src", "all")    # all: bake colour from the whole outfit; piece: from this piece only
 VOXEL = opt("--voxel", 0.0025, float)
 SOLID = opt("--solid", 0.004, float)
 OFFSET = opt("--offset", 0.003, float)
@@ -124,6 +129,18 @@ body_bvh = BVHTree.FromPolygons([v.co[:] for v in body.data.vertices], pv)
 
 # ---- piece (hi) and its shell
 hi = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
+if MIRROR:                                       # a symmetric pair with one bad side (female s7 right boot)
+    bm = bmesh.new()
+    bm.from_mesh(hi.data)
+    keep = 1 if MIRROR == "+x" else -1
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.x * keep < 0], context="VERTS")
+    res = bmesh.ops.duplicate(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:])
+    dup = [g for g in res["geom"] if isinstance(g, bmesh.types.BMVert)]
+    bmesh.ops.scale(bm, vec=(-1, 1, 1), verts=dup)
+    bmesh.ops.reverse_faces(bm, faces=[g for g in res["geom"] if isinstance(g, bmesh.types.BMFace)])
+    bm.to_mesh(hi.data)
+    bm.free()
+    hi.data.update()
 only_select(hi)
 bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -229,6 +246,14 @@ bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004, area_weight=0.0)
 bpy.ops.uv.pack_islands(margin=0.004, rotate=True)
 bpy.ops.object.mode_set(mode="OBJECT")
 
+bake_src = hi
+if BAKE_SRC == "all" and not MIRROR:
+    # colour from the real clothed surface: a piece has holes where fragments were labelled to other
+    # pieces, and rays through them baked the shirt patches / waistcoat flecks
+    bake_src = next(o for o in load(D / f"{CHAR}_outfit_on_base.glb") if o.type == "MESH")
+    only_select(bake_src)
+    bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 sc = bpy.context.scene
 sc.render.engine = "CYCLES"
 prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -261,7 +286,7 @@ for name, btype, cs, kw in (("basecolor", "DIFFUSE", "sRGB", {"pass_filter": {"C
     node = nt.nodes.new("ShaderNodeTexImage")
     node.image = img
     nt.nodes.active = node
-    only_select(hi, shell)
+    only_select(bake_src, shell)
     bpy.ops.object.bake(type=btype, **kw)
     imgs[name] = (img, node)
     log("baked", name)
@@ -314,6 +339,7 @@ green.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0
 body.data.materials.clear()
 body.data.materials.append(green)
 hi.hide_render = True
+bake_src.hide_render = True
 SP = np.array([v.co[:] for v in shell.data.vertices])
 lo3, hi3 = SP.min(0), SP.max(0)
 ctr = (lo3 + hi3) / 2

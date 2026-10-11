@@ -614,3 +614,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   now applies the D12 follow rule after each pose, as the game will (world-space slerp of the Hips/thigh rotation
   deltas × follow × drape, root first): the game's three.js r161 shows rest / T / A / riding / neck / honk correctly for
   both; the female riding skirt drapes over the knees exactly as in Blender.
+- **Polish pass 1** — build_shell: chars json "shell_tris" (hats: male 1470, female 2450), "shell_mirror" (female boots
+  rebuilt from the good +X boot), colour baked from the whole `<char>_outfit_on_base.glb` instead of the piece.
+  Hats / boots better; **the waistcoat cream patches and breeches tan flecks did NOT change** → they come from the
+  generator's own albedo (or the bake cage hitting the inner shell wall), not from piece holes. Next lever: texture
+  clean-up per piece (inpaint flecks by garment colour stats) or a bake from the inner/outer wall only. Dressed
+  visible tris: male 18.4k, female 18.2k; validator 0/0, three.js ok.

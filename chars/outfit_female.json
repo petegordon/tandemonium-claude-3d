@@ -166,5 +166,11 @@
     "leg_length": 1.15,
     "height": 1.0,
     "leg_pitch": 3.0
+  },
+  "shell_tris": {
+    "hat": 2500
+  },
+  "shell_mirror": {
+    "boots": "+x"
   }
 }

@@ -244,5 +244,8 @@
     "boots": [
       "boots"
     ]
+  },
+  "shell_tris": {
+    "hat": 1500
   }
 }
