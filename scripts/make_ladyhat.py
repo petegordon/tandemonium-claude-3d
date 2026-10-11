@@ -75,8 +75,10 @@ add_grid(np.stack(rows, 1), 0, wrap_i=True)
 # ---- crown: drum with a softly domed top
 ctop = H["crown_top"]
 crow = []
+crown_drop = droop * (np.linalg.norm(cax * 0.98) / np.linalg.norm(bax))   # crown base follows the brim curve
 for k, (u, z) in enumerate(((0.98, bz), (1.0, bz + 0.02), (1.0, ctop - 0.02), (0.9, ctop - 0.002), (0.65, ctop + 0.008), (0.3, ctop + 0.014))):
-    crow.append(ring(cax * u, z))
+    fade = max(0.0, 1 - (z - bz) / max(ctop - bz, 1e-3))
+    crow.append(ring(cax * u, z, -crown_drop * fade))
 cv = add_grid(np.stack(crow, 1), 0, wrap_i=True)
 top = bm.verts.new((cx, cy, ctop + 0.016))
 for i in range(NA):
@@ -91,7 +93,7 @@ for v in np.linspace(0, 1, H.get("puff_rows", 6)):
     bulge = math.sin(math.pi * v) ** 0.7
     rr = (1.0 + (PF["amp"] * (0.6 + 0.4 * lumps) + bias) * bulge / np.linalg.norm(cax) * 1.4) * (1 - 0.45 * v ** 3)
     twist = 0.25 * math.sin(math.pi * v)
-    zz = pz0 + (pz1 + 0.012 - pz0) * math.sin(v * math.pi / 2) + 0.004 * np.sin(th * PF["n"] + twist * 3)
+    zz = pz0 + (pz1 + 0.012 - pz0) * math.sin(v * math.pi / 2) + 0.004 * np.sin(th * PF["n"] + twist * 3)         - crown_drop * (1 - v)
     prow.append(np.stack([cx + cax[0] * rr * sx, cy + cax[1] * rr * sy, zz], 1))
 pv_ = add_grid(np.stack(prow, 1), 1, wrap_i=True)
 ptop = bm.verts.new((cx, cy, float(np.mean(prow[-1][:, 2])) + 0.006))    # gathered top closes over the crown
