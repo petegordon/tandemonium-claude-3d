@@ -710,4 +710,15 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   re-snapped / smoothed along the loop. The front / linen seam is split exactly on the mesh too (the jagged cream patch
   on the vest's side in riding was the lining border, not the shirt). Shirt verts within ~3 cm of the vest take the
   vest's skin weights (FOLLOW_OUTER) so they move together. Validator 0/0, three.js ok; male 18.9k visible tris.
+- **Designed jacket (Pete: hip length, tails over the tail, notched lapels, buttons + pockets, sleeve buttons)** —
+  make_garment kind "coat": wrists like the shirt (sleeve ends 3 cm above the visible wrist so the shirt cuff shows),
+  outline field = back neck plane, hem 0.725 m (above the crotch line), open front with a cutaway below the top button,
+  lapels from the break point (0.99 m) to a notch (1.19 m) and a collar above; exact cut as the vest. Ease 20 mm torso /
+  16 mm sleeves + lapel roll + collar, ≥ 6 mm outside shirt / vest / breeches. Back skirt hangs (radius never shrinks
+  downward below 0.95 m, pushes smoothed, then the skirt relaxed as one surface over a clearance floor); the tail hole
+  uses the even quadric seat cap (the fanned cap left a hole at the hem). Detail: lapels + roll line + gorge, back collar,
+  3 buttons + holes, hip pocket flaps + breast welt, side / centre-back seams, back vent, waist seam, sleeve underseams,
+  cuff band + 3 sleeve buttons, elbow folds, skirt drape. Vest linen darkened (88,76,64). dress_goose: loose-cloth
+  chains for designed coats, waistcoat follows the coat's skinning, coat ignores the inner layers. Male visible 19.1k;
+  validator 0/0, three.js ok. Open: back neck edge a bit ragged, small flecks on the back, riding back tails.
 

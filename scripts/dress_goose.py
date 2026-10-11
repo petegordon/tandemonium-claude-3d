@@ -47,12 +47,13 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
-FOLLOW_OUTER = {"shirt": ("waistcoat",)}   # inner garment takes the outer one's weights where covered
+FOLLOW_OUTER = {"shirt": ("waistcoat",), "waistcoat": ("coat",)}   # inner garment takes the outer one's weights where covered
 LAYER_NEAR = 0.0      # designed outer pieces: proximity layer test (off: it hid the shirt V)
 LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
-LAYER_IGNORE = {"shirt": ("bowtie", "gloves"), "breeches": ("shirt",), "waistcoat": ("shirt", "breeches", "bowtie")}
+LAYER_IGNORE = {"shirt": ("bowtie", "gloves"), "breeches": ("shirt",), "waistcoat": ("shirt", "breeches", "bowtie"),
+                "coat": ("shirt", "breeches", "bowtie", "waistcoat", "gloves", "boots", "hat")}
 LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
@@ -276,7 +277,8 @@ for k, o in shells.items():
             if str(nm) in names:
                 Wv[:, names.index(str(nm))] = wz["W"][idx, j_]
         Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
-        tl = np.zeros(len(X))
+        legw = Wv[:, [names.index(n) for n in leg]].sum(1)
+        tl = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
         tk = meta.get("tuck")
         if tk and (D / "shells" / f"{tk['into']}_weights.npz").exists():
             # below the outer garment's waist line the tucked part takes that garment's weights, blended

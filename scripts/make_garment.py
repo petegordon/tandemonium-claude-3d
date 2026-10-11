@@ -155,7 +155,7 @@ KIND = R.get("kind", "breeches")
 is_hand = np.array(["Hand" in d for d in dom])
 SIDES = (("Left", 1), ("Right", -1))
 # cut planes: (point, normal, keep: -1 = the side away from the normal / +1 = toward it, x-side filter)
-if KIND == "shirt":
+if KIND in ("shirt", "coat"):
     Z_NECK = R["z_neck"]
     WRIST = {}
     # the hand bone starts at the joint, but its first ~hand-width is feathered: the visible wrist is
@@ -259,6 +259,41 @@ elif KIND == "vest":
     R.setdefault("seat_bump", 0.0)
 else:
     PLANES = [((0, Y0, Z_TOP), (0, -RISE, 1), -1, 0), ((0, 0, Z_BOT), (0, 0, 1), 1, 0)]
+if KIND == "coat":
+    # outline: back neck plane + wrist planes (sleeves end above the shirt cuff); hem (hip length,
+    # longer tails at the back) and the open front with notched lapels as an exact field cut
+    V_ = R["outline"]
+    core_ = BPv[(np.abs(BPv[:, 0]) < 0.15) & ~np.array([("Arm" in d) or ("Hand" in d) or d == "Tail" for d in dom])]
+    ZS_ = np.arange(0.5, 1.5, 0.01)
+    YC_ = np.array([(lambda nb: (nb[:, 1].min() + nb[:, 1].max()) / 2 if len(nb) else 0.0)(core_[np.abs(core_[:, 2] - zz) < 0.012])
+                    for zz in ZS_])
+
+    def ycf(z):
+        return np.interp(z, ZS_, YC_)
+
+    def hem_z(x, y, z):
+        fr = np.clip((ycf(z) - y) / 0.06 + 0.5, 0, 1)
+        return fr * V_["z_front"] + (1 - fr) * V_["z_back"]
+
+    def v_w(z):
+        """Half width of the open front: cutaway below the button, lapel above, notch, collar."""
+        zs, ws = zip(*V_["open"])
+        return float(np.interp(z, zs, ws))
+
+    def resid(c):
+        x_, y_, z_ = c
+        front = (y_ < min(ycf(z_), V_.get("front_y", -0.02))) and abs(x_) < 0.2   # (the seat cap sags toward the centre)
+        r_ = {"hem": z_ - hem_z(x_, y_, z_), "neck": Z_NECK - z_}
+        r_["v"] = (abs(x_) - v_w(z_)) if front else 9.0
+        if abs(x_) > 0.2:                          # sleeves: only the wrist planes cut them
+            r_["hem"] = 9.0
+        return r_
+
+    def inside_amount(c):
+        return min(resid(c).values())
+
+    PLANES = [((0, 0, Z_NECK + 0.05), (0, 0, 1), -1, 0)] + \
+             [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), -1, sg) for _, sg in SIDES]
 
 
 def plane_ok(c, pl):
@@ -393,10 +428,15 @@ for f in bm.faces:
     c = f.calc_center_median()
     i = kd.find(c)[1]
     drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
-    if KIND == "vest":
+    if KIND in ("vest", "coat"):
         drop = ("Hand" in dom[i]) or inside_amount(np.array(c)) < -0.03   # (exact cut below)
     if not all(plane_ok(c, pl) for pl in PLANES) or ((not f[capL] or KIND == "vest") and drop):   # (tail already off)
         kill.append(f)
+if "--debug" in argv:
+    for zz in np.arange(0.70, 0.86, 0.02):
+        vs_ = [v for v in bm.verts if abs(v.co.z - zz) < 0.01 and abs(v.co.x) < 0.08 and v.co.y > 0]
+        ks_ = [f for f in kill if abs(f.calc_center_median().z - zz) < 0.01 and abs(f.calc_center_median().x) < 0.08 and f.calc_center_median().y > 0]
+        print("DBG pre z", round(zz, 2), len(vs_), "killed faces", len(ks_))
 bmesh.ops.delete(bm, geom=kill, context="FACES")
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
 # keep the largest connected part (stray bits of wrists / feathers)
@@ -419,7 +459,7 @@ for v in bm.verts:
 parts.sort(key=len)
 log("region parts", [len(p_) for p_ in parts[-4:]])
 bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
-if KIND == "vest":
+if KIND in ("vest", "coat"):
     # exact outline: split every edge where the inside-distance field changes sign, join the split
     # points across each face, drop the outside -- the edge lies on the outline curves (no sawtooth)
     sv = {v: inside_amount(np.array(v.co)) for v in bm.verts}
@@ -441,6 +481,10 @@ if KIND == "vest":
     # slivers next to the cut: dissolve degenerate edges
     bmesh.ops.dissolve_degenerate(bm, dist=0.0015, edges=bm.edges[:])
     log("vest exact outline split", len(newv), "edges")
+    if "--debug" in argv:
+        for zz in np.arange(0.70, 0.86, 0.02):
+            vs_ = [v for v in bm.verts if abs(v.co.z - zz) < 0.01 and abs(v.co.x) < 0.08 and v.co.y > 0]
+            print("DBG cut z", round(zz, 2), len(vs_))
     bverts = [v for v in bm.verts if any(e.is_boundary for e in v.link_edges)]
 
     kind_of = {}
@@ -504,7 +548,7 @@ for e in bnd:
 caps = []
 for lp in loops:
     lvs = [np.array(v.co) for e in lp for v in e.verts]
-    if KIND != "vest" and not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
+    if KIND not in ("vest", "coat") and not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
         res = bmesh.ops.holes_fill(bm, edges=lp, sides=0)
         if not res["faces"]:                          # tiny holes: fan from the centre
             vs = list({v for e in lp for v in e.verts})
@@ -555,6 +599,9 @@ excl = is_arm if KIND != "shirt" else np.zeros(len(BPv), bool)
 if KIND == "vest":
     COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Arm" not in d_ and "Hand" not in d_
                            and inside_amount(q) > COVER_MARGIN])
+elif KIND == "coat":
+    COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Hand" not in d_ and inside_amount(q) > COVER_MARGIN
+                           and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
 else:
     COVERS_POS = np.array([q for q, ex in zip(BPv, excl)
                            if not ex and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
@@ -639,7 +686,7 @@ for v in me.vertices:
         WR[v.index, g.group] = g.weight
 WR /= np.maximum(WR.sum(1, keepdims=True), 1e-9)
 armw = WR[:, [i for i, n in enumerate(vgn) if ("Arm" in n)]].sum(1) if any("Arm" in n for n in vgn) else np.zeros(len(P))
-if KIND == "shirt":
+if KIND in ("shirt", "coat"):
     dwr = np.full(len(P), 9.0)                         # distance up the forearm from the wrist cut
     for _, sg in SIDES:
         co, dd = WRIST[sg]
@@ -654,7 +701,7 @@ bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
-if KIND in ("shirt", "vest"):
+if KIND in ("shirt", "vest", "coat"):
     pb = None
 for i, (p, n) in enumerate(zip(P, N)):
     if pb is None:
@@ -725,6 +772,28 @@ ease = np.minimum(ease, 0.4 * G)
 ease = smooth_field(ease, ed, 8)
 ease = np.minimum(ease, 0.42 * G)                     # re-limit after smoothing
 ease = np.maximum(ease, 0.004)
+if KIND == "coat":
+    E = R.get("ease", {})
+    ease = E.get("torso", 0.02) + (E.get("sleeve", 0.018) - E.get("torso", 0.02)) * np.clip(armw, 0, 1)
+    dv = np.array([resid(c)["v"] for c in P])
+    lap = (P[:, 2] > V_["z_break"]) & (dv < V_.get("lapel_w", 0.05))
+    ease += np.where(lap, E.get("lapel", 0.006) * np.clip(1 - dv / V_.get("lapel_w", 0.05), 0.3, 1), 0.0)
+    ease += E.get("collar", 0.006) * np.clip(1 - (Z_NECK - P[:, 2]) / 0.05, 0, 1)
+    ease = smooth_field(ease, ed, 4)
+    under = np.zeros(len(P))
+    for nm in R.get("over", []):
+        uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+        ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
+        for i, (p_, n_) in enumerate(zip(P, N)):
+            hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.1)
+            if hit[0] is not None:
+                under[i] = max(under[i], hit[3] - 0.01)
+        bpy.data.objects.remove(uo)
+    need = np.minimum(under, E.get("under_max", 0.045)) + E.get("clear", 0.006)
+    ease = np.maximum(ease, need)
+    ease = smooth_field(ease, ed, 6)
+    ease = np.maximum(ease, need)
+    log("coat over-layer clearance mm p50/p90", np.round(np.percentile(under, [50, 90]) * 1000, 1).tolist())
 if KIND == "vest":
     # built on the layers beneath: torso ease, a lapel roll along the V, then never closer than "clear"
     # outside any "over" shell (shirt, breeches waistband) along the body normal
@@ -751,6 +820,45 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
+if KIND == "coat":
+    # the back skirt and tails hang: below "hang_top" the horizontal radius about the body axis never
+    # shrinks going down (the cloth falls straight over the seat and the tail instead of following them in)
+    yc_ = ycf(Pm[:, 2])
+    rel_ = np.stack([Pm[:, 0], Pm[:, 1] - yc_], 1)
+    rr_ = np.linalg.norm(rel_, axis=1)
+    az_ = np.degrees(np.arctan2(Pm[:, 0], -(Pm[:, 1] - yc_)))
+    hang = (Pm[:, 2] < V_["hang_top"]) & (np.abs(Pm[:, 0]) < 0.2) & (np.abs(az_) > V_.get("hang_az", 60))
+    nb_ = 72
+    bins = ((az_ + 180) / 360 * nb_).astype(int) % nb_
+    order = np.argsort(-Pm[:, 2])
+    run = np.zeros(nb_)
+    target = rr_.copy()
+    for i in order:
+        if not hang[i]:
+            continue
+        b_ = bins[i]
+        run[b_] = max(run[b_], rr_[i])
+        target[i] = run[b_]
+    push_ = np.where(hang, target - rr_, 0.0)     # (azimuth bins -> stair steps: smooth the push over the mesh)
+    push_ = smooth_field(push_, ed, R.get("hang_smooth", 25))
+    target = rr_ + np.maximum(push_, 0.0)
+    scale = np.where(target > rr_, target / np.maximum(rr_, 1e-6), 1.0)
+    Pm[:, 0] = rel_[:, 0] * scale
+    Pm[:, 1] = yc_ + rel_[:, 1] * scale
+    # the hanging skirt is one smooth surface: relax it (edges to the rest of the coat pinned), but
+    # never inside the layers beneath (radius >= that of body + clearance over the under shells)
+    zone = hang | (smooth_field(hang.astype(float), ed, 3) > 0.01)
+    Pmin = P + N * need[:, None]
+    rmin = np.linalg.norm(np.stack([Pmin[:, 0], Pmin[:, 1] - ycf(Pmin[:, 2])], 1), axis=1)
+    for _ in range(R.get("skirt_relax", 6)):
+        Pm = np.where(zone[:, None], smooth_field(Pm, ed, 8, pin=~zone), Pm)
+        yc_ = ycf(Pm[:, 2])
+        rel_ = np.stack([Pm[:, 0], Pm[:, 1] - yc_], 1)
+        rr2 = np.linalg.norm(rel_, axis=1)
+        sc_ = np.where(zone & (rr2 < rmin), rmin / np.maximum(rr2, 1e-6), 1.0)
+        Pm[:, 0] = rel_[:, 0] * sc_
+        Pm[:, 1] = yc_ + rel_[:, 1] * sc_
+    log("coat hang verts", int(hang.sum()), "max push mm", round(float(np.max((target - rr_) * hang)) * 1000, 1))
 if KIND == "shirt":
     # cuffs are round tubes around the wrist, not shrink-wrapped over the hand: inside the cuff band each
     # vertex goes to the forearm axis + one radius per side (largest wrist radius + clearance), blended
@@ -785,6 +893,8 @@ if KIND == "vest":
     extra_attr["back"] = (P[:, 1] > ycf(P[:, 2])).astype(float)
 if KIND == "shirt":
     extra_attr.update({"dwr": np.minimum(dwr, 1.0), "dhem": dhem})
+if KIND == "coat":
+    extra_attr.update({"dwr": np.minimum(dwr, 1.0)})
 for name, val in (("ease", ease), ("z0", P[:, 2]), *extra_attr.items()):
     a = mid.data.attributes.new(name, "FLOAT", "POINT")
     a.data.foreach_set("value", val.astype(np.float32))
@@ -1003,8 +1113,107 @@ if KIND == "vest":
     tintm = np.where(frame | bar, 0.3, tintm)
     # soft drag folds from the buttons toward the sides and at the small of the back
     disp += 0.0009 * np.sin(phit * 7 + zh * 35) * np.clip(1 - dh / 0.12, 0, 1)
+if KIND == "coat":
+    tintm = np.ones(len(Ph))
+    def attr(nm):
+        a_ = np.zeros(len(Ph), np.float32)
+        hi.data.attributes[nm].data.foreach_get("value", a_)
+        return a_.astype(float)
+    armh, dwh = attr("armw"), attr("dwr")
+    rs = [resid(c) for c in Ph]
+    dh = np.array([r_["hem"] for r_ in rs])
+    dv = np.array([r_["v"] for r_ in rs])
+    ycv = ycf(zh)
+    torso = (armh < 0.35) & (np.abs(x) < 0.2)
+    front = (y < ycv) & torso
+    phit = np.arctan2(x, -(y - ycv))
+    rt = np.hypot(x, y - ycv)
+    # edge stitching along hem and front edges, turned edges
+    for d_ in (np.where(torso, dh, 9.0), np.where(front, dv, 9.0)):
+        disp += groove(np.abs(d_ - 0.007), 0.0009, 0.0005) + 0.001 * np.clip(1 - d_ / 0.005, 0, 1)
+    # notched lapels: raised band from the break point up, roll line, gorge seam toward the notch
+    lw = V_.get("lapel_w", 0.05)
+    zb, zn = V_["z_break"], V_["z_notch"]
+    wl = lw * np.clip((zh - zb) / 0.06, 0, 1)         # lapel widens from the break point
+    lap = front & (zh > zb) & (dv < wl) & (zh < zn + 0.004)
+    disp += np.where(lap, 0.0024 * np.clip(dv / 0.004, 0, 1), 0.0)
+    disp += np.where(front & (zh > zb) & (zh < zn + 0.004), groove(np.abs(dv - wl), 0.0016, 0.0016), 0.0)
+    col_ = front & (zh >= zn + 0.004)                  # collar above the notch
+    disp += np.where(col_ & (dv < 0.035), 0.002, 0.0) + np.where(col_, groove(np.abs(dv - 0.035), 0.0014, 0.0013), 0.0)
+    disp += np.where(front & (dv < lw + 0.01), groove(np.abs(zh - (zn + 0.004)), 0.0012, 0.0014), 0.0)   # gorge
+    # back collar band + seam
+    bk = (y >= ycv) & torso
+    disp += np.where(bk, 0.0018 * np.clip(1 - (Z_NECK - zh) / 0.04, 0, 1), 0.0) + \
+        np.where(bk, groove(np.abs(Z_NECK - zh - 0.04), 0.0013, 0.0011), 0.0)
+    # three front buttons on the wearer's left front edge, button holes on the right
+    for zz in V_.get("buttons_z", [0.99, 0.925, 0.86]):
+        bxp = v_w(zz) + 0.022
+        for sgx, kind_ in ((1, "button"), (-1, "hole")):
+            if kind_ == "button":
+                dbt = np.sqrt((x - bxp) ** 2 + (zh - zz) ** 2)
+                disp += np.where(front, 0.0026 * np.clip(1 - (dbt / 0.0085) ** 2, 0, 1) + groove(np.abs(dbt - 0.0088), 0.0008, 0.0007), 0.0)
+                tintm = np.where(front & (dbt < 0.009), 0.45, tintm)
+            else:
+                dhl = np.maximum(np.abs(x + bxp) - 0.009, 0) + np.abs(zh - zz)
+                disp += np.where(front, groove(dhl, 0.0008, 0.0011), 0.0)
+    # hip pocket flaps and a breast welt
+    for sg in (1, -1):
+        for (cx, cz, hw, hh_, flap) in ((0.105, V_.get("pocket_z", 0.80), 0.055, 0.022, True), (0.09, 1.09, 0.035, 0.006, False)):
+            if not flap and sg < 0:
+                continue
+            u_ = x - cx * sg
+            w_ = zh - cz
+            inside = front & (np.abs(u_) < hw) & (w_ < hh_) & (w_ > -hh_)
+            edge = np.maximum(np.abs(u_) - hw, np.abs(w_) - hh_)
+            disp += np.where(inside, 0.0018 if flap else 0.0012, 0.0) + np.where(front, groove(np.abs(edge), 0.001, 0.0012), 0.0)
+            if flap:                                   # shadow under the flap
+                tintm = np.where(front & (np.abs(u_) < hw) & (w_ < -hh_) & (w_ > -hh_ - 0.004), 0.7, tintm)
+    # seams: side, centre back with a vent, shoulder, armhole, sleeve underseam; waist seam at the back
+    disp += np.where(torso, groove(np.abs(np.abs(phit) - np.pi / 2) * rt, 0.0014, 0.0009), 0.0)
+    disp += np.where(bk, groove(np.abs(x), 0.0013, 0.0009), 0.0)
+    vent = bk & (zh < V_["z_back"] + V_.get("vent_h", 0.17)) & (np.abs(x) < 0.02)
+    disp += np.where(vent, groove(np.abs(x - 0.006), 0.0012, 0.0016) + 0.0008 * (x > 0.006), 0.0)
+    disp += groove(np.abs(armh - 0.5) * 0.06, 0.0015, 0.001) * (np.abs(x) > 0.05)
+    disp += np.where(bk, groove(np.abs(zh - V_.get("waist_z", 0.93)), 0.0012, 0.0008), 0.0)
+    # sleeves: underseam, cuff band, three cuff buttons on the outer back of each sleeve
+    for s_, sg in SIDES:
+        a0_, a1_, a2_ = bone[f"{s_}Arm"][0], bone[f"{s_}ForeArm"][0], bone[f"{s_}Hand"][0]
+        on = (x * sg > 0.12) & (armh > 0.3)
+        best = np.full(len(Ph), 9.0)
+        rad = np.zeros_like(Ph)
+        axs = np.zeros_like(Ph)
+        for q0, q1 in ((a0_, a1_), (a1_, a2_)):
+            dq = q1 - q0
+            u_ = np.clip(((Ph - q0) @ dq) / (dq @ dq), 0, 1)
+            c_ = q0 + u_[:, None] * dq
+            dist = np.linalg.norm(Ph - c_, axis=1)
+            take = dist < best
+            best = np.where(take, dist, best)
+            rad = np.where(take[:, None], Ph - c_, rad)
+            axs = np.where(take[:, None], np.tile(dq / np.linalg.norm(dq), (len(Ph), 1)), axs)
+        down = np.array([0, 0, -1.0]) - axs * axs[:, 2:3] * -1
+        down -= axs * np.sum(down * axs, 1, keepdims=True)
+        down /= np.maximum(np.linalg.norm(down, axis=1, keepdims=True), 1e-9)
+        side = np.cross(axs, down)
+        phi = np.arctan2(np.sum(rad * side, 1) * sg, np.sum(rad * down, 1))
+        rr = np.linalg.norm(rad, axis=1)
+        disp += np.where(on, groove(np.abs(phi) * rr, 0.0014, 0.0009), 0.0)
+        cb = V_.get("cuff_band", 0.06)
+        disp += np.where(on, groove(np.abs(dwh - cb), 0.0013, 0.001) + groove(np.abs(dwh - 0.006), 0.0008, 0.0004), 0.0)
+        disp += np.where(on & (dwh < 0.004), 0.001, 0.0)
+        pb_ = np.pi * 0.75                              # outer back of the sleeve
+        for k_ in range(3):
+            dd_ = np.hypot((phi - pb_ * 1) * rr, dwh - (0.018 + 0.016 * k_))
+            disp += np.where(on, 0.0018 * np.clip(1 - (dd_ / 0.0055) ** 2, 0, 1), 0.0)
+            tintm = np.where(on & (dd_ < 0.006), 0.45, tintm)
+        # elbow and inner-arm folds
+        de = np.linalg.norm(Ph - a1_, axis=1)
+        disp += 0.0012 * np.sin(de / 0.014 * 2 * np.pi) * np.exp(-(de / 0.05) ** 2) * on
+    # soft drape folds on the back skirt and tails
+    sk = bk & (zh < V_.get("waist_z", 0.93))
+    disp += 0.0018 * np.sin(phit * 9 + 0.6 * np.sin(zh * 20)) * np.clip((V_.get("waist_z", 0.93) - zh) / 0.12, 0, 1) * sk
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
-if KIND == "vest":
+if KIND in ("vest", "coat"):
     occ = occ * tintm
 Ph2 = Ph + Nh * disp[:, None]
 hi.data.vertices.foreach_set("co", Ph2.ravel())
@@ -1016,7 +1225,7 @@ log("detail disp mm min/max", round(float(disp.min()) * 1000, 2), round(float(di
 lo = mid
 only_select(lo)
 for a in list(lo.data.attributes):
-    if a.name in ("ease", "z0", "armw", "dwr", "dhem", "back"):
+    if a.name in ("ease", "z0", "armw", "dwr", "dhem", "back"):  # (coat: same set)
         lo.data.attributes.remove(a)
 tri = sum(len(p.vertices) - 2 for p in lo.data.polygons)
 bmq = bmesh.new()
@@ -1034,7 +1243,7 @@ m.vertex_group = vg_dec.name
 m.vertex_group_factor = R.get("edge_keep_factor", 8.0)
 bpy.ops.object.modifier_apply(modifier=m.name)
 lo.vertex_groups.remove(lo.vertex_groups["_decimate"])
-if KIND == "vest":
+if KIND in ("vest", "coat"):
     bmq = bmesh.new()
     bmq.from_mesh(lo.data)
     bv = [v for v in bmq.verts if any(e.is_boundary for e in v.link_edges)]
@@ -1043,6 +1252,8 @@ if KIND == "vest":
     for v in bv:
         r0 = resid(np.array(v.co))
         kinds[v] = min(r0, key=lambda kk: abs(r0[kk]))
+        if abs(r0[kinds[v]]) > 0.03:              # an edge made by a plane (wrists): leave it
+            kinds[v] = "plane"
     for it in range(R.get("lo_edge_iter", 12)):
         for v in bv:
             c = np.array(v.co)
@@ -1053,6 +1264,8 @@ if KIND == "vest":
                 c[0] = np.sign(c[0] or 1) * v_w(c[2])
             elif k_ == "neck":
                 c[2] = Z_NECK
+            elif k_ == "plane":
+                continue
             # (armhole: smoothing only -- the offset garment sits outside the body sphere)
             v.co = Vector(c)
         newc = {}

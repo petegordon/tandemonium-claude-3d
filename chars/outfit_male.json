@@ -304,9 +304,7 @@
   },
   "accessory_clear": {
     "bowtie": {
-      "pieces": [
-        "coat"
-      ],
+      "pieces": [],
       "parts": [
         "bow_L",
         "bow_R",
@@ -484,9 +482,9 @@
       "twill": 0.08,
       "roughness": 0.85,
       "lining_color": [
-        206,
-        194,
-        172
+        88,
+        76,
+        64
       ],
       "lining_roughness": 0.65,
       "colors": {
@@ -511,6 +509,119 @@
       "edge_iter": 0,
       "edge_relax": 0,
       "lo_edge_iter": 6
+    },
+    "coat": {
+      "kind": "coat",
+      "z_neck": 1.275,
+      "z_top": 0.9,
+      "z_bot": 0.8,
+      "tris": 6000,
+      "cover_margin": 0.03,
+      "pre_cuts": 2,
+      "region_sub": 0,
+      "edge_iter": 0,
+      "edge_relax": 0,
+      "lo_edge_iter": 6,
+      "wrist_offset": -0.03,
+      "outline": {
+        "z_front": 0.725,
+        "z_back": 0.725,
+        "z_break": 0.99,
+        "z_notch": 1.19,
+        "lapel_w": 0.05,
+        "open": [
+          [
+            0.6,
+            0.12
+          ],
+          [
+            0.7,
+            0.11
+          ],
+          [
+            0.86,
+            0.05
+          ],
+          [
+            0.97,
+            0.03
+          ],
+          [
+            1.0,
+            0.03
+          ],
+          [
+            1.18,
+            0.07
+          ],
+          [
+            1.185,
+            0.1
+          ],
+          [
+            1.205,
+            0.1
+          ],
+          [
+            1.21,
+            0.075
+          ],
+          [
+            1.28,
+            0.06
+          ],
+          [
+            1.4,
+            0.06
+          ]
+        ],
+        "hang_top": 0.95,
+        "hang_az": 70,
+        "buttons_z": [
+          0.985,
+          0.92,
+          0.855
+        ],
+        "pocket_z": 0.8,
+        "vent_h": 0.17,
+        "waist_z": 0.93,
+        "cuff_band": 0.065
+      },
+      "ease": {
+        "torso": 0.02,
+        "sleeve": 0.016,
+        "lapel": 0.006,
+        "collar": 0.006,
+        "clear": 0.006,
+        "under_max": 0.03
+      },
+      "over": [
+        "shirt",
+        "waistcoat",
+        "breeches"
+      ],
+      "mottle": 0.2,
+      "twill": 0.08,
+      "roughness": 0.85,
+      "colors": {
+        "brown": [
+          96,
+          66,
+          46
+        ],
+        "navy": [
+          42,
+          50,
+          72
+        ],
+        "grey": [
+          84,
+          84,
+          88
+        ]
+      },
+      "seat_fit": true,
+      "under_max": 0.03
     }
   },
   "accessory_drop": {
