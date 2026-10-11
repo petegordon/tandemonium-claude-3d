@@ -61,6 +61,8 @@ for k, rgb in TINT.items():
     lin = lambda v: np.where(v > 0.04045, ((v + 0.055) / 1.055) ** 2.4, v / 12.92)  # noqa: E731
     fac = tuple(np.clip(lin(c) / lin(np.array([meta.get("detail_mean_srgb", 1.0)]))[0], 0, 1)) + (1.0,)
     for m in bpy.data.objects[k].data.materials:
+        if "_lining" in m.name:                    # (the lining keeps its own colour)
+            continue
         for n in m.node_tree.nodes:
             if n.type in ("MIX", "MIX_RGB") and getattr(n, "blend_type", "") == "MULTIPLY":
                 (n.inputs["B"] if "B" in n.inputs else n.inputs[2]).default_value = fac

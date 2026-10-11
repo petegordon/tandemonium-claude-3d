@@ -198,6 +198,54 @@ if KIND == "shirt":
              [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), -1, sg) for _, sg in SIDES]
     R.setdefault("seat_bump", 0.0)
     R.setdefault("seat_r", 1e-4)
+elif KIND == "vest":
+    # outline (no planes but the back neck): pointed front hem, V opening with small lapels, deep armholes
+    Z_NECK = R["z_neck"]
+    V_ = R["outline"]
+    core_ = BPv[(np.abs(BPv[:, 0]) < 0.15) & ~np.array([("Arm" in d) or ("Hand" in d) or d == "Tail" for d in dom])]
+
+    def yc(z):
+        z = np.atleast_1d(z)
+        out = np.empty(len(z))
+        for i_, zz in enumerate(z):
+            nb = core_[np.abs(core_[:, 2] - zz) < 0.012]
+            out[i_] = (nb[:, 1].min() + nb[:, 1].max()) / 2 if len(nb) else 0.0
+        return out
+
+    ZS_ = np.arange(0.6, 1.5, 0.01)
+    YC_ = yc(ZS_)
+
+    def ycf(z):
+        return np.interp(z, ZS_, YC_)
+
+    def hem_z(x, y, z):
+        """Hem height under a point: front (y < centre) points at |x| = point_x, small notch at the
+        centre front, level at the sides and back."""
+        fr = np.clip((ycf(z) - y) / 0.05 + 0.5, 0, 1)
+        zf = np.interp(np.abs(x), [0, V_["point_x"], V_["side_x"]], [V_["z_notch"], V_["z_point"], V_["z_side"]])
+        return fr * zf + (1 - fr) * V_["z_back"]
+
+    def v_w(z):
+        """Half width of the V opening at height z (0 below the top button)."""
+        return V_["v_top_w"] * np.clip((z - V_["z_vbot"]) / (Z_NECK - V_["z_vbot"]), 0, 1) ** V_.get("v_pow", 0.9)
+
+    ARMC = {sg: bone[f"{s}Arm"][0] + np.array(V_.get("arm_off", [0, 0, -0.035])) for s, sg in SIDES}
+    ARMR = V_["arm_r"]
+
+    def resid(c):
+        """Signed distances inside each outline edge (> 0 = inside the vest)."""
+        x_, y_, z_ = c
+        front = y_ < ycf(z_)
+        r_ = {"hem": z_ - hem_z(x_, y_, z_), "neck": Z_NECK - z_}
+        r_["v"] = (abs(x_) - v_w(z_)) if (front and z_ > V_["z_vbot"] - 0.005) else 9.0
+        r_["arm"] = float(np.linalg.norm(np.asarray(c) - ARMC[1 if x_ > 0 else -1]) - ARMR)
+        return r_
+
+    def inside_amount(c):
+        return min(resid(c).values())
+
+    PLANES = [((0, 0, Z_NECK), (0, 0, 1), -1, 0)]
+    R.setdefault("seat_bump", 0.0)
 else:
     PLANES = [((0, Y0, Z_TOP), (0, -RISE, 1), -1, 0), ((0, 0, Z_BOT), (0, 0, 1), 1, 0)]
 
@@ -317,6 +365,11 @@ if R.get("seat_fit", KIND == "breeches"):     # (the shirt only covers the hole;
             v.co = v.co.lerp(c, 0.5)
     log("tail cap", len(capvs), "inner verts")
 
+if R.get("pre_cuts", 0):
+    # dense surface before cutting: an outline that is not a plane follows triangle edges, so the
+    # triangles must be small for the snapped edge to be clean
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=R["pre_cuts"], use_grid_fill=True)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
 for co_, no_, _, _ in PLANES:
     geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
     bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co_, plane_no=no_)
@@ -329,7 +382,9 @@ for f in bm.faces:
     c = f.calc_center_median()
     i = kd.find(c)[1]
     drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
-    if not all(plane_ok(c, pl) for pl in PLANES) or (not f[capL] and drop):   # (tail already off)
+    if KIND == "vest":
+        drop = ("Arm" in dom[i] or "Hand" in dom[i]) or inside_amount(np.array(c)) < 0
+    if not all(plane_ok(c, pl) for pl in PLANES) or ((not f[capL] or KIND == "vest") and drop):   # (tail already off)
         kill.append(f)
 bmesh.ops.delete(bm, geom=kill, context="FACES")
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
@@ -353,6 +408,50 @@ for v in bm.verts:
 parts.sort(key=len)
 log("region parts", [len(p_) for p_ in parts[-4:]])
 bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
+if KIND == "vest":
+    bverts = [v for v in bm.verts if any(e.is_boundary for e in v.link_edges)]
+
+    kind_of = {}
+    for v in bverts:
+        r0 = resid(np.array(v.co))
+        kind_of[v] = min(r0, key=lambda kk: abs(r0[kk]))
+
+    def snap(v):
+        c = np.array(v.co)
+        k_ = kind_of[v]
+        if k_ == "hem":
+            c[2] = hem_z(c[0], c[1], c[2])
+        elif k_ == "v":
+            c[0] = np.sign(c[0] or 1) * v_w(c[2])
+        elif k_ == "arm":
+            ac = ARMC[1 if c[0] > 0 else -1]
+            c = ac + (c - ac) / max(np.linalg.norm(c - ac), 1e-6) * ARMR
+        else:
+            c[2] = Z_NECK
+        v.co = Vector(c)
+    for _ in range(R.get("edge_iter", 10)):
+        for v in bverts:
+            snap(v)
+        newc = {}
+        for v in bverts:
+            nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+            if len(nb) == 2:
+                newc[v] = v.co * 0.5 + (nb[0].co + nb[1].co) * 0.25
+        for v, c in newc.items():
+            v.co = c
+    for v in bverts:
+        snap(v)
+    # snapped edge verts can cross their inner neighbours (folded sawtooth triangles): relax the rings
+    # next to the edge with the edge pinned
+    ring, frontier = set(), set(bverts)
+    for _ in range(R.get("edge_rings", 4)):
+        frontier = {e.other_vert(v) for v in frontier for e in v.link_edges} - set(bverts) - ring
+        ring |= frontier
+    for _ in range(R.get("edge_relax", 25)):
+        newc = {v: sum((e.other_vert(v).co for e in v.link_edges), Vector()) / len(v.link_edges) for v in ring}
+        for v, c in newc.items():
+            v.co = v.co.lerp(c, 0.6)
+    log("vest edge verts snapped", len(bverts), "relaxed", len(ring))
 # boundary loops: waist (z_top), two knee loops (z_bot) stay open; others (tail hole) are capped
 bnd = [e for e in bm.edges if e.is_boundary]
 loops, used = [], set()
@@ -373,7 +472,7 @@ for e in bnd:
 caps = []
 for lp in loops:
     lvs = [np.array(v.co) for e in lp for v in e.verts]
-    if not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
+    if KIND != "vest" and not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
         res = bmesh.ops.holes_fill(bm, edges=lp, sides=0)
         if not res["faces"]:                          # tiny holes: fan from the centre
             vs = list({v for e in lp for v in e.verts})
@@ -421,8 +520,12 @@ def plane_dist(c, pl):
 
 
 excl = is_arm if KIND != "shirt" else np.zeros(len(BPv), bool)
-COVERS_POS = np.array([q for q, ex in zip(BPv, excl)
-                       if not ex and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
+if KIND == "vest":
+    COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Arm" not in d_ and "Hand" not in d_
+                           and inside_amount(q) > COVER_MARGIN])
+else:
+    COVERS_POS = np.array([q for q, ex in zip(BPv, excl)
+                           if not ex and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
 # vertices made by the cuts / caps have no skin weights: take the nearest body vertex's
 for v in reg.data.vertices:
     if sum(g.weight for g in v.groups) < 1e-6:
@@ -432,10 +535,11 @@ for v in reg.data.vertices:
             vg.add([v.index], float(Wb[j, gi]), "REPLACE")
 # subdivide once (game mesh precursor), relax the cap
 only_select(reg)
-m = reg.modifiers.new("sub", "SUBSURF")
-m.levels = 1
-m.boundary_smooth = "PRESERVE_CORNERS"
-bpy.ops.object.modifier_apply(modifier=m.name)
+if R.get("region_sub", 1):
+    m = reg.modifiers.new("sub", "SUBSURF")
+    m.levels = R.get("region_sub", 1)
+    m.boundary_smooth = "PRESERVE_CORNERS"
+    bpy.ops.object.modifier_apply(modifier=m.name)
 me = reg.data
 P, N = mesh_vn(me)
 ed = edges_of(me)
@@ -518,7 +622,7 @@ bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
-if KIND == "shirt":
+if KIND in ("shirt", "vest"):
     pb = None
 for i, (p, n) in enumerate(zip(P, N)):
     if pb is None:
@@ -589,6 +693,28 @@ ease = np.minimum(ease, 0.4 * G)
 ease = smooth_field(ease, ed, 8)
 ease = np.minimum(ease, 0.42 * G)                     # re-limit after smoothing
 ease = np.maximum(ease, 0.004)
+if KIND == "vest":
+    # built on the layers beneath: torso ease, a lapel roll along the V, then never closer than "clear"
+    # outside any "over" shell (shirt, breeches waistband) along the body normal
+    E = R.get("ease", {})
+    ease = np.full(len(P), E.get("torso", 0.014))
+    dv = np.array([resid(c)["v"] for c in P])
+    ease += E.get("lapel", 0.004) * np.clip(1 - dv / V_.get("lapel_w", 0.022), 0, 1) * (dv < 1)
+    ease = smooth_field(ease, ed, 4)
+    under = np.zeros(len(P))
+    for nm in R.get("over", []):
+        uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+        ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
+        for i, (p_, n_) in enumerate(zip(P, N)):
+            hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.09)
+            if hit[0] is not None:
+                under[i] = max(under[i], hit[3] - 0.01)
+        bpy.data.objects.remove(uo)
+    need = np.minimum(under, E.get("under_max", 0.03)) + E.get("clear", 0.005)   # (rays that hit a sleeve)
+    ease = np.maximum(ease, need)
+    ease = smooth_field(ease, ed, 6)
+    ease = np.maximum(ease, need)
+    log("vest over-layer clearance mm p50/p90", np.round(np.percentile(under, [50, 90]) * 1000, 1).tolist())
 log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1000, 1).tolist())
 
 mid = reg
@@ -623,6 +749,8 @@ mid.data.update()
 mid.name = mid.data.name = f"{PIECE}_mid"
 # store per-vertex design coordinates as attributes for the detail pass
 extra_attr = {"armw": armw}
+if KIND == "vest":
+    extra_attr["back"] = (P[:, 1] > ycf(P[:, 2])).astype(float)
 if KIND == "shirt":
     extra_attr.update({"dwr": np.minimum(dwr, 1.0), "dhem": dhem})
 for name, val in (("ease", ease), ("z0", P[:, 2]), *extra_attr.items()):
@@ -778,7 +906,74 @@ elif KIND == "shirt":
     bl = np.clip(1 - dhh / 0.08, 0, 1) * torso
     phb = 0.9 * np.sin(phit * 3.1) + 0.5 * np.sin(phit * 7.3 + zh * 30)
     disp += 0.0013 * np.sin(phit * 9 + phb) * bl
+if KIND == "vest":
+    tintm = np.ones(len(Ph))                      # extra darkening (buttons, strap, buckle)
+    rs = [resid(c) for c in Ph]
+    dh = np.array([r_["hem"] for r_ in rs])
+    dv = np.array([r_["v"] for r_ in rs])
+    da = np.array([r_["arm"] for r_ in rs])
+    dn = np.array([r_["neck"] for r_ in rs])
+    ycv = ycf(zh)
+    front = y < ycv
+    phit = np.arctan2(x, -(y - ycv))
+    rt = np.hypot(x, y - ycv)
+    # edge stitching 6 mm in from every edge, a turned edge (slight rise) at the hem / armholes
+    for d_ in (dh, da, np.where(front, dv, 9.0)):
+        disp += groove(np.abs(d_ - 0.006), 0.0009, 0.0005) + 0.0008 * np.clip(1 - d_ / 0.004, 0, 1)
+    # lapels: raised band along the V, roll line groove at its inner edge, notch near the top
+    lw = V_.get("lapel_w", 0.022)
+    inl = front & (zh > V_["z_vbot"] - 0.01) & (dv < lw)
+    disp += np.where(inl, 0.0018 * np.clip(dv / 0.003, 0, 1), 0.0)
+    disp += np.where(front & (zh > V_["z_vbot"] - 0.01), groove(np.abs(dv - lw), 0.0013, 0.0012), 0.0)
+    zn_ = Z_NECK - V_.get("notch_down", 0.045)
+    disp += np.where(inl, groove(np.abs(zh - zn_ + 0.4 * dv), 0.0012, 0.0012), 0.0)
+    # centre front: the two fronts meet below the V (overlap edge + stitch)
+    cf = front & (zh < V_["z_vbot"])
+    disp += np.where(cf, groove(np.abs(x - 0.0), 0.0012, 0.0011) + 0.0008 * (x < 0) * np.clip(-x / 0.003, 0, 1), 0.0)
+    # four buttons on the centre line
+    zb_ = np.linspace(V_["z_vbot"] - 0.012, V_["z_notch"] + 0.035, R.get("buttons", 4))
+    for zz in zb_:
+        dbt = np.sqrt((x - 0.0) ** 2 + (zh - zz) ** 2)
+        b_ = front & (dbt < 0.0075)
+        disp += np.where(front, 0.0022 * np.clip(1 - (dbt / 0.0065) ** 2, 0, 1), 0.0)
+        disp += np.where(front, groove(np.abs(dbt - 0.0068), 0.0007, 0.0006), 0.0)
+        tintm = np.where(b_, 0.42, tintm)
+    # welt pockets: slanted raised welts with grooves round them
+    for sg in (1, -1):
+        pc = np.array(V_.get("pocket", [0.085, 0.965]))
+        ang = np.radians(V_.get("pocket_tilt", 8)) * sg
+        u_ = (x - pc[0] * sg) * np.cos(ang) + (zh - pc[1]) * np.sin(ang)
+        w_ = -(x - pc[0] * sg) * np.sin(ang) + (zh - pc[1]) * np.cos(ang)
+        hw, hh_ = V_.get("pocket_w", 0.036), 0.0055
+        inside = front & (np.abs(u_) < hw) & (np.abs(w_) < hh_)
+        edge = np.maximum(np.abs(u_) - hw, np.abs(w_) - hh_)
+        disp += np.where(inside, 0.0014, 0.0) + np.where(front, groove(np.abs(edge), 0.0009, 0.0011), 0.0)
+        disp += np.where(inside, groove(np.abs(w_), 0.0006, 0.0005), 0.0)
+        # front dart below the pocket
+        dd_ = front & (zh < pc[1] - hh_ - 0.004) & (dh > 0.01)
+        disp += np.where(dd_, groove(np.abs(x - (pc[0] + 0.005) * sg), 0.0011, 0.0006), 0.0)
+    # side seams, back centre seam
+    disp += groove(np.abs(np.abs(phit) - np.pi / 2) * rt, 0.0013, 0.0008)
+    bk = ~front
+    disp += np.where(bk, groove(np.abs(x), 0.0012, 0.0008), 0.0)
+    # back adjuster: two strap halves from the side seams to a buckle at the centre back
+    zs_ = V_.get("strap_z", 0.935)
+    sh_ = 0.009
+    st = bk & (np.abs(zh - zs_) < sh_) & (np.abs(x) < V_.get("strap_x", 0.085))
+    disp += np.where(st, 0.0016, 0.0) + np.where(bk & (np.abs(x) < V_.get("strap_x", 0.085)),
+                                                groove(np.abs(np.abs(zh - zs_) - sh_), 0.0008, 0.0009), 0.0)
+    disp += np.where(st, groove(np.abs(np.abs(zh - zs_) - sh_ + 0.002), 0.0005, 0.0003), 0.0)
+    tintm = np.where(st, 0.82, tintm)
+    bx, bz = np.abs(x - 0.0) , np.abs(zh - zs_)
+    frame = bk & (np.maximum(bx / 0.013, bz / 0.011) < 1) & (np.maximum(bx / 0.013, bz / 0.011) > 0.62)
+    bar = bk & (np.abs(x) < 0.0015) & (bz < 0.011)
+    disp += np.where(frame | bar, 0.0026, 0.0)
+    tintm = np.where(frame | bar, 0.3, tintm)
+    # soft drag folds from the buttons toward the sides and at the small of the back
+    disp += 0.0009 * np.sin(phit * 7 + zh * 35) * np.clip(1 - dh / 0.12, 0, 1)
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
+if KIND == "vest":
+    occ = occ * tintm
 Ph2 = Ph + Nh * disp[:, None]
 hi.data.vertices.foreach_set("co", Ph2.ravel())
 hi.data.update()
@@ -789,7 +984,7 @@ log("detail disp mm min/max", round(float(disp.min()) * 1000, 2), round(float(di
 lo = mid
 only_select(lo)
 for a in list(lo.data.attributes):
-    if a.name in ("ease", "z0", "armw", "dwr", "dhem"):
+    if a.name in ("ease", "z0", "armw", "dwr", "dhem", "back"):
         lo.data.attributes.remove(a)
 tri = sum(len(p.vertices) - 2 for p in lo.data.polygons)
 m = lo.modifiers.new("dec", "DECIMATE")
@@ -921,6 +1116,19 @@ def factor_for(rgb):
 COLORS = R.get("colors", {"tan": [165, 133, 105]})
 base_name = next(iter(COLORS))
 mix.inputs["B"].default_value = factor_for(COLORS[base_name])
+if KIND == "vest":
+    # the back panel is linen: a second material (glTF primitive) with the same textures and its own colour
+    lin = mat.copy()
+    lin.name = f"{CHAR}_{PIECE}_lining"
+    lin.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = R.get("lining_roughness", 0.7)
+    for n_ in lin.node_tree.nodes:
+        if n_.type == "MIX":
+            n_.inputs["B"].default_value = factor_for(R.get("lining_color", [205, 192, 168]))
+    lo.data.materials.append(lin)
+    for f_ in lo.data.polygons:
+        c_ = np.array(f_.center)
+        f_.material_index = 1 if (c_[1] > ycf(c_[2]) + 0.005) else 0
+    log("lining faces", sum(1 for f_ in lo.data.polygons if f_.material_index == 1))
 
 # ---- 5. export + report
 OUT.mkdir(exist_ok=True)
@@ -949,6 +1157,7 @@ report = {"char": CHAR, "piece": PIECE, "source": "make_garment.py (designed)", 
           "weight_smooth": R.get("weight_smooth", 20),
           "covers": {"z_top": Z_TOP, "rise": RISE, "y0": Y0, "z_bot": Z_BOT, "margin": R.get("cover_margin", 0.012)}, "ease_mm_p10_50_90": np.round(np.percentile(ease, [10, 50, 90]) * 1000, 1).tolist(),
           "detail_mean_srgb": round(mean_detail, 3), "colors": COLORS, "base_color": base_name,
+          "lining_color": R.get("lining_color") if KIND == "vest" else None,
           "base_color_factor": [round(c, 4) for c in factor_for(COLORS[base_name])]}
 (OUT / f"{PIECE}.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 print("SHELL", json.dumps(report))

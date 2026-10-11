@@ -47,9 +47,10 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
+LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
-LAYER_IGNORE = {"shirt": ("bowtie", "gloves"), "breeches": ("shirt",)}
+LAYER_IGNORE = {"shirt": ("bowtie", "gloves"), "breeches": ("shirt",), "waistcoat": ("shirt", "breeches", "bowtie")}
 LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
@@ -426,6 +427,21 @@ for k in list(designed):
         for v in o.data.vertices:
             if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]:   # torso only (not the hanging sleeves)
                 vk[v.index].add(tk["into"])
+    # erode: a key survives on a vertex only if its neighbours (LAYER_ERODE rings) have it too, so the
+    # hidden zone stays under the outer piece instead of reaching to (and past) its jagged edge
+    nbr = [[] for _ in o.data.vertices]
+    for e in o.data.edges:
+        a_, b_ = e.vertices
+        nbr[a_].append(b_)
+        nbr[b_].append(a_)
+    _, grp = np.unique(np.round(np.array([v.co[:] for v in o.data.vertices]), 5), axis=0, return_inverse=True)
+    grp = grp.ravel()
+    for _ in range(LAYER_ERODE):
+        merged = {}
+        for i_, g_ in enumerate(grp):            # UV-seam duplicates share their keys
+            merged.setdefault(g_, set()).update(vk[i_])
+        vk = [set(merged[g_]) for g_ in grp]
+        vk = [s_.intersection(*[vk[j] for j in nbr[i_]]) if nbr[i_] else s_ for i_, s_ in enumerate(vk)]
     fkey = []
     for f in o.data.polygons:
         ks = [vk[i] for i in f.vertices]

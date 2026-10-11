@@ -691,4 +691,15 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   no extra offset); inside the 4.5 cm cuff band the sleeve is rebuilt as a round tube around the axis through the
   sleeve's own centroid at the cuff top (the bone runs off-centre), radius = sleeve radius there + 7 mm (≈ 41 mm),
   blended back to the fitted sleeve over 4 cm. The old extracted gloves' ragged cuff still overlaps it.
+- **Designed vest (Pete: linen back + adjuster, four buttons, pointed hem, welt pockets, small lapels)** — make_garment
+  kind "vest" (piece "waistcoat"): outline = back neck plane + curves (pointed front hem with a centre notch, V opening
+  from the top button to the neck, deep armholes as spheres round the shoulder joint); the body band is subdivided
+  ×3 before cutting, edge verts snapped onto their outline curve, edge rings relaxed (no folded sawtooth). Built over
+  the layers beneath: ease = 14 mm torso + 4 mm lapel roll, never closer than 5 mm outside the shirt / breeches along
+  the body normal. Detail: lapels (raised band, roll line, notch), centre overlap, four buttons (dark), two slanted
+  welt pockets, front darts, side + back seams, edge stitching; back adjuster = two strap halves + buckle. Back panel
+  is a second material "…_lining" (linen colour, same textures; the recolour leaves it). Covers margin 3 cm (the
+  body's triangle-jagged hole stays under the edge). dress_goose: layer masks eroded by 2 rings (no jagged gaps at
+  outer edges); vest ignores shirt / breeches / bowtie for its own masking. Riding: the shirt still pokes through the
+  vest sides. Male visible 19.1k tris; validator 0/0, three.js ok.
 

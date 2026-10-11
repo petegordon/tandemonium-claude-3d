@@ -305,8 +305,7 @@
   "accessory_clear": {
     "bowtie": {
       "pieces": [
-        "coat",
-        "waistcoat"
+        "coat"
       ],
       "parts": [
         "bow_L",
@@ -437,6 +436,79 @@
       },
       "hem_zone": 0.14,
       "cuff_clear": 0.007
+    },
+    "waistcoat": {
+      "kind": "vest",
+      "z_neck": 1.265,
+      "z_top": 0.9,
+      "z_bot": 0.8,
+      "tris": 2600,
+      "cover_margin": 0.03,
+      "outline": {
+        "z_notch": 0.868,
+        "z_point": 0.842,
+        "z_side": 0.888,
+        "z_back": 0.888,
+        "point_x": 0.032,
+        "side_x": 0.13,
+        "z_vbot": 1.075,
+        "v_top_w": 0.062,
+        "v_pow": 0.9,
+        "arm_r": 0.088,
+        "arm_off": [
+          -0.005,
+          0.0,
+          -0.04
+        ],
+        "lapel_w": 0.022,
+        "notch_down": 0.05,
+        "pocket": [
+          0.085,
+          0.965
+        ],
+        "pocket_tilt": 8,
+        "pocket_w": 0.034,
+        "strap_z": 0.94,
+        "strap_x": 0.09
+      },
+      "ease": {
+        "torso": 0.014,
+        "lapel": 0.004,
+        "clear": 0.005
+      },
+      "over": [
+        "shirt",
+        "breeches"
+      ],
+      "mottle": 0.18,
+      "twill": 0.08,
+      "roughness": 0.85,
+      "lining_color": [
+        206,
+        194,
+        172
+      ],
+      "lining_roughness": 0.65,
+      "colors": {
+        "tan": [
+          128,
+          106,
+          82
+        ],
+        "grey": [
+          96,
+          96,
+          100
+        ],
+        "burgundy": [
+          112,
+          42,
+          50
+        ]
+      },
+      "pre_cuts": 2,
+      "region_sub": 0,
+      "edge_iter": 20
     }
   },
   "accessory_drop": {
