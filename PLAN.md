@@ -746,4 +746,4 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   bowler (lathe on ellipses fitted to the extracted hat, sides curl up, dome crown, black band, brass buckles; felt
   recolourable). dress_goose: NO_MASK hat (head stays whole -- the hidden forehead showed as a dark gap).
   garment_sheet.py now covers all 8 pieces. Male dressed visible 19.7k; validator 0/0, three.js ok.
-
+- **three.js check toggles sub-meshes; rigid hat** -- check.mjs hides every "<base>__<keys>" mesh (all pieces worn), as the game must; it showed the tail and inner layers before. dress_goose RIGID hat -> Head (it bent with the neck). Open: T-pose armpit (shirt / jacket sleeves tear under the arm).

@@ -50,6 +50,7 @@ MASK_D = 0.06
 FOLLOW_OUTER = {"shirt": ("waistcoat",), "waistcoat": ("coat",)}   # inner garment takes the outer one's weights where covered
 LAYER_NEAR = 0.0      # designed outer pieces: proximity layer test (off: it hid the shirt V)
 NO_MASK = {"hat"}
+RIGID = {"hat": "Head"}   # (it bent with the neck bones)
 LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
@@ -328,6 +329,10 @@ for k, o in shells.items():
             Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
             print("FOLLOW", k, "->", outer, int((f_ > 0.5).sum()), "verts")
         print("WEIGHTS", k, "from", meta["weights"])
+    if k in RIGID:                     # rigid accessory: one bone
+        Wv = np.zeros_like(Wv)
+        Wv[:, names.index(RIGID[k])] = 1.0
+        tl = np.zeros(len(X))
     skin[k] = (Wv, X, tl)
 bpy.data.objects.remove(src)
 

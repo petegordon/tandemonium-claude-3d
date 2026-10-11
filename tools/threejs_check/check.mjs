@@ -59,6 +59,13 @@ try {
   let skinned = 0, meshes = 0; const bones = new Set();
   gltf.scene.traverse(o => { if (o.isMesh) meshes++; if (o.isSkinnedMesh) { skinned++; o.skeleton.bones.forEach(b => bones.add(b.name)); } });
   out.meshes = meshes; out.skinned = skinned; out.bones = bones.size;
+  // all pieces worn: sub-meshes "<base>__<a+b>" (body / layered garments) are hidden while a or b is worn,
+  // exactly as the game toggles them (glTF exports the names; dots/spaces may be normalised)
+  const worn = new Set();
+  gltf.scene.traverse(o => { if (o.isMesh && !o.name.includes("__") && !/^(body|eyeball|lid|catchlight)/.test(o.name)) worn.add(o.name.split(/[._]/)[0] === "shirt@collar" ? "shirt" : o.name); });
+  let hidden = 0;
+  gltf.scene.traverse(o => { if (o.isMesh && o.name.includes("__")) { o.visible = false; hidden++; } });
+  out.layer_hidden = hidden;
   out.clips = gltf.animations.map(c => ({ name: c.name, duration: +c.duration.toFixed(2), tracks: c.tracks.length }));
   const box = new THREE.Box3().setFromObject(gltf.scene); const size = box.getSize(new THREE.Vector3());
   out.height_m = +size.y.toFixed(3);
