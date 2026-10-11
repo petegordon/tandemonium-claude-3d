@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.4 shells built for both.** Male 8 pieces on the base body (15.2k tris), female 5 pieces on her slider body (`chars/outfit_female.json` "shape", 15.5k). **Next: P3.5** (body masks, weights / bone chains for skirt + coat tails, outfit swap). Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.5 first pass done.** Dressed + skinned + masked geese: `dress_goose.py --char outfit_x` -> `out/<c>-goose/<c>_dressed.glb/.blend` (male 17.7k / female 17.5k visible tris), body toggle sub-meshes, D12 cloth chains (`<c>_cloth_chains.json`). Next: three.js check of the dressed GLBs + chain follow rule in the game viewer, bake polish (shirt patches, hat edges), P3.6 recolour. Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
@@ -22,6 +22,7 @@ bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye
 bone-by-bone to each outfit (limb lengths, arm/spine angles, **per-bone girth scale**; targets = gloves, boots, shoulders)
 then inverse skinning; P3.4 offsets shells to clear the rest; P3.5 masks hide body (tail, toes, thighs) under garments ·
 **D10 (P3.3)** garment extraction by texture colour + body region (refined by distance map), not distance alone ·
+**D12 (P3.5)** cloth chains for skirt / coat (front follows thighs .7, side .35, back hangs; drape falloff) ·
 **D11 (P3.4)** per-character body shape: female = shared base mesh + rig deformed by her rig-fit (own joints, slimmer
 arms, longer legs) and her clothes keep the reference proportions; male stays on the base body (D1), clothes inflated.
 
@@ -81,7 +82,9 @@ extract_garments.py --char outfit_x --use-ref        # final labels + pieces -> 
 transfer_garments.py --char outfit_x                 # pieces onto the body they are worn on -> pieces/*.glb
 build_shell.py --char outfit_x --piece P [--no-push] # game shell per piece -> shells/P.glb (gloves/boots/hat/bowtie: --no-push)
 assemble_outfit.py --char outfit_x [--green]         # body + all shells render
+dress_goose.py --char outfit_x                       # masks, skinning, cloth chains, poses -> <c>_dressed.glb
 ```
+Female body = sliders in chars/outfit_female.json "shape" (`shape_preview.py` to check).
 
 ## Base goose rebuild chain (if anything upstream changes)
 

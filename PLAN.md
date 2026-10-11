@@ -602,3 +602,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   + `renders/<char>_dressed_poses.png` (rest, A, riding, neck). **Dressed visible tris: male 17.7k, female 18.2k (≤ 20k).**
   Rest / A / neck clean for both; riding: male coat skirts over the lap rough, female skirt cannot follow the thighs →
   D4 bone chains next.
+- **D12 (Pete): cloth chains, front follows the thighs** — dress_goose pass B: hanging pieces (coat, dress) get chains
+  Cloth_<piece>_<FL|FR|SL|SR|BL|BR>_<1..3> (parent Hips) placed from their loose verts (sector centroids at 4 heights,
+  1 cm in); loose verts weight to the two nearest chains by angle and to neighbouring bones by height. Runtime rule
+  (glTF has no constraints; the game implements it, `<char>_cloth_chains.json`): chain bone j takes slerp(Hips Δrot,
+  thigh Δrot, follow × drape[j]) in armature space, follow F .7 / S .35 / B 0, drape [1, .45, .15] so the hem bends at the
+  knee and hangs. Female: 6 chains, riding skirt drapes over the knees; male: 4 (coat fronts/sides; tails stay on Hips).

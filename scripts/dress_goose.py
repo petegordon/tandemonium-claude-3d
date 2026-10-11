@@ -10,7 +10,10 @@
    (gloves: Hand bones, boots: Foot/ToeBase + shin below the boot top, coat / dress: Tail). The
    body is split into sub-meshes keyed by the pieces that hide them ("body" = always visible,
    "body__coat+waistcoat" = hidden while any of those is worn).
-3. Skinning: each shell copies vertex groups from the nearest body face (Data Transfer, polygon
+3. Skinning (D12 chains: hanging pieces coat / dress get 6 cloth chains, front/side/back x L/R,
+   3 bones from Hips, placed from their loose verts; loose verts weight to them by angle and height;
+   chain roots follow the thighs at FOLLOW -> <char>_cloth_chains.json): each shell copies
+   vertex groups from the nearest body face (Data Transfer, polygon
    interpolated); loose cloth (LOOSE_D0..D1 off the body) blends leg weights to Hips; weights
    smoothed (WEIGHT_SMOOTH rounds), limited to 4, normalised; armature modifier + parent to the rig.
 4. Exports out/<char>-goose/<char>_dressed.glb + <char>_dressed.blend; writes <char>_dress.json
@@ -25,7 +28,7 @@ from pathlib import Path
 import bmesh
 import bpy
 import numpy as np
-from mathutils import Vector
+from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -40,7 +43,10 @@ D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
-LOOSE_PIECES = {"coat", "dress"}   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)
+LOOSE_PIECES = {"coat", "dress"}
+CHAIN_AZ = {"FL": 30, "FR": -30, "SL": 90, "SR": -90, "BL": 150, "BR": -150}   # 0 = front, + = character left
+FOLLOW = {"F": 0.7, "S": 0.35, "B": 0.0}
+DRAPE = [1.0, 0.45, 0.15]   # share of the follow per chain bone (root, mid, tip): fabric bends at the knee   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)
 FORCE = {"gloves": ("Hand",), "boots": ("Foot", "ToeBase"), "coat": ("Tail",), "dress": ("Tail", "UpLeg", "Leg")}   # long skirt hangs > MASK_D off the legs
 RES_W, RES_H = 420, 560
 
@@ -141,11 +147,13 @@ for k in keys:
     parts[o.name] = o
 bpy.data.objects.remove(body)
 
-# ---- 3. skin the shells
+# ---- 3. skin the shells (pass A: transfer + loose factor; B: cloth chains; C: weights)
 src = parts["body"].copy()                       # a whole body for the weight source
 src.data = me.copy()
 bpy.context.scene.collection.objects.link(src)
 leg = [n for n in names if n.endswith(("UpLeg", "Leg", "Foot", "ToeBase"))]
+sb = BVHTree.FromObject(src, bpy.context.evaluated_depsgraph_get())
+skin = {}
 for k, o in shells.items():
     for g in names:
         if g not in o.vertex_groups:
@@ -159,21 +167,91 @@ for k, o in shells.items():
     m.layers_vgroup_select_dst = "NAME"
     bpy.context.view_layer.objects.active = o
     bpy.ops.object.modifier_apply(modifier=m.name)
-    # loose cloth -> Hips
-    sb = BVHTree.FromObject(src, bpy.context.evaluated_depsgraph_get())
-    gi = {g.name: g.index for g in o.vertex_groups}
     Wv = np.zeros((len(o.data.vertices), len(names)))
     for v in o.data.vertices:
         for g in v.groups:
             nm = o.vertex_groups[g.group].name
             if nm in names:
                 Wv[v.index, names.index(nm)] = g.weight
-    d = np.array([sb.find_nearest(v.co)[3] for v in o.data.vertices])
+    X = np.array([v.co[:] for v in o.data.vertices])
+    d = np.array([sb.find_nearest(Vector(x))[3] for x in X])
     legw = Wv[:, [names.index(n) for n in leg]].sum(1)
-    t = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
-    hips = np.zeros(len(names))
-    hips[names.index("Hips")] = 1
-    Wv = (1 - t)[:, None] * Wv + t[:, None] * hips
+    tl = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
+    skin[k] = (Wv, X, tl)
+bpy.data.objects.remove(src)
+
+# pass B (D12): cloth chains around the hips for hanging pieces; front chains follow the thighs at
+# runtime (FOLLOW), back chains hang. Joints = sector centroids of the loose verts at 4 heights.
+hips_h = np.array(rig.matrix_world @ rig.data.bones["Hips"].head_local)
+chains = []
+bpy.context.view_layer.objects.active = rig
+bpy.ops.object.mode_set(mode="EDIT")
+inv = rig.matrix_world.inverted()
+for k, (Wv, X, tl) in skin.items():
+    sel = tl > 0.3
+    if sel.sum() < 200:
+        continue
+    P = X[sel]
+    z_top, z_bot = np.percentile(P[:, 2], [97, 2])
+    az = np.degrees(np.arctan2(P[:, 0] - hips_h[0], -(P[:, 1] - hips_h[1])))
+    for tag, a0 in CHAIN_AZ.items():
+        da = (az - a0 + 180) % 360 - 180
+        sec = np.abs(da) < 30
+        if sec.sum() < 60:
+            continue
+        joints = []
+        for j in range(4):
+            zj = z_top - (z_top - z_bot) * j / 3
+            m_ = sec & (np.abs(P[:, 2] - zj) < 0.03)
+            if m_.sum() < 5:
+                m_ = sec & (np.abs(P[:, 2] - zj) < 0.08)
+            c = P[m_].mean(0) if m_.sum() else P[sec].mean(0)
+            r = c[:2] - hips_h[:2]
+            c[:2] = hips_h[:2] + r * max(0.0, 1 - 0.01 / max(np.linalg.norm(r), 1e-6))
+            c[2] = zj
+            joints.append(c)
+        bones = []
+        for j in range(1, 4):
+            eb = rig.data.edit_bones.new(f"Cloth_{k}_{tag}_{j}")
+            eb.head, eb.tail = inv @ Vector(joints[j - 1]), inv @ Vector(joints[j])
+            eb.parent = rig.data.edit_bones["Hips"] if j == 1 else rig.data.edit_bones[bones[-1]]
+            eb.use_connect = j > 1
+            bones.append(eb.name)
+        side = "Left" if a0 > 0 else "Right"
+        chains.append({"piece": k, "tag": tag, "az": a0, "bones": bones, "z": [float(z_top), float(z_bot)],
+                       "thigh": f"{side}UpLeg", "follow": FOLLOW[tag[0]]})
+bpy.ops.object.mode_set(mode="OBJECT")
+cnames = [b for c in chains for b in c["bones"]]
+allnames = names + cnames
+print("CHAINS", [(c["piece"], c["tag"]) for c in chains])
+
+# pass C: weights = body weights x (1 - loose) + chain weights x loose; smooth; 4 influences
+for k, o in shells.items():
+    Wv, X, tl = skin[k]
+    Wv = np.concatenate([Wv, np.zeros((len(Wv), len(cnames)))], 1)
+    hips = np.zeros(len(allnames))
+    hips[allnames.index("Hips")] = 1
+    mine = [c for c in chains if c["piece"] == k]
+    if mine:
+        az = np.degrees(np.arctan2(X[:, 0] - hips_h[0], -(X[:, 1] - hips_h[1])))
+        caz = np.array([c["az"] for c in mine])
+        dd = np.abs((az[:, None] - caz[None] + 180) % 360 - 180)
+        second = np.sort(dd, 1)[:, 1:2] if len(mine) > 1 else np.full((len(X), 1), 180.0)
+        wa = np.maximum(0, 1 - dd / np.maximum(second, 1e-6))       # the two nearest chains
+        wa /= np.maximum(wa.sum(1, keepdims=True), 1e-9)
+        Cw = np.zeros((len(X), len(cnames)))
+        for ci, c in enumerate(mine):
+            z_top, z_bot = c["z"]
+            s_ = np.clip((z_top - X[:, 2]) / max(z_top - z_bot, 1e-6) * 3, 0, 3)
+            for j, b in enumerate(c["bones"]):
+                wb = np.clip(1 - np.abs(s_ - (j + 0.5)), 0, 1)
+                Cw[:, cnames.index(b)] += wa[:, ci] * wb
+        has = Cw.sum(1) > 1e-6
+        Cw /= np.maximum(Cw.sum(1, keepdims=True), 1e-9)
+        loose = np.where(has[:, None], np.concatenate([np.zeros((len(X), len(names))), Cw], 1), hips)
+    else:
+        loose = np.tile(hips, (len(X), 1))
+    Wv = (1 - tl)[:, None] * Wv + tl[:, None] * loose
     # transferred weights are noisy where shell and body shapes differ (boots over webbed feet,
     # breeches at the crotch): neighbouring verts tore apart in the riding pose -> smooth over edges,
     # keep the 4 largest influences, normalise
@@ -188,17 +266,18 @@ for k, o in shells.items():
     lim = np.zeros_like(Wv)
     np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)
     Wv = lim / np.maximum(lim.sum(1, keepdims=True), 1e-9)
-    for j, n in enumerate(names):
-        vg = o.vertex_groups[n]
-        nz = np.flatnonzero(Wv[:, j] > 1e-4)
+    for j, n in enumerate(allnames):
+        vg = o.vertex_groups.get(n) or o.vertex_groups.new(name=n)
         vg.remove(list(range(len(o.data.vertices))))
-        for i in nz:
+        for i in np.flatnonzero(Wv[:, j] > 1e-4):
             vg.add([int(i)], float(Wv[i, j]), "REPLACE")
     am = o.modifiers.new("arm", "ARMATURE")
     am.object = rig
     o.parent = rig
     o.matrix_parent_inverse = rig.matrix_world.inverted()
-bpy.data.objects.remove(src)
+(D / f"{CHAR}_cloth_chains.json").write_text(json.dumps(
+    {"rule": "chain bone j takes, in armature space, slerp(Hips rotation delta, thigh rotation delta, "
+             "follow * drape[j]), root first", "drape": DRAPE, "chains": chains}, indent=1))
 
 tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells}.items()}
 visible = tris.get("body", 0) + sum(tris[k] for k in shells)
@@ -212,6 +291,21 @@ bpy.ops.export_scene.gltf(filepath=str(D / f"{CHAR}_dressed.glb"), use_selection
 # ---- 4. pose test renders
 if POSES_ON:
     poser = Poser(rig)
+
+    def apply_follow():
+        """D12 runtime rule (the game implements the same): chain roots blend from the hips' to the
+        thigh's armature-space rotation delta."""
+        pbs = rig.pose.bones
+        hq = (pbs["Hips"].matrix @ rig.data.bones["Hips"].matrix_local.inverted()).to_quaternion()
+        for c in chains:
+            tq = (pbs[c["thigh"]].matrix @ rig.data.bones[c["thigh"]].matrix_local.inverted()).to_quaternion()
+            for j, bn in enumerate(c["bones"]):           # less follow down the chain: the hem drapes
+                q = hq.slerp(tq, c["follow"] * DRAPE[j])
+                pb = pbs[bn]
+                rest = rig.data.bones[bn].matrix_local
+                head = pb.matrix.to_translation()
+                pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ rest.to_3x3().to_4x4()
+                bpy.context.view_layer.update()
     poses = [("rest", None), ("a_pose", poser.a_pose), ("riding", poser.riding), ("neck_curve", poser.neck_curve)]
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
@@ -237,6 +331,7 @@ if POSES_ON:
         if fn:
             fn()
         bpy.context.view_layer.update()
+        apply_follow()
         col = []
         for yaw in (0, 90):
             y = math.radians(yaw)
