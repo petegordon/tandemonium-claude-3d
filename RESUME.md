@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.2b next.** P3.1 done: Pete picked **male s2026**, **female s7**. P3.2 first pass (`align_outfit.py --crown 0.0`): male head+feet fit with one similarity (1.5/3.7 mm); female head fits but her body proportions differ (feet 8.5 cm below floor at head scale). Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.3 next.** P3.1 picks male s2026 / female s7. P3.2 head fit (`align_outfit.py --crown 0.0`) + P3.2b rig-fit (`rig_fit.py`, Pete accepted 2026-10-10: poke-through hands 3 %, torso 5–6 %; leftovers = toes, male tail stub, female upper back → P3.5 masks). Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
