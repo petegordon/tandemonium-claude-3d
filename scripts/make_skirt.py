@@ -75,7 +75,22 @@ bpy.data.objects.remove(gp)
 okg = ~np.isnan(rg)
 rg = np.where(okg, rg, 0.0)
 rgs = smooth2(rg, S.get("guide_smooth", 14)) / np.maximum(smooth2(okg.astype(float), S.get("guide_smooth", 14)), 1e-3)
-r = np.maximum(r, rgs * S.get("guide_scale", 1.0))
+if S.get("use_guide", False):
+    r = np.maximum(r, rgs * S.get("guide_scale", 1.0))
+if S.get("profile"):
+    # silhouette from the reference side / front / rear views: extra radius over the hanging body radius at
+    # front / side / back control heights, blended round the body by azimuth (smooth, no shelf)
+    PR = S["profile"]
+    zc = np.array(PR["z"])
+    def prof(key):
+        return np.interp(-ZS, -zc, np.array(PR[key]))
+    pf, ps, pb = prof("front"), prof("side"), prof("back")
+    a_ = np.abs(((THS + math.pi) % (2 * math.pi)) - math.pi)          # 0 front .. pi back
+    wf = np.clip(np.cos(a_), 0, 1) ** 2
+    wb = np.clip(-np.cos(a_), 0, 1) ** 2
+    ws = 1 - wf - wb
+    extra = wf[:, None] * pf[None] + ws[:, None] * ps[None] + wb[:, None] * pb[None]
+    r = smooth2(rb, 6) + clear + extra
 log("radius mm body p50 / guide p50", round(float(np.median(rb)) * 1000), round(float(np.median(rgs)) * 1000))
 TT, ZZ = np.meshgrid(THS, ZS, indexing="ij")
 az = np.degrees((TT + math.pi) % (2 * math.pi) - math.pi)              # -180..180, 0 = front
@@ -83,7 +98,7 @@ az = np.degrees((TT + math.pi) % (2 * math.pi) - math.pi)              # -180..1
 B_ = S["bustle"]
 bz = np.exp(-((ZZ - B_["z"]) / B_["dz"]) ** 2) * np.clip((Z_TOP - ZZ) / 0.05, 0, 1)
 ba = np.exp(-((np.abs(az) - 180) / B_["daz"]) ** 2)
-r = r + B_["r"] * bz * ba
+r = r + B_.get("r", 0.0) * bz * ba
 # flounces: two tiers standing out a little from the skirt
 F_ = S["flounce"]
 z1, z2 = Z_HEM + F_["h"], Z_HEM + 2 * F_["h"]
@@ -96,8 +111,40 @@ in_ap = (np.abs(az) < A_["az"]) & (ZZ > zap)
 r = r + A_["out"] * in_ap * np.clip((ZZ - zap) / 0.01, 0, 1)
 # waist: snug onto the body at the top
 wt = np.clip((Z_TOP - ZZ) / S.get("waist_blend", 0.08), 0, 1) ** 1.5
+wt = wt * wt * (3 - 2 * wt)
 r = (rb + S.get("waist_clear", 0.006)) * (1 - wt) + r * wt
-r = smooth2(r, 1)
+r = smooth2(r, S.get("final_smooth", 1))
+TIERS = S.get("tiers", [])
+
+
+def tier_fields(az_deg, zz):
+    """Cascading bustle tiers (refs/v3 rear / side views): each tier flares out from its top to a
+    scalloped lower edge, the next tier starts under it -> stepped overhangs instead of one bulge.
+    Returns (extra radius, per-tier edge heights)."""
+    add = np.zeros_like(zz)
+    edges = []
+    for tr in TIERS:
+        wa = np.exp(-((np.abs(az_deg) - 180) / tr["daz"]) ** 2)
+        zbe = tr["z_bot"] + tr.get("v", 0.0) * (1 - np.abs(np.abs(az_deg) - 180) / 180) ** 0 * 0 +             tr.get("scallop", 0.02) * np.sin(np.radians(az_deg) * tr.get("n_sc", 3)) ** 2
+        zbe = zbe - tr.get("v", 0.0) * np.exp(-((np.abs(az_deg) - 180) / (tr["daz"] * 0.6)) ** 2)   # dips at the centre back
+        inside = (zz <= tr["z_top"]) & (zz >= zbe)
+        u = np.clip((tr["z_top"] - zz) / np.maximum(tr["z_top"] - zbe, 1e-3), 0, 1)
+        # soft swag: rounds over near the edge (the cloth turns under), not a flat shelf
+        prof_ = u ** 1.2 - tr.get("roll", 0.35) * np.clip((u - 0.8) / 0.2, 0, 1) ** 2
+        add = add + np.where(inside, tr["o_top"] + (tr["o_bot"] - tr["o_top"]) * prof_, 0.0) * wa
+        edges.append((zbe, wa))
+    return add, edges
+
+
+for nm in S.get("under", []):           # tucked under these (bodice): stay inside them where they reach
+    uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+    ru = radius_field(BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get()), THS, ZS, YC)
+    bpy.data.objects.remove(uo)
+    lim = np.where(np.isnan(ru), 9.0, ru - S.get("under_gap", 0.004))
+    lim = np.minimum(lim, np.roll(lim, 1, 0)); lim = np.minimum(lim, np.roll(lim, -1, 0))
+    r = np.minimum(r, np.maximum(lim, rb + 0.001))
+    log("tucked under", nm, int((~np.isnan(ru)).sum()), "grid points")
+# (tiers are separate panels, built after the hi skirt below)
 
 
 def loft(ths, zs, Rg, ycs):
@@ -144,10 +191,11 @@ def interp(F, ths, zs):
     return a * (1 - wi) + b * wi
 
 
-rh = interp(r, THh, ZSh)
+rh = interp(r, THh, ZSh)            # (tier steps at game-mesh resolution: the bake matches the silhouette)
 ych = np.interp(-ZSh, -ZS, YC)
 Th, Zh = np.meshgrid(THh, ZSh, indexing="ij")
 azh = np.degrees((Th + math.pi) % (2 * math.pi) - math.pi)
+taddh, tedges = tier_fields(azh, Zh)
 disp = np.zeros_like(rh)
 occm = np.ones_like(rh)
 
@@ -178,14 +226,17 @@ xa = np.abs(azh) / A_["az"]
 sag = Zh - (zaph + (Z_TOP - zaph) * 0.0) + 0.09 * (1 - xa ** 2)
 sw = np.where(apr, np.sin(sag / A_["swag"] * 2 * math.pi) * (1 - xa ** 2) ** 0.5, 0.0)
 disp += A_["swag_amp"] * sw * np.clip((Z_TOP - 0.08 - Zh) / 0.12, 0, 1) * np.clip(de / 0.05, 0, 1)
+# tiers: gathered folds in each tier, turned scalloped edge, shadow on the tier below
+for (zbe_, wa_), tr in zip(tedges, TIERS):
+    occm = np.where((wa_ > 0.3) & (Zh < zbe_) & (Zh > zbe_ - 0.025), 0.6 + 0.4 * np.clip((zbe_ - Zh) / 0.025, 0, 1), occm)
 # bustle drape: vertical folds + scalloped lower edge with a shadow under it
 bzh = np.exp(-((Zh - B_["z"]) / B_["dz"]) ** 2)
 bah = np.exp(-((np.abs(azh) - 180) / B_["daz"]) ** 2)
 disp += B_["fold"] * np.sin(Th * B_["n"] + 1.5 * np.sin(Th * 5)) * bzh * bah * (0.6 + 0.4 * np.sin(Th * 13))
 zbe = B_["z"] - B_["dz"] * 1.2 + 0.02 * np.abs(np.sin(np.radians(azh) * 4))
-edge_b = (bah > 0.25) & (np.abs(Zh - zbe) < 0.006)
+edge_b = (bah > 0.25) & (np.abs(Zh - zbe) < 0.006) & (B_.get("r", 0.0) > 0)
 disp += np.where(edge_b, 0.002, 0.0)
-occm = np.where((bah > 0.25) & (Zh < zbe) & (Zh > zbe - 0.012), 0.72, occm)
+occm = np.where((bah > 0.25) & (Zh < zbe) & (Zh > zbe - 0.012) & (B_.get("r", 0.0) > 0), 0.72, occm)
 # long soft folds on the under-skirt
 disp += 0.0018 * np.sin(Th * 11 + 0.8 * np.sin(Zh * 9)) * np.clip((Z_TOP - 0.15 - Zh) / 0.3, 0, 1) * ~apr
 Phi = loft(THh, ZSh, rh + disp, ych)
@@ -193,6 +244,76 @@ hi = grid_mesh(f"{PIECE}_hi", Phi)
 occ = np.clip((1 + disp / 0.0012 * 0.18) * occm, 0.6, 1.08).ravel()
 col = hi.data.color_attributes.new("occ", "FLOAT_COLOR", "POINT")
 col.data.foreach_set("color", np.repeat(occ[:, None], 4, 1).astype(np.float32).ravel())
+
+
+def r_at(th, z):
+    """Bilinear sample of the main skirt radius at points (periodic azimuth)."""
+    fi = (th % (2 * math.pi)) / (2 * math.pi) * NA
+    fj = np.clip((Z_TOP - z) / (Z_TOP - Z_HEM) * (NZ - 1), 0, NZ - 1.0001)
+    i0 = np.floor(fi).astype(int) % NA
+    i1 = (i0 + 1) % NA
+    wi = fi - np.floor(fi)
+    j0 = np.floor(fj).astype(int)
+    wj = fj - j0
+    a = r[i0, j0] * (1 - wj) + r[i0, j0 + 1] * wj
+    b = r[i1, j0] * (1 - wj) + r[i1, j0 + 1] * wj
+    return a * (1 - wi) + b * wi
+
+
+def tier_panel(tr, na, nu, detail):
+    span = math.radians(tr["daz"] * tr.get("span", 2.2))
+    ths = math.pi + np.linspace(-span, span, na)
+    azd = np.degrees((ths + math.pi) % (2 * math.pi) - math.pi)
+    wa = np.exp(-((np.abs(azd) - 180) / tr["daz"]) ** 2)
+    zbe = tr["z_bot"] + tr.get("scallop", 0.02) * np.sin(np.radians(azd) * tr.get("n_sc", 3)) ** 2 \
+        - tr.get("v", 0.0) * np.exp(-((np.abs(azd) - 180) / (tr["daz"] * 0.6)) ** 2)
+    zb_eff = tr["z_top"] - (tr["z_top"] - zbe) * np.clip(wa, 0, 1) ** 0.5     # ends taper into the skirt
+    us = np.linspace(0, 1, nu)
+    P_ = np.zeros((na, nu, 3))
+    dsp = np.zeros((na, nu))
+    for i, th in enumerate(ths):
+        z_ = tr["z_top"] - us * (tr["z_top"] - zb_eff[i])
+        prof_ = us ** 1.2 - tr.get("roll", 0.35) * np.clip((us - 0.8) / 0.2, 0, 1) ** 2
+        rr_ = r_at(np.full(nu, th), z_) + 0.004 + (tr["o_top"] + (tr["o_bot"] - tr["o_top"]) * prof_) * wa[i]
+        # big soft folds (in the game mesh too), growing toward the hem; turned edge only in the detail
+        dsp[i] = tr.get("fold", 0.004) * us ** 0.8 * np.sin(th * tr.get("n_fold", 16) + 1.2 * np.sin(th * 7)) * wa[i]
+        if detail:
+            dsp[i] += 0.0015 * np.clip(1 - (1 - us) / 0.05, 0, 1)
+        yc_ = np.interp(-z_, -ZS, YC)
+        P_[i] = np.stack([np.zeros(nu), yc_, z_], 1) + dirv(th)[None] * (rr_ + dsp[i])[:, None]
+    return P_, dsp
+
+
+def open_grid(name, P_):
+    na, nu = P_.shape[:2]
+    me = bpy.data.meshes.new(name)
+    faces = [(i * nu + j, i * nu + j + 1, (i + 1) * nu + j + 1, (i + 1) * nu + j) for i in range(na - 1) for j in range(nu - 1)]
+    me.from_pydata([tuple(q) for q in P_.reshape(-1, 3)], [], faces)
+    me.validate()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(o)
+    return o
+
+
+tl_parts, th_parts = [], []
+for k_, tr in enumerate(TIERS):
+    Pl, _ = tier_panel(tr, S.get("tier_na", 34), S.get("tier_nu", 7), False)
+    Ph_, dh_ = tier_panel(tr, S.get("tier_na", 34) * 6, S.get("tier_nu", 7) * 6, True)
+    tl_parts.append(open_grid(f"tier{k_}_lo", Pl))
+    th_ = open_grid(f"tier{k_}_hi", Ph_)
+    occ_t = np.clip(1 + dh_ / 0.0012 * 0.18, 0.6, 1.08).ravel()
+    c_ = th_.data.color_attributes.new("occ", "FLOAT_COLOR", "POINT")
+    c_.data.foreach_set("color", np.repeat(occ_t[:, None], 4, 1).astype(np.float32).ravel())
+    th_parts.append(th_)
+for parts_, base in ((tl_parts, None), (th_parts, None)):
+    pass
+only_select(*th_parts, hi)
+bpy.ops.object.join()
+hi = bpy.context.view_layer.objects.active
+only_select(*tl_parts, lo)
+bpy.ops.object.join()
+lo = bpy.context.view_layer.objects.active
+log("tiers", len(TIERS), "panels")
 log("hi", len(hi.data.vertices), "verts; disp mm", round(float(disp.min()) * 1000, 2), round(float(disp.max()) * 1000, 2))
 
 # lo: weights from the nearest non-arm body vertex, smooth shading, UVs

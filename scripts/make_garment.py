@@ -198,6 +198,29 @@ if KIND in ("shirt", "coat", "glove"):
              [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), -1, sg) for _, sg in SIDES]
     R.setdefault("seat_bump", 0.0)
     R.setdefault("seat_r", 1e-4)
+    if R.get("hem_points"):
+        # pointed bodice hem (basque): the plane hem drops below, an exact field cut makes the points --
+        # centre front dips to z_front, rises to z_side at |x| side_x, level z_back at the back
+        HP_ = R["hem_points"]
+        core_ = BPv[(np.abs(BPv[:, 0]) < 0.15) & ~np.array([("Arm" in d) or ("Hand" in d) or d == "Tail" for d in dom])]
+        ZS_ = np.arange(0.5, 1.5, 0.01)
+        YC_ = np.array([(lambda nb: (nb[:, 1].min() + nb[:, 1].max()) / 2 if len(nb) else 0.0)(core_[np.abs(core_[:, 2] - zz) < 0.012]) for zz in ZS_])
+
+        def ycf(z):
+            return np.interp(z, ZS_, YC_)
+
+        def hem_z(x, y, z):
+            fr = np.clip((ycf(z) - y) / 0.05 + 0.5, 0, 1)
+            zf = np.interp(np.abs(x), HP_["x"], HP_["z"])
+            return fr * zf + (1 - fr) * HP_["z_back"]
+
+        def resid(c):
+            if abs(c[0]) > 0.2:
+                return {"hem": 9.0}
+            return {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
+
+        def inside_amount(c):
+            return resid(c)["hem"]
 elif KIND == "vest":
     # outline (no planes but the back neck): pointed front hem, V opening with small lapels, deep armholes
     Z_NECK = R["z_neck"]
@@ -439,6 +462,8 @@ for f in bm.faces:
     drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
     if KIND in ("vest", "coat"):
         drop = ("Hand" in dom[i]) or inside_amount(np.array(c)) < -0.03   # (exact cut below)
+    if KIND == "shirt" and R.get("hem_points"):
+        drop = inside_amount(np.array(c)) < -0.03
     if KIND == "glove":
         drop = not ("Hand" in dom[i] or "ForeArm" in dom[i])
     if not all(plane_ok(c, pl) for pl in PLANES) or ((not f[capL] or KIND == "vest") and drop):   # (tail already off)
@@ -504,7 +529,7 @@ elif KIND == "glove":     # each hand (and its separate finger shells) -- drop o
     bmesh.ops.delete(bm, geom=[v for p in parts2[:-2] for v in p], context="VERTS")
 else:
     bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
-if KIND in ("vest", "coat"):
+if KIND in ("vest", "coat") or (KIND == "shirt" and R.get("hem_points")):
     # exact outline: split every edge where the inside-distance field changes sign, join the split
     # points across each face, drop the outside -- the edge lies on the outline curves (no sawtooth)
     sv = {v: inside_amount(np.array(v.co)) for v in bm.verts}
@@ -536,10 +561,14 @@ if KIND in ("vest", "coat"):
     for v in bverts:
         r0 = resid(np.array(v.co))
         kind_of[v] = min(r0, key=lambda kk: abs(r0[kk]))
+        if abs(r0[kind_of[v]]) > 0.03:           # an edge made by a plane (neck / wrists): not an outline
+            kind_of[v] = "plane"
 
     def snap(v):
         c = np.array(v.co)
         k_ = kind_of[v]
+        if k_ == "plane":
+            return
         if k_ == "hem":
             c[2] = hem_z(c[0], c[1], c[2])
         elif k_ == "v":
@@ -556,7 +585,7 @@ if KIND in ("vest", "coat"):
         newc = {}
         for v in bverts:
             nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
-            if len(nb) == 2:
+            if len(nb) == 2 and kind_of[v] != "plane":
                 newc[v] = v.co * 0.5 + (nb[0].co + nb[1].co) * 0.25
         for v, c in newc.items():
             v.co = c
@@ -564,7 +593,7 @@ if KIND in ("vest", "coat"):
         snap(v)
     # snapped edge verts can cross their inner neighbours (folded sawtooth triangles): relax the rings
     # next to the edge with the edge pinned
-    ring, frontier = set(), set(bverts)
+    ring, frontier = set(), {v for v in bverts if kind_of[v] != "plane"}
     for _ in range(R.get("edge_rings", 4)):
         frontier = {e.other_vert(v) for v in frontier for e in v.link_edges} - set(bverts) - ring
         ring |= frontier
@@ -593,7 +622,7 @@ for e in bnd:
 caps = []
 for lp in loops:
     lvs = [np.array(v.co) for e in lp for v in e.verts]
-    if KIND not in ("vest", "coat") and not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
+    if KIND not in ("vest", "coat") and not R.get("hem_points") and not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
         res = bmesh.ops.holes_fill(bm, edges=lp, sides=0)
         if not res["faces"]:                          # tiny holes: fan from the centre
             vs = list({v for e in lp for v in e.verts})
@@ -927,6 +956,9 @@ ease = np.minimum(ease, 0.4 * G)
 ease = smooth_field(ease, ed, 8)
 ease = np.minimum(ease, 0.42 * G)                     # re-limit after smoothing
 ease = np.maximum(ease, 0.004)
+if R.get("ease_post_smooth"):          # (dense meshes: the gap limit leaves a noisy field -> crumples)
+    ease = np.minimum(smooth_field(ease, ed, R["ease_post_smooth"]), 0.42 * G)
+    ease = np.maximum(smooth_field(ease, ed, 4), 0.004)
 if KIND == "glove":
     E = R.get("ease", {})
     ease = np.full(len(P), E.get("hand", 0.0025))
@@ -1109,6 +1141,10 @@ if KIND == "shirt":
             continue
         # axis through the centroid of the sleeve ring at the cuff top (the bone runs off-centre)
         top = on & (np.abs(dwr - cuff) < 0.008)
+        for w8 in (0.015, 0.03, 0.06):                 # (coarse meshes: widen the ring until it has verts)
+            if top.sum() >= 6:
+                break
+            top = on & (np.abs(dwr - cuff) < w8)
         rel0 = Pm[top] - co_
         cen = co_ + (rel0 - np.outer(rel0 @ dd_, dd_)).mean(0)
         rel = Pm[on] - cen
@@ -1121,7 +1157,7 @@ if KIND == "shirt":
         w_ = w_ * w_ * (3 - 2 * w_)
         tgt = cen + along[:, None] * dd_ + radial / np.maximum(rr, 1e-6)[:, None] * r_cuff
         Pm[on] = Pm[on] * (1 - w_[:, None]) + tgt * w_[:, None]
-        log("cuff", s_, "radius mm", round(r_cuff * 1000, 1))
+        log("cuff", s_, "radius mm", round(r_cuff * 1000, 1), "ring", int(top.sum()), "on", int(on.sum()), "dwr range", np.round([dwr[on].min(), dwr[on].max()], 3).tolist(), "x range", np.round([Pm[on][:, 0].min(), Pm[on][:, 0].max()], 3).tolist())
 mid.data.vertices.foreach_set("co", Pm.ravel())
 mid.data.update()
 mid.name = mid.data.name = f"{PIECE}_mid"
@@ -1541,7 +1577,7 @@ m.vertex_group = vg_dec.name
 m.vertex_group_factor = R.get("edge_keep_factor", 8.0)
 bpy.ops.object.modifier_apply(modifier=m.name)
 lo.vertex_groups.remove(lo.vertex_groups["_decimate"])
-if KIND in ("vest", "coat"):
+if KIND in ("vest", "coat") or (KIND == "shirt" and R.get("hem_points")):
     bmq = bmesh.new()
     bmq.from_mesh(lo.data)
     bv = [v for v in bmq.verts if any(e.is_boundary for e in v.link_edges)]
@@ -1703,8 +1739,8 @@ lnt = mat.node_tree
 bsdf = lnt.nodes["Principled BSDF"]
 imgs = {}
 sc.render.bake.use_selected_to_active = True
-sc.render.bake.cage_extrusion = 0.006
-sc.render.bake.max_ray_distance = 0.02
+sc.render.bake.cage_extrusion = R.get("bake_cage", 0.006)
+sc.render.bake.max_ray_distance = R.get("bake_ray", 0.02)
 sc.render.bake.margin = 8
 for name, btype, cs in (("detail", "EMIT", "sRGB"), ("normal", "NORMAL", "Non-Color")):
     img = bpy.data.images.new(f"{CHAR}_{PIECE}_{name}", TEX, TEX, alpha=False)

@@ -213,8 +213,8 @@
       "kind": "shirt",
       "guide": "dress",
       "z_neck": 1.282,
-      "z_top": 0.95,
-      "z_bot": 0.95,
+      "z_top": 0.86,
+      "z_bot": 0.86,
       "back_rise": 0.0,
       "rise_y0": -0.1,
       "tris": 3600,
@@ -228,7 +228,7 @@
         "blouse": 0.0,
         "cuff": 0.005,
         "neck": 0.003,
-        "hem": 0.006,
+        "hem": 0.02,
         "puff": 0.06,
         "puff_at": 0.25,
         "puff_w": 0.22
@@ -254,35 +254,58 @@
         ]
       },
       "button_tint": 0.5,
-      "princess": true
+      "princess": true,
+      "pre_cuts": 1,
+      "hem_points": {
+        "x": [
+          0.0,
+          0.05,
+          0.1,
+          0.16
+        ],
+        "z": [
+          0.895,
+          0.925,
+          0.94,
+          0.945
+        ],
+        "z_back": 0.945
+      },
+      "region_sub": 1,
+      "armpit_relax": 30,
+      "ease_post_smooth": 40,
+      "hem_zone": 0.1,
+      "lo_edge_iter": 0,
+      "edge_relax": 25,
+      "edge_rings": 4
     },
     "skirt": {
       "kind": "skirt",
       "guide": "dress",
-      "z_top": 0.985,
+      "z_top": 0.97,
       "z_hem": 0.13,
-      "na": 64,
-      "nz": 38,
+      "na": 48,
+      "nz": 40,
       "hi_up": 6,
       "clear": 0.014,
       "guide_smooth": 14,
       "guide_scale": 0.97,
-      "waist_clear": 0.006,
-      "waist_blend": 0.16,
+      "waist_clear": 0.001,
+      "waist_blend": 0.05,
       "cover_margin": 0.015,
       "bustle": {
         "z": 0.83,
         "dz": 0.11,
         "daz": 55,
-        "r": 0.06,
-        "fold": 0.0025,
+        "r": 0.0,
+        "fold": 0.0,
         "n": 22
       },
       "flounce": {
         "h": 0.075,
         "out": 0.022,
         "ruffle": 0.003,
-        "n": 150
+        "n": 90
       },
       "apron": {
         "z_front": 0.45,
@@ -315,7 +338,97 @@
           56
         ]
       },
-      "z_bot": 0.13
+      "z_bot": 0.13,
+      "profile": {
+        "z": [
+          0.985,
+          0.93,
+          0.87,
+          0.8,
+          0.7,
+          0.55,
+          0.35,
+          0.13
+        ],
+        "front": [
+          0.0,
+          0.006,
+          0.014,
+          0.022,
+          0.03,
+          0.04,
+          0.055,
+          0.075
+        ],
+        "side": [
+          0.0,
+          0.012,
+          0.03,
+          0.04,
+          0.05,
+          0.065,
+          0.09,
+          0.12
+        ],
+        "back": [
+          0.0,
+          0.03,
+          0.05,
+          0.06,
+          0.06,
+          0.07,
+          0.1,
+          0.15
+        ]
+      },
+      "final_smooth": 3,
+      "under": [
+        "bodice"
+      ],
+      "under_gap": 0.01,
+      "tiers": [
+        {
+          "z_top": 0.93,
+          "z_bot": 0.72,
+          "o_top": 0.0,
+          "o_bot": 0.06,
+          "daz": 62,
+          "scallop": 0.05,
+          "n_sc": 2,
+          "v": 0.1,
+          "fold": 0.012,
+          "n_fold": 14,
+          "roll": 0.55
+        },
+        {
+          "z_top": 0.74,
+          "z_bot": 0.53,
+          "o_top": 0.015,
+          "o_bot": 0.06,
+          "daz": 72,
+          "scallop": 0.05,
+          "n_sc": 2,
+          "v": 0.08,
+          "fold": 0.012,
+          "n_fold": 14,
+          "roll": 0.55
+        },
+        {
+          "z_top": 0.55,
+          "z_bot": 0.38,
+          "o_top": 0.015,
+          "o_bot": 0.05,
+          "daz": 85,
+          "scallop": 0.04,
+          "n_sc": 3,
+          "v": 0.05,
+          "fold": 0.012,
+          "n_fold": 14,
+          "roll": 0.55
+        }
+      ],
+      "bake_cage": 0.015,
+      "bake_ray": 0.05
     }
   }
 }

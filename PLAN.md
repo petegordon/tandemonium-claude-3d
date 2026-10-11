@@ -763,4 +763,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   setup and bake / export via exec; 4.7k tris; LOOSE_PIECES skirt -> 6 cloth chains: in the game viewer the riding
   skirt drapes over the knees. Old extracted dress shells moved to shells/_old. Female visible 20.5k (over by 0.5k;
   hat / boots / gloves still the old extracted shells). Validator 0/0, three.js ok.
+- **Female iteration (Pete: skirt angle sharper than the reference, then: bubble butt, must have the ruffles)** -- skirt
+  silhouette from reference side / front / rear control profiles (extra radius per height, blended by azimuth,
+  smoothstep waist) instead of the extracted-dress guide + bustle bump; the bustle is three cascading TIER PANELS
+  (separate param grids: azimuth x u, the scalloped sin^2 hem is the last row -> exact edge; V dip at the centre back,
+  soft roll-under, big soft folds in the game mesh, ends taper into the skirt), skirt tucked under the bodice (radius
+  held 1 cm inside it), bake cage 15 mm / ray 5 cm. Bodice: basque points (exact field cut on a shirt kind: hem_points),
+  plane edges (wrists / neck) no longer snapped to the outline (they made fins up the forearm), ease post-smoothing.
+  Female visible 20.7k (old hat / gloves / boots still); validator 0/0, three.js ok.
 
