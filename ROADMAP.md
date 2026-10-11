@@ -75,8 +75,8 @@ front-facing heads, soft even light, one shared body, clothed views drawn over t
 | # | Step | Gate / questions |
 |---|---|---|
 | P3.1 | **Generate clothed male + female** (same pipeline; standing views of `male/female-character-turnaround.png`, same relaxed pose as the mannequin). | `check_hands.py` (1 glove per side) + seed sweep → **Pete picks.** |
-| P3.2 | **Align** each clothed model to the base body (scale + rigid fit on head/neck/feet). | Residual distance on exposed parts. |
-| P3.3 | **Garment extraction by distance-to-body**: clothed surface far from the body = garment; split per garment by region. | Coverage maps per garment. |
+| P3.2 | **Align** each clothed model to the base body: head fit (bill/face/neck ICP, `align_outfit.py`) for head pieces; **rig-fit** (D9) of the base rig per bone to each outfit for body garments. | Residual on exposed parts; gloves/boots/shoulders after rig-fit. |
+| P3.3 | **Garment extraction by texture colour + body region** (D10), refined by the distance-to-body map (clothes are generated skin-tight, so distance alone can't cut them). | Coverage maps per garment. |
 | P3.4 | **Garment shells**: clean topology over the body (shrinkwrap/solidify/retopo), texture **baked from the clothed model**. | No body poke-through in 4 views. |
 | P3.5 | **Outfit system**: weight transfer + painting (bone chains for coat tails/skirt, D4), per-outfit body masks, show/hide swap. | Pose tests (P2.4 poses) with each outfit. |
 | P3.6 | **Colour changes**: garment detail + tint mask; runtime tint; palette presets. | Recolour demo renders. |

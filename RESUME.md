@@ -11,13 +11,16 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.2 next.** P3.1 done: Pete picked **male s2026**, **female s7** (sweep notes in PLAN.md). Cleaned hi meshes `out/outfit_male|outfit_female-goose/outfit_*_goose_hi.glb` (provisional height 1.65 m). Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.2b next.** P3.1 done: Pete picked **male s2026**, **female s7**. P3.2 first pass (`align_outfit.py --crown 0.0`): male head+feet fit with one similarity (1.5/3.7 mm); female head fits but her body proportions differ (feet 8.5 cm below floor at head scale). Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
 D3 new standard rig · D4 skirt/coat tails = bone chains + weight painting · D5 wardrobe before riding ·
 D6 one shared base body · D7 v3 references are the source of truth · D8 mitten hands ·
-bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye/beak/tongue looks approved.
+bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye/beak/tongue looks approved ·
+**D9 (P3.2)** rig-fit transfer: head pieces use the head fit; body garments move to the base body by fitting the base rig
+bone-by-bone to each outfit (limb lengths, arm/spine angles; targets = gloves, boots, shoulders) then inverse skinning ·
+**D10 (P3.3)** garment extraction by texture colour + body region (refined by distance map), not distance alone.
 
 ## Machine setup (Windows 11, laptop RTX 5070 Ti 12 GB, 32 GB RAM)
 
@@ -43,7 +46,8 @@ bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye
 
 ## Next steps (P3.2 → P3.3)
 
-Steps 1–4 below are DONE for P3.1 (kept for re-runs); resume at step 5.
+Steps 1–4 below are DONE for P3.1 (kept for re-runs). Step 5 first pass done (`align_outfit.py`, see PLAN.md);
+next = **P3.2b rig-fit** (D9): landmarks on each aligned outfit → per-bone fit of the base rig → residual on gloves/boots/shoulders.
 
 1. Start ComfyUI (above), confirm ~10 GB free VRAM (`nvidia-smi`), Blender closed.
 2. Seed sweep (background; ~3 min per run):
