@@ -680,4 +680,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   (LAYER_IGNORE: shirt ignores bowtie / gloves / breeches; breeches ignore the shirt); "tuck": the shirt torso below
   the breeches waist line − 1.2 cm is hidden while the breeches are worn (a clean line, no jagged hem). The game must
   toggle these like the body sub-meshes. Male dressed visible 18.0k tris; validator 0/0, three.js ok.
+- **Shirt fixes (Pete: sleeves short of the wrist, back untucks when seated)** — sleeves: the hem plane was cutting the
+  hanging forearms (it is now torso-only, |x| < 0.22) and the cuff ends at the visible wrist (hand feathers end ~5 cm
+  past the Hand joint, measured on the body texture, symmetric) + 4.5 cm → sleeves reach 9.6 cm past the joint.
+  Untucking: the tucked part takes the breeches' skin weights (blend from 5 cm above the waist line), the shirt is
+  hidden only where it ends up *outside* the breeches (inward ray ≤ 4 cm; no flat hide line → no jagged hem).
+  Breeches seat: the tail hole (257 mm rim) is capped on a quadric fitted to the surrounding seat, subdivided and
+  relaxed, rim band blended outward only → no flat patch. Faces oriented outward consistently. Validator 0/0, three.js ok.
 

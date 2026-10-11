@@ -71,6 +71,13 @@ if "--flat" in argv:                            # diagnostics: no normal maps
             for l in list(m.node_tree.links):
                 if l.to_node.type == "BSDF_PRINCIPLED" and l.to_socket.name == "Normal":
                     m.node_tree.links.remove(l)
+if "--plain" in argv:                           # diagnostics: geometry only (plain grey material)
+    grey = bpy.data.materials.new("plain_grey")
+    grey.use_nodes = True
+    for o in bpy.data.objects:
+        if o.type == "MESH" and not o.name.startswith(FIXED):
+            o.data.materials.clear()
+            o.data.materials.append(grey)
 if POSE:
     sys.path.insert(0, str(Path(__file__).parent))
     from rig_poses import Poser  # noqa: E402

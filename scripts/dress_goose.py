@@ -49,7 +49,8 @@ D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
-LAYER_IGNORE = {"shirt": ("bowtie", "gloves", "breeches"), "breeches": ("shirt",)}   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
+LAYER_IGNORE = {"shirt": ("bowtie", "gloves"), "breeches": ("shirt",)}
+LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
@@ -273,6 +274,25 @@ for k, o in shells.items():
                 Wv[:, names.index(str(nm))] = wz["W"][idx, j_]
         Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
         tl = np.zeros(len(X))
+        tk = meta.get("tuck")
+        if tk and (D / "shells" / f"{tk['into']}_weights.npz").exists():
+            # below the outer garment's waist line the tucked part takes that garment's weights, blended
+            # over 4 cm, so the waistband and the tuck move together (riding: no gap, no untucking)
+            wo = np.load(D / "shells" / f"{tk['into']}_weights.npz")
+            kdo = KDTree(len(wo["pos"]))
+            for i_, q_ in enumerate(wo["pos"]):
+                kdo.insert(Vector(q_), i_)
+            kdo.balance()
+            line = tk["z_top"] + tk["rise"] * (X[:, 1] - tk["y0"])
+            f_ = np.clip((line + tk.get("follow_above", 0.05) - X[:, 2]) / 0.05, 0, 1) * (np.abs(X[:, 0]) < tk.get("x_max", 0.2))
+            Wo = np.zeros_like(Wv)
+            io = np.array([kdo.find(Vector(x))[1] for x in X])
+            for j_, nm in enumerate(wo["names"]):
+                if str(nm) in names:
+                    Wo[:, names.index(str(nm))] = wo["W"][io, j_]
+            Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo
+            Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
+            print("TUCK", k, "->", tk["into"], int((f_ > 0).sum()), "verts")
         print("WEIGHTS", k, "from", meta["weights"])
     skin[k] = (Wv, X, tl)
 bpy.data.objects.remove(src)
@@ -395,10 +415,14 @@ for k in list(designed):
     for v in o.data.vertices:
         p_, n_ = v.co, v.normal
         for s, b in others.items():
+            if s in LAYER_INWARD_ONLY.get(k, ()):
+                if b.ray_cast(p_ - n_ * 0.0005, -n_, 0.04)[0] is not None:   # (4 cm: the shirt over the seat cap)
+                    vk[v.index].add(s)
+                continue
             if b.ray_cast(p_ + n_ * 0.0005, n_, LAYER_D)[0] is not None or                     b.ray_cast(p_ - n_ * 0.0005, -n_, LAYER_IN)[0] is not None:     # (or poking through it)
                 vk[v.index].add(s)
     tk = designed[k].get("tuck")
-    if tk and tk["into"] in shells:      # tucked hem: below the outer garment's waist line - margin
+    if tk and tk.get("hide", False) and tk["into"] in shells:   # (off: the tuck moves with the outer garment)
         for v in o.data.vertices:
             if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]:   # torso only (not the hanging sleeves)
                 vk[v.index].add(tk["into"])

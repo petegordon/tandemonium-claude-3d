@@ -158,12 +158,43 @@ SIDES = (("Left", 1), ("Right", -1))
 if KIND == "shirt":
     Z_NECK = R["z_neck"]
     WRIST = {}
+    # the hand bone starts at the joint, but its first ~hand-width is feathered: the visible wrist is
+    # where the body texture turns to dark skin -> the cuff ends there (+ "wrist_offset")
+    img = None
+    for m_ in body.data.materials:
+        for l_ in m_.node_tree.links:
+            if l_.to_socket.name == "Base Color" and l_.from_node.type == "TEX_IMAGE":
+                img = l_.from_node.image
+    lum = None
+    if img is not None:
+        IW, IH = img.size
+        px = np.array(img.pixels[:], np.float32).reshape(IH, IW, -1)[..., :3]
+        uvl = body.data.uv_layers.active.data
+        vuv = np.zeros((len(BPv), 2))
+        for lp_ in body.data.loops:
+            vuv[lp_.vertex_index] = uvl[lp_.index].uv
+        lum = px[np.clip((vuv[:, 1] * IH).astype(int), 0, IH - 1), np.clip((vuv[:, 0] * IW).astype(int), 0, IW - 1)] @ [0.3, 0.59, 0.11]
     for s, sg in SIDES:
         hh = bone[f"{s}Hand"][0]
         dd = hh - bone[f"{s}ForeArm"][0]
         dd /= np.linalg.norm(dd)
-        WRIST[sg] = (hh + dd * R.get("wrist_offset", 0.0), dd)
-    PLANES = [((0, 0, Z_NECK), (0, 0, 1), -1, 0), ((0, Y0, Z_BOT), (0, -RISE, 1), 1, 0)] + \
+        s_tr = 0.0
+        if lum is not None:
+            hv = np.flatnonzero(np.array([d.startswith(f"{s}Hand") for d in dom]))
+            sv = (BPv[hv] - hh) @ dd
+            bins = [(b0, np.median(lum[hv][(sv >= b0) & (sv < b0 + 0.01)])) for b0 in np.arange(-0.02, 0.2, 0.01)
+                    if ((sv >= b0) & (sv < b0 + 0.01)).sum() >= 4]
+            if bins:
+                ref_l = np.median([l_ for b0, l_ in bins if b0 < 0.02])
+                dark = [b0 for b0, l_ in bins if b0 >= 0.0 and l_ < R.get("wrist_dark", 0.6) * ref_l]
+                s_tr = float(dark[0]) if dark else 0.0
+        log("visible wrist", s, "mm past the joint", round(s_tr * 1000))
+        WRIST[sg] = (hh, dd, s_tr)
+    s_sym = max(w[2] for w in WRIST.values())          # the goose is symmetric (one side's texture can mislead)
+    for sg in list(WRIST):
+        hh, dd, _ = WRIST[sg]
+        WRIST[sg] = (hh + dd * (s_sym + R.get("wrist_offset", 0.0)), dd)
+    PLANES = [((0, 0, Z_NECK), (0, 0, 1), -1, 0), ((0, Y0, Z_BOT), (0, -RISE, 1), 1, 2)] + \
              [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), -1, sg) for _, sg in SIDES]
     R.setdefault("seat_bump", 0.0)
     R.setdefault("seat_r", 1e-4)
@@ -173,14 +204,16 @@ else:
 
 def plane_ok(c, pl):
     co, no, keep, sg = pl
-    if sg and c[0] * sg < 0.25:                    # wrist planes only cut their own forearm
+    if sg == 2 and abs(c[0]) > 0.22:               # hem plane: torso only (the sleeves hang below it)
+        return True
+    if sg in (1, -1) and c[0] * sg < 0.25:         # wrist planes only cut their own forearm
         return True
     return float(np.dot(np.asarray(c) - co, no)) * keep >= -1e-4 * np.linalg.norm(no)
 
 
 def on_plane(c, pl, tol=0.003):
     co, no, keep, sg = pl
-    if sg and c[0] * sg < 0.25:
+    if (sg == 2 and abs(c[0]) > 0.22) or (sg in (1, -1) and c[0] * sg < 0.25):
         return False
     no = np.asarray(no, float)
     return abs(float(np.dot(np.asarray(c) - co, no / np.linalg.norm(no)))) < tol
@@ -217,9 +250,73 @@ for e in [e for e in bm.edges if e.is_boundary]:
                     st.append(y)
     holes.append(h)
 tail_hole = min(holes, key=lambda h: min((v.co - Vector(TAIL_ROOT)).length for e in h for v in e.verts))
+CAP_R = max((v.co - Vector(TAIL_ROOT)).length for e in tail_hole for v in e.verts)   # tail-hole radius
+log("tail hole radius mm", round(CAP_R * 1000))
 for f in bmesh.ops.holes_fill(bm, edges=list(tail_hole), sides=0)["faces"]:
     f[capL] = 1
 bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if f[capL]])
+if R.get("seat_fit", KIND == "breeches"):     # (the shirt only covers the hole; it stays inside the breeches)
+    # even cap mesh: subdivide, relax its inner points in the hole's plane, lift them onto a quadric fitted
+    # to the ring of body around the hole (the seat continues smoothly instead of a flat faceted patch)
+    for _ in range(2):                               # (subdivided faces keep the cap flag; rim edges stay)
+        ce = list({e for f in bm.faces if f[capL] for e in f.edges if all(lf[capL] for lf in e.link_faces)})
+        bmesh.ops.subdivide_edges(bm, edges=ce, cuts=2, use_grid_fill=False)
+        bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3 and f[capL]])
+    rim = {v for v in bm.verts if any(f[capL] for f in v.link_faces) and any(not f[capL] for f in v.link_faces)}
+    RP = np.array([v.co[:] for v in rim])
+    o_c = RP.mean(0)
+    _, _, vt = np.linalg.svd(RP - o_c)
+    n_c = vt[2] * (1 if vt[2][1] > 0 else -1)          # plane normal, pointing back (+Y)
+    u_c = np.cross(n_c, [0, 0, 1.0])
+    u_c /= np.linalg.norm(u_c)
+    v_c = np.cross(n_c, u_c)
+    capvs = [v for v in {v for f in bm.faces if f[capL] for v in f.verts} if v not in rim]
+    ringv = [v for v in bm.verts if v not in rim and not any(f[capL] for f in v.link_faces)
+             and min((v.co - Vector(q)).length for q in RP[::4]) < 0.08]
+    Q = np.array([v.co[:] for v in ringv]) - o_c
+    Afit = lambda a, b: np.stack([np.ones_like(a), a, b, a * a, a * b, b * b], 1)  # noqa: E731
+    coef_c = np.linalg.lstsq(Afit(Q @ u_c, Q @ v_c), Q @ n_c, rcond=None)[0]
+    uv = {v: np.array([(np.array(v.co) - o_c) @ u_c, (np.array(v.co) - o_c) @ v_c]) for v in set(capvs) | rim}
+    for _ in range(150):
+        for v in capvs:
+            nb = [e.other_vert(v) for e in v.link_edges]
+            uv[v] = 0.5 * uv[v] + 0.5 * np.mean([uv[w] for w in nb], 0)
+    def on_quadric(a_, b_):
+        return o_c + a_ * u_c + b_ * v_c + float(Afit(np.array([a_]), np.array([b_])) @ coef_c) * n_c
+
+
+    for v in capvs:
+        v.co = Vector(on_quadric(*uv[v]))
+    # rim + a 5 cm band of body around it blend onto the same quadric (the rim follows the jagged feather
+    # line; leaving it put crumples the join), then a light 3D relax across the whole patch
+    band = []
+    for v in bm.verts:
+        if v in rim or v in set(capvs):
+            continue
+        d_ = min((v.co - Vector(q)).length for q in RP[::2])
+        if d_ < 0.05 and not any(f[capL] for f in v.link_faces):
+            band.append((v, 1 - d_ / 0.05))
+    def outward_only(v, tgt, w_):
+        """Move toward tgt, but never into the body (only the part along the outward normal)."""
+        o = np.array(v.co)
+        n_ = np.array(v.normal)
+        d_ = (tgt - o) * w_
+        v.co = Vector(o + max(0.0, float(d_ @ n_)) * n_)
+
+
+    for v in rim:
+        q_ = np.array(v.co) - o_c
+        outward_only(v, on_quadric(q_ @ u_c, q_ @ v_c), 1.0)
+    for v, w_ in band:
+        q_ = np.array(v.co) - o_c
+        outward_only(v, on_quadric(q_ @ u_c, q_ @ v_c), w_ ** 2)
+    patch = set(capvs) | rim | {v for v, _ in band}
+    for _ in range(R.get("cap_relax", 30)):
+        newp = {v: sum((e.other_vert(v).co for e in v.link_edges), Vector()) / len(v.link_edges) for v in patch if v.link_edges}
+        for v, c in newp.items():
+            v.co = v.co.lerp(c, 0.5)
+    log("tail cap", len(capvs), "inner verts")
+
 for co_, no_, _, _ in PLANES:
     geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
     bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co_, plane_no=no_)
@@ -231,7 +328,7 @@ kill = []
 for f in bm.faces:
     c = f.calc_center_median()
     i = kd.find(c)[1]
-    drop = is_hand[i] if KIND == "shirt" else is_arm[i]
+    drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
     if not all(plane_ok(c, pl) for pl in PLANES) or (not f[capL] and drop):   # (tail already off)
         kill.append(f)
 bmesh.ops.delete(bm, geom=kill, context="FACES")
@@ -254,6 +351,7 @@ for v in bm.verts:
                 st.append(y)
     parts.append(comp)
 parts.sort(key=len)
+log("region parts", [len(p_) for p_ in parts[-4:]])
 bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
 # boundary loops: waist (z_top), two knee loops (z_bot) stay open; others (tail hole) are capped
 bnd = [e for e in bm.edges if e.is_boundary]
@@ -294,6 +392,12 @@ if "--debug" in argv:
         c = [v for v in vs if abs(v.co.x) < 0.03]
         print("LOOP", len(vs), sorted([(round(v.co.x, 4), round(v.co.y, 3), round(v.co.z - float(ztop(v.co.y)), 4)) for v in c])[:12])
 bmesh.ops.triangulate(bm, faces=caps)
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+bm.faces.ensure_lookup_table()
+kd_n = np.array([v.normal[:] for v in body.data.vertices])
+agree = sum(float(np.dot(f.normal, kd_n[kd.find(f.calc_center_median())[1]])) for f in bm.faces)
+if agree < 0:                                       # whole surface inside-out
+    bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
 bm.to_mesh(reg.data)
 bm.free()
 reg.data.update()
@@ -308,8 +412,17 @@ for i, q in enumerate(BND):
     kdb.insert(Vector(q), i)
 kdb.balance()
 COVER_MARGIN = R.get("cover_margin", 0.012)
-covered = np.array([kdb.find(Vector(q))[2] > COVER_MARGIN for q in RV])
-COVERS_POS = RV[covered]
+def plane_dist(c, pl):
+    co, no, keep, sg = pl
+    if (sg == 2 and abs(c[0]) > 0.22) or (sg in (1, -1) and c[0] * sg < 0.25):
+        return 9.0
+    no = np.asarray(no, float)
+    return float(np.dot(np.asarray(c) - co, no / np.linalg.norm(no))) * keep
+
+
+excl = is_arm if KIND != "shirt" else np.zeros(len(BPv), bool)
+COVERS_POS = np.array([q for q, ex in zip(BPv, excl)
+                       if not ex and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
 # vertices made by the cuts / caps have no skin weights: take the nearest body vertex's
 for v in reg.data.vertices:
     if sum(g.weight for g in v.groups) < 1e-6:
@@ -339,8 +452,44 @@ for _ in range(R.get("base_smooth", 10)):
     Pb = smooth_field(P, ed, 1, pin=boundary)
     P = P - 0.53 * (Pb - P)                          # Taubin inflate step
 dtail = np.linalg.norm(P - TAIL_ROOT, axis=1)
-near_tail = dtail < R.get("seat_r", 0.07)
-P = np.where(near_tail[:, None], smooth_field(P, ed, 30, pin=~near_tail), P)   # flat cap -> rounded
+# the tail (a fan of feathers over the upper seat) left a big flat cap: its inner vertices take their
+# height from a quadric fitted to the ring of surface around it, blended in from the rim
+capw = np.zeros(len(P))
+if False and "cap" in me.attributes:      # (superseded: the cap is built on the fitted quadric above)
+    fc_ = np.zeros(len(me.polygons), np.int32)
+    me.attributes["cap"].data.foreach_get("value", fc_)
+    capv, nonc = set(), set()
+    for f_, c_ in zip(me.polygons, fc_):
+        (capv if c_ else nonc).update(f_.vertices)
+    inner = np.array(sorted(capv - nonc))
+    rimv = np.array(sorted(capv & nonc))
+    if len(inner) and len(rimv):
+        kdr = KDTree(len(rimv))
+        for i_, q_ in enumerate(P[rimv]):
+            kdr.insert(Vector(q_), i_)
+        kdr.balance()
+        drim = np.array([kdr.find(Vector(q_))[2] for q_ in P])
+        ring = np.array([i_ in nonc for i_ in range(len(P))]) & (drim < 0.08)
+        nrm = N[ring].mean(0)
+        nrm /= np.linalg.norm(nrm)
+        u_ = np.cross(nrm, [0, 0, 1.0])
+        u_ /= np.linalg.norm(u_)
+        v_ = np.cross(nrm, u_)
+        o_ = P[rimv].mean(0)
+        dq = P - o_
+        uq, vq, hq = dq @ u_, dq @ v_, dq @ nrm
+        Afit = lambda a, b: np.stack([np.ones_like(a), a, b, a * a, a * b, b * b], 1)  # noqa: E731
+        coef = np.linalg.lstsq(Afit(uq[ring], vq[ring]), hq[ring], rcond=None)[0]
+        hfit = Afit(uq, vq) @ coef
+        w_ = np.zeros(len(P))
+        w_[inner] = np.clip(drim[inner] / 0.05, 0, 1) ** 2 * (3 - 2 * np.clip(drim[inner] / 0.05, 0, 1))
+        P = P + (w_ * (hfit - hq))[:, None] * nrm
+        capw = w_
+        pin = np.ones(len(P), bool)
+        pin[inner] = False
+        P = smooth_field(P, ed, 6, pin=pin)
+        log("seat cap", len(inner), "verts, rim", len(rimv))
+dtail = np.linalg.norm(P - TAIL_ROOT, axis=1)
 me.vertices.foreach_set("co", P.ravel())
 me.update()
 P, N = mesh_vn(me)
@@ -387,7 +536,7 @@ if KIND == "shirt":
     cuff = R.get("cuff", 0.045)
     ease = np.where(dwr < cuff + 0.01, np.minimum(ease, E.get("cuff", 0.005)) + 0.0 * dwr, ease)
     ease = ease * np.clip(dneck / 0.04, 0, 1) + E.get("neck", 0.003) * (1 - np.clip(dneck / 0.04, 0, 1))
-    th = np.clip(dhem / 0.06, 0, 1)
+    th = np.clip(dhem / R.get("hem_zone", 0.06), 0, 1)
     ease = ease * th + E.get("hem", 0.004) * (1 - th)
     ease = smooth_field(ease, ed, 6)
 else:
@@ -406,7 +555,7 @@ else:
     band = np.minimum(t_w, t_k) ** 1.5
     ease = R.get("band_ease", 0.007) + (ease - R.get("band_ease", 0.007)) * band
 # seat bump over the capped tail
-ease += R.get("seat_bump", 0.012) * np.exp(-(dtail / R.get("seat_r", 0.07)) ** 2)
+ease += R.get("seat_bump", 0.008) * capw
 # crotch: stay under 40 % of the gap to the other surface along the normal
 
 

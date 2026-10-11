@@ -384,7 +384,8 @@
         ]
       },
       "back_rise": 0.3,
-      "rise_y0": -0.1
+      "rise_y0": -0.1,
+      "band_ease": 0.009
     },
     "shirt": {
       "kind": "shirt",
@@ -395,7 +396,7 @@
       "rise_y0": -0.1,
       "tris": 3200,
       "cuff": 0.045,
-      "wrist_offset": 0.0,
+      "wrist_offset": 0.045,
       "cover_margin": 0.012,
       "ease": {
         "torso": 0.007,
@@ -403,7 +404,7 @@
         "blouse": 0.006,
         "cuff": 0.005,
         "neck": 0.003,
-        "hem": 0.004
+        "hem": 0.003
       },
       "mottle": 0.05,
       "twill": 0.05,
@@ -431,8 +432,10 @@
         "z_top": 0.91,
         "rise": 0.3,
         "y0": -0.1,
-        "margin": 0.012
-      }
+        "margin": 0.012,
+        "hide": false
+      },
+      "hem_zone": 0.14
     }
   },
   "accessory_drop": {
