@@ -47,6 +47,8 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
+FOLLOW_OUTER = {"shirt": ("waistcoat",)}   # inner garment takes the outer one's weights where covered
+LAYER_NEAR = 0.0      # designed outer pieces: proximity layer test (off: it hid the shirt V)
 LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
@@ -294,6 +296,33 @@ for k, o in shells.items():
             Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo
             Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
             print("TUCK", k, "->", tk["into"], int((f_ > 0).sum()), "verts")
+        for outer in FOLLOW_OUTER.get(k, ()):
+            wjf = D / "shells" / f"{outer}_weights.npz"
+            if outer not in shells or not wjf.exists():
+                continue
+            wo = np.load(wjf)
+            kdo = KDTree(len(wo["pos"]))
+            for i_, q_ in enumerate(wo["pos"]):
+                kdo.insert(Vector(q_), i_)
+            kdo.balance()
+            NV = np.array([v.normal[:] for v in o.data.vertices])
+            ob = BVHTree.FromObject(shells[outer], bpy.context.evaluated_depsgraph_get())
+            hitd = np.array([ob.find_nearest(Vector(x))[3] for x in X])
+            f_ = np.clip((0.035 - hitd) / 0.012, 0, 1)      # within ~3 cm of the outer piece -> its weights
+            ed_ = np.array([e.vertices[:] for e in o.data.edges])
+            for _ in range(4):                               # soft border
+                acc = np.zeros(len(f_))
+                np.add.at(acc, ed_[:, 0], f_[ed_[:, 1]])
+                np.add.at(acc, ed_[:, 1], f_[ed_[:, 0]])
+                f_ = np.maximum(f_, 0.5 * acc / np.maximum(np.bincount(ed_.ravel(), minlength=len(f_)), 1) * 0.9)
+            io = np.array([kdo.find(Vector(x))[1] for x in X])
+            Wo = np.zeros_like(Wv)
+            for j_, nm in enumerate(wo["names"]):
+                if str(nm) in names:
+                    Wo[:, names.index(str(nm))] = wo["W"][io, j_]
+            Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo
+            Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
+            print("FOLLOW", k, "->", outer, int((f_ > 0.5).sum()), "verts")
         print("WEIGHTS", k, "from", meta["weights"])
     skin[k] = (Wv, X, tl)
 bpy.data.objects.remove(src)
@@ -416,6 +445,13 @@ for k in list(designed):
     for v in o.data.vertices:
         p_, n_ = v.co, v.normal
         for s, b in others.items():
+            if s in designed and LAYER_NEAR > 0:
+                # a designed outer piece is a closed, clean surface: anything of this garment within
+                # LAYER_NEAR of it and behind it is under it (rays along a bent normal miss the sides)
+                loc, nrm_, _, dist_ = b.find_nearest(p_)
+                if loc is not None and dist_ < LAYER_NEAR and (loc - p_).dot(nrm_) > -0.002:
+                    vk[v.index].add(s)
+                    continue
             if s in LAYER_INWARD_ONLY.get(k, ()):
                 if b.ray_cast(p_ - n_ * 0.0005, -n_, 0.04)[0] is not None:   # (4 cm: the shirt over the seat cap)
                     vk[v.index].add(s)

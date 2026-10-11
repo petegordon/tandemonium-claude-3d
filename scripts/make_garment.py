@@ -231,6 +231,11 @@ elif KIND == "vest":
 
     ARMC = {sg: bone[f"{s}Arm"][0] + np.array(V_.get("arm_off", [0, 0, -0.035])) for s, sg in SIDES}
     ARMR = V_["arm_r"]
+    ARMW = Wb[:, [i for i, n in enumerate(gn) if n.endswith(("Arm", "ForeArm", "Hand"))]].sum(1)
+    KD4 = KDTree(len(BPv))
+    for i_, q_ in enumerate(BPv):
+        KD4.insert(Vector(q_), i_)
+    KD4.balance()
 
     def resid(c):
         """Signed distances inside each outline edge (> 0 = inside the vest)."""
@@ -238,7 +243,13 @@ elif KIND == "vest":
         front = y_ < ycf(z_)
         r_ = {"hem": z_ - hem_z(x_, y_, z_), "neck": Z_NECK - z_}
         r_["v"] = (abs(x_) - v_w(z_)) if (front and z_ > V_["z_vbot"] - 0.005) else 9.0
-        r_["arm"] = float(np.linalg.norm(np.asarray(c) - ARMC[1 if x_ > 0 else -1]) - ARMR)
+        sgc = 1 if x_ > 0 else -1
+        # the arm itself: its skin weight (heat weights are smooth) interpolated from the 4 nearest body
+        # verts; the 0.5 iso line is the arm / torso border
+        nn = KD4.find_n(Vector(c), 4)
+        wv = np.array([1.0 / max(d_, 1e-5) for _, _, d_ in nn])
+        aw = float(np.dot(wv, [ARMW[i_] for _, i_, _ in nn]) / wv.sum())
+        r_["arm"] = min(float(np.linalg.norm(np.asarray(c) - ARMC[sgc]) - ARMR), (V_.get("arm_iso", 0.5) - aw) * 0.08)
         return r_
 
     def inside_amount(c):
@@ -383,7 +394,7 @@ for f in bm.faces:
     i = kd.find(c)[1]
     drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
     if KIND == "vest":
-        drop = ("Arm" in dom[i] or "Hand" in dom[i]) or inside_amount(np.array(c)) < 0
+        drop = ("Hand" in dom[i]) or inside_amount(np.array(c)) < -0.03   # (exact cut below)
     if not all(plane_ok(c, pl) for pl in PLANES) or ((not f[capL] or KIND == "vest") and drop):   # (tail already off)
         kill.append(f)
 bmesh.ops.delete(bm, geom=kill, context="FACES")
@@ -409,6 +420,27 @@ parts.sort(key=len)
 log("region parts", [len(p_) for p_ in parts[-4:]])
 bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
 if KIND == "vest":
+    # exact outline: split every edge where the inside-distance field changes sign, join the split
+    # points across each face, drop the outside -- the edge lies on the outline curves (no sawtooth)
+    sv = {v: inside_amount(np.array(v.co)) for v in bm.verts}
+    newv = set()
+    for e in [e for e in bm.edges if sv[e.verts[0]] * sv[e.verts[1]] < 0]:
+        a_, b_ = e.verts
+        fr = sv[a_] / (sv[a_] - sv[b_])
+        ne, nv = bmesh.utils.edge_split(e, a_, fr)
+        sv[nv] = 0.0
+        newv.add(nv)
+    for f in list(bm.faces):
+        cut = [v for v in f.verts if v in newv]
+        if len(cut) == 2 and not any(cut[1] in [e.other_vert(cut[0]) for e in cut[0].link_edges] for _ in [0]):
+            bmesh.ops.connect_verts(bm, verts=cut)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if np.mean([sv.get(v, 0.0) for v in f.verts]) < 0
+                                and all(sv.get(v, 0.0) <= 1e-9 for v in f.verts)], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
+    # slivers next to the cut: dissolve degenerate edges
+    bmesh.ops.dissolve_degenerate(bm, dist=0.0015, edges=bm.edges[:])
+    log("vest exact outline split", len(newv), "edges")
     bverts = [v for v in bm.verts if any(e.is_boundary for e in v.link_edges)]
 
     kind_of = {}
@@ -439,7 +471,7 @@ if KIND == "vest":
                 newc[v] = v.co * 0.5 + (nb[0].co + nb[1].co) * 0.25
         for v, c in newc.items():
             v.co = c
-    for v in bverts:
+    for v in (bverts if R.get("edge_iter", 10) else []):
         snap(v)
     # snapped edge verts can cross their inner neighbours (folded sawtooth triangles): relax the rings
     # next to the edge with the edge pinned
@@ -987,14 +1019,79 @@ for a in list(lo.data.attributes):
     if a.name in ("ease", "z0", "armw", "dwr", "dhem", "back"):
         lo.data.attributes.remove(a)
 tri = sum(len(p.vertices) - 2 for p in lo.data.polygons)
+bmq = bmesh.new()
+bmq.from_mesh(lo.data)
+keep_e = {v.index for v in bmq.verts if any(e.is_boundary for e in v.link_edges)}
+for _ in range(R.get("edge_keep_rings", 1)):
+    keep_e |= {e.other_vert(v).index for v in bmq.verts if v.index in keep_e for e in v.link_edges}
+bmq.free()
+vg_dec = lo.vertex_groups.new(name="_decimate")
+vg_dec.add([v.index for v in lo.data.vertices if v.index not in keep_e], 1.0, "REPLACE")
+vg_dec.add(sorted(keep_e), 0.0, "REPLACE")
 m = lo.modifiers.new("dec", "DECIMATE")
 m.ratio = min(1.0, TRIS / max(tri, 1) * 0.98)
+m.vertex_group = vg_dec.name
+m.vertex_group_factor = R.get("edge_keep_factor", 8.0)
 bpy.ops.object.modifier_apply(modifier=m.name)
+lo.vertex_groups.remove(lo.vertex_groups["_decimate"])
+if KIND == "vest":
+    bmq = bmesh.new()
+    bmq.from_mesh(lo.data)
+    bv = [v for v in bmq.verts if any(e.is_boundary for e in v.link_edges)]
+    E0 = {v: (np.array(v.co), np.array(v.normal)) for v in bv}
+    kinds = {}
+    for v in bv:
+        r0 = resid(np.array(v.co))
+        kinds[v] = min(r0, key=lambda kk: abs(r0[kk]))
+    for it in range(R.get("lo_edge_iter", 12)):
+        for v in bv:
+            c = np.array(v.co)
+            k_ = kinds[v]
+            if k_ == "hem":
+                c[2] = hem_z(c[0], c[1], c[2])
+            elif k_ == "v":
+                c[0] = np.sign(c[0] or 1) * v_w(c[2])
+            elif k_ == "neck":
+                c[2] = Z_NECK
+            # (armhole: smoothing only -- the offset garment sits outside the body sphere)
+            v.co = Vector(c)
+        newc = {}
+        for v in bv:
+            nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+            if len(nb) == 2 and kinds[nb[0]] == kinds[v] == kinds[nb[1]]:
+                newc[v] = v.co * 0.4 + (nb[0].co + nb[1].co) * 0.3
+        for v, c in newc.items():
+            v.co = c
+    bmq.to_mesh(lo.data)
+    bmq.free()
+    lo.data.update()
+    log("lo edge re-snapped", len(bv))
 bm = bmesh.new()
 bm.from_mesh(lo.data)
 bmesh.ops.triangulate(bm, faces=bm.faces[:])
 bm.to_mesh(lo.data)
 bm.free()
+if KIND == "vest":
+    # clean side seam between the front fabric and the linen back: split the game mesh exactly where
+    # y - centre(z) changes sign; faces then take a material by side (see the lining below)
+    bmq = bmesh.new()
+    bmq.from_mesh(lo.data)
+    sv = {v: float(v.co.y - ycf(v.co.z)) for v in bmq.verts}
+    newv = set()
+    for e in [e for e in bmq.edges if sv[e.verts[0]] * sv[e.verts[1]] < 0]:
+        a_, b_ = e.verts
+        ne, nv = bmesh.utils.edge_split(e, a_, sv[a_] / (sv[a_] - sv[b_]))
+        sv[nv] = 0.0
+        newv.add(nv)
+    for f in list(bmq.faces):
+        cut = [v for v in f.verts if v in newv]
+        if len(cut) == 2:
+            bmesh.ops.connect_verts(bmq, verts=cut)
+    bmesh.ops.triangulate(bmq, faces=[f for f in bmq.faces if len(f.verts) > 3])
+    bmq.to_mesh(lo.data)
+    bmq.free()
+    lo.data.update()
+    log("side seam split", len(newv))
 lo.name = lo.data.name = f"{PIECE}_shell"
 bpy.ops.object.shade_smooth()
 tris = sum(len(p.vertices) - 2 for p in lo.data.polygons)
@@ -1127,7 +1224,7 @@ if KIND == "vest":
     lo.data.materials.append(lin)
     for f_ in lo.data.polygons:
         c_ = np.array(f_.center)
-        f_.material_index = 1 if (c_[1] > ycf(c_[2]) + 0.005) else 0
+        f_.material_index = 1 if (c_[1] > ycf(c_[2])) else 0
     log("lining faces", sum(1 for f_ in lo.data.polygons if f_.material_index == 1))
 
 # ---- 5. export + report

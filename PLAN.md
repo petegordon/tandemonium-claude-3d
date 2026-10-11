@@ -702,4 +702,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   body's triangle-jagged hole stays under the edge). dress_goose: layer masks eroded by 2 rings (no jagged gaps at
   outer edges); vest ignores shirt / breeches / bowtie for its own masking. Riding: the shirt still pokes through the
   vest sides. Male visible 19.1k tris; validator 0/0, three.js ok.
+- **Vest edges + riding (Pete: armholes / back edges far too jagged; fix riding)** — the outline is now an *exact*
+  cut: an inside-distance field (hem curve, V, back neck, armhole sphere, and the arm = 0.5 iso line of the body's
+  smooth arm skin weights, interpolated from 4 nearest verts) is evaluated per vertex of the subdivided band, every
+  edge crossing zero is split at the crossing and the split points joined across each face (no triangle steps, no
+  snapping). Decimation keeps the boundary (+1 ring) via a 0-weight decimate vertex group, then the game mesh edge is
+  re-snapped / smoothed along the loop. The front / linen seam is split exactly on the mesh too (the jagged cream patch
+  on the vest's side in riding was the lining border, not the shirt). Shirt verts within ~3 cm of the vest take the
+  vest's skin weights (FOLLOW_OUTER) so they move together. Validator 0/0, three.js ok; male 18.9k visible tris.
 

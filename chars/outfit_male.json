@@ -508,7 +508,9 @@
       },
       "pre_cuts": 2,
       "region_sub": 0,
-      "edge_iter": 20
+      "edge_iter": 0,
+      "edge_relax": 0,
+      "lo_edge_iter": 6
     }
   },
   "accessory_drop": {
