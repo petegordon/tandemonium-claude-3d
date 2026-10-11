@@ -306,11 +306,9 @@
     "bowtie": {
       "pieces": [
         "coat",
-        "waistcoat",
-        "shirt"
+        "waistcoat"
       ],
       "parts": [
-        "shirtfront",
         "bow_L",
         "bow_R",
         "knot",
@@ -331,8 +329,7 @@
       "shirt@collar": [
         "collar",
         "wing_L",
-        "wing_R",
-        "shirtfront"
+        "wing_R"
       ]
     }
   },
@@ -388,6 +385,59 @@
       },
       "back_rise": 0.3,
       "rise_y0": -0.1
+    },
+    "shirt": {
+      "kind": "shirt",
+      "z_neck": 1.28,
+      "z_top": 0.85,
+      "z_bot": 0.85,
+      "back_rise": 0.3,
+      "rise_y0": -0.1,
+      "tris": 3200,
+      "cuff": 0.045,
+      "wrist_offset": 0.0,
+      "cover_margin": 0.012,
+      "ease": {
+        "torso": 0.007,
+        "sleeve": 0.011,
+        "blouse": 0.006,
+        "cuff": 0.005,
+        "neck": 0.003,
+        "hem": 0.004
+      },
+      "mottle": 0.05,
+      "twill": 0.05,
+      "twill_scale": 520.0,
+      "roughness": 0.75,
+      "colors": {
+        "cream": [
+          240,
+          226,
+          204
+        ],
+        "white": [
+          238,
+          238,
+          234
+        ],
+        "blue": [
+          188,
+          206,
+          228
+        ]
+      },
+      "tuck": {
+        "into": "breeches",
+        "z_top": 0.91,
+        "rise": 0.3,
+        "y0": -0.1,
+        "margin": 0.012
+      }
     }
+  },
+  "accessory_drop": {
+    "bowtie": [
+      "shirtfront"
+    ]
   }
 }

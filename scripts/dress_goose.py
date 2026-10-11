@@ -47,6 +47,9 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
+LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
+LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
+LAYER_IGNORE = {"shirt": ("bowtie", "gloves", "breeches"), "breeches": ("shirt",)}   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
@@ -158,15 +161,26 @@ hid_by = [set() for _ in range(len(V))]
 designed = {}
 for k in shells:
     jf = D / "shells" / f"{k}.json"
-    cv = json.loads(jf.read_text(encoding="utf-8")).get("covers") if jf.exists() else None
-    if cv:
-        designed[k] = cv
+    meta_ = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
+    if meta_.get("covers_file") or meta_.get("covers"):
+        designed[k] = meta_
 domv = np.array(names)[W.argmax(1)]
 armv = np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in domv])
-for k, cv in designed.items():
-    zt = cv["z_top"] + cv["rise"] * (V[:, 1] - cv["y0"]) - cv["margin"]
-    for i in np.flatnonzero((V[:, 2] < zt) & (V[:, 2] > cv["z_bot"]) & ~armv):
-        hid_by[i].add(k)
+for k, meta_ in designed.items():
+    if meta_.get("covers_file"):                   # exact covered body vertices (by rest position)
+        cp = np.load(D / "shells" / meta_["covers_file"])["pos"]
+        kdc = KDTree(len(cp))
+        for i_, q_ in enumerate(cp):
+            kdc.insert(Vector(q_), i_)
+        kdc.balance()
+        for i in range(len(V)):
+            if kdc.find(Vector(V[i]))[2] < 0.002:
+                hid_by[i].add(k)
+    else:
+        cv = meta_["covers"]
+        zt = cv["z_top"] + cv["rise"] * (V[:, 1] - cv["y0"]) - cv["margin"]
+        for i in np.flatnonzero((V[:, 2] < zt) & (V[:, 2] > cv["z_bot"]) & ~armv):
+            hid_by[i].add(k)
 ray_shells = {k: b for k, b in sbvh.items() if k not in designed}
 for i, (p, n) in enumerate(zip(V, NRM)):
     best = None
@@ -368,11 +382,59 @@ for k, o in shells.items():
     am = o.modifiers.new("arm", "ARMATURE")
     am.object = rig
     # no parenting: skinned meshes stay root nodes in glTF (NODE_SKINNED_MESH_NON_ROOT otherwise)
+# layer masks (designed garments are complete pieces; under other pieces only what shows is drawn):
+# a garment face is hidden while any shell its outward normal ray meets within LAYER_D is worn ->
+# sub-meshes "<piece>__<a+b>" like the body's
+layer_parts = {}
+for k in list(designed):
+    o = shells[k]
+    others = {s: b for s, b in sbvh.items() if s != k and s not in LAYER_IGNORE.get(k, ())}
+    if not others:
+        continue
+    vk = [set() for _ in o.data.vertices]
+    for v in o.data.vertices:
+        p_, n_ = v.co, v.normal
+        for s, b in others.items():
+            if b.ray_cast(p_ + n_ * 0.0005, n_, LAYER_D)[0] is not None or                     b.ray_cast(p_ - n_ * 0.0005, -n_, LAYER_IN)[0] is not None:     # (or poking through it)
+                vk[v.index].add(s)
+    tk = designed[k].get("tuck")
+    if tk and tk["into"] in shells:      # tucked hem: below the outer garment's waist line - margin
+        for v in o.data.vertices:
+            if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]:   # torso only (not the hanging sleeves)
+                vk[v.index].add(tk["into"])
+    fkey = []
+    for f in o.data.polygons:
+        ks = [vk[i] for i in f.vertices]
+        common = set.intersection(*ks) if all(ks) else set()
+        fkey.append("+".join(sorted(set().union(*ks))) if all(ks) else "")
+    for key in sorted(set(fkey)):
+        if not key:
+            continue
+        part = o.copy()
+        part.data = o.data.copy()
+        bpy.context.scene.collection.objects.link(part)
+        bm = bmesh.new()
+        bm.from_mesh(part.data)
+        bm.faces.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if fkey[f.index] != key], context="FACES")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(part.data)
+        bm.free()
+        part.name = part.data.name = f"{k}__{key}"
+        layer_parts[part.name] = part
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bm.faces.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if fkey[f.index]], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(o.data)
+    bm.free()
+    print("LAYER", k, {key: fkey.count(key) for key in sorted(set(fkey))})
 (D / f"{CHAR}_cloth_chains.json").write_text(json.dumps(
     {"rule": "chain bone j takes, in armature space, slerp(Hips rotation delta, thigh rotation delta, "
              "follow * drape[j]), root first", "drape": DRAPE, "chains": chains}, indent=1))
 
-tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells}.items()}
+tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells, **layer_parts}.items()}
 visible = tris.get("body", 0) + sum(tris[k] for k in shells)
 report = {"char": CHAR, "mask_faces": stats, "tris": tris, "tris_dressed_visible": visible}
 (D / f"{CHAR}_dress.json").write_text(json.dumps(report, indent=1))

@@ -366,6 +366,10 @@ clear = cfg.get("accessory_clear", {}).get(PIECE)
 # chars json "accessory_split" {piece: {"<target>@<name>": [parts]}}: those parts belong to another
 # garment (female: the bib and round collar are part of the dress) -> shells/<target>@<name>.glb, which
 # dress_goose.py joins into <target> after the clear step
+drop = cfg.get("accessory_drop", {}).get(PIECE, [])   # parts now made by a designed garment (shirt front)
+for o in [o for o in parts if o.name.split(".")[0] in drop]:
+    parts.remove(o)
+    bpy.data.objects.remove(o)
 groups = {PIECE: []}
 split = cfg.get("accessory_split", {}).get(PIECE, {})
 for o in parts:

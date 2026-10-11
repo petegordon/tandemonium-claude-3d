@@ -41,23 +41,20 @@ ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 
 bpy.ops.wm.open_mainfile(filepath=str(D / f"{CHAR}_dressed.blend"))
+FIXED = ("body", "eyeball", "lid", "catchlight")
 worn = set()
 for o in bpy.data.objects:
-    if o.type != "MESH":
+    if o.type != "MESH" or "__" in o.name or o.name.startswith(FIXED):
         continue
-    if o.name.startswith("body__"):
-        continue
-    if o.name in HIDE or (ONLY and not o.name.startswith(("body", "eyeball", "lid", "catchlight")) and o.name not in ONLY):
+    if o.name in HIDE or (ONLY and o.name not in ONLY):
         o.hide_render = True
-    elif not o.name.startswith(("body", "eyeball", "lid", "catchlight")):
+    else:
         worn.add(o.name)
-for o in bpy.data.objects:
-    if o.type == "MESH" and o.name.startswith("body__"):
-        o.hide_render = bool(set(o.name[6:].split("+")) & worn)
-if "--no-body" in argv:                         # garment only (diagnostics)
-    for o in bpy.data.objects:
-        if o.type == "MESH" and o.name.startswith(("body", "eyeball", "lid", "catchlight")):
-            o.hide_render = True
+for o in bpy.data.objects:   # "<piece>__a+b" sub-meshes (body, layered garments): hidden while a or b is worn
+    if o.type == "MESH" and "__" in o.name:
+        base, keys = o.name.split("__", 1)
+        on = base == "body" or base in worn
+        o.hide_render = (not on) or bool(set(keys.split("+")) & worn)
 for k, rgb in TINT.items():
     meta = json.loads((D / "shells" / f"{k}.json").read_text(encoding="utf-8"))
     c = np.array([float(x) for x in rgb.split(",")]) / 255.0

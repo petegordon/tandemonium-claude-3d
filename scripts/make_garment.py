@@ -5,7 +5,8 @@
 
 The extracted piece (pieces/<piece>.glb) is only a SHAPE guide; the garment itself is built from the body
 the outfit is worn on (chars json "body_shape" via bodyshape.py), so it has no shards, holes or seams to
-patch, and the same recipe refits another body. Recipe: chars json "garment_design" {piece: {...}}.
+patch, and the same recipe refits another body. Recipe: chars json "garment_design" {piece: {kind: breeches | shirt, ...}}; the cut planes,
+openings and covered body vertices follow the kind (shirt: neck base, tilted tucked hem, both wrists).
   1. region: body faces between the waist line (z_top at the front, rising "back_rise" m per m toward the
      back so it covers the tail base) and z_bot (below the knee, inside the boots), arms / hands
      dropped; the tail is removed and its hole capped with a soft seat bump (the tail is hidden under the
@@ -150,6 +151,39 @@ RISE, Y0 = R.get("back_rise", 0.0), R.get("rise_y0", -0.10)   # waist line rises
 def ztop(y):
     return Z_TOP + RISE * (np.asarray(y) - Y0)
 log("crotch", round(float(CROTCH_Z), 3), "z", Z_TOP, Z_BOT)
+KIND = R.get("kind", "breeches")
+is_hand = np.array(["Hand" in d for d in dom])
+SIDES = (("Left", 1), ("Right", -1))
+# cut planes: (point, normal, keep: -1 = the side away from the normal / +1 = toward it, x-side filter)
+if KIND == "shirt":
+    Z_NECK = R["z_neck"]
+    WRIST = {}
+    for s, sg in SIDES:
+        hh = bone[f"{s}Hand"][0]
+        dd = hh - bone[f"{s}ForeArm"][0]
+        dd /= np.linalg.norm(dd)
+        WRIST[sg] = (hh + dd * R.get("wrist_offset", 0.0), dd)
+    PLANES = [((0, 0, Z_NECK), (0, 0, 1), -1, 0), ((0, Y0, Z_BOT), (0, -RISE, 1), 1, 0)] + \
+             [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), -1, sg) for _, sg in SIDES]
+    R.setdefault("seat_bump", 0.0)
+    R.setdefault("seat_r", 1e-4)
+else:
+    PLANES = [((0, Y0, Z_TOP), (0, -RISE, 1), -1, 0), ((0, 0, Z_BOT), (0, 0, 1), 1, 0)]
+
+
+def plane_ok(c, pl):
+    co, no, keep, sg = pl
+    if sg and c[0] * sg < 0.25:                    # wrist planes only cut their own forearm
+        return True
+    return float(np.dot(np.asarray(c) - co, no)) * keep >= -1e-4 * np.linalg.norm(no)
+
+
+def on_plane(c, pl, tol=0.003):
+    co, no, keep, sg = pl
+    if sg and c[0] * sg < 0.25:
+        return False
+    no = np.asarray(no, float)
+    return abs(float(np.dot(np.asarray(c) - co, no / np.linalg.norm(no)))) < tol
 
 # ---- 1. region of the body surface
 reg = body.copy()
@@ -186,7 +220,7 @@ tail_hole = min(holes, key=lambda h: min((v.co - Vector(TAIL_ROOT)).length for e
 for f in bmesh.ops.holes_fill(bm, edges=list(tail_hole), sides=0)["faces"]:
     f[capL] = 1
 bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if f[capL]])
-for co_, no_ in (((0, Y0, Z_TOP), (0, -RISE, 1)), ((0, 0, Z_BOT), (0, 0, 1))):
+for co_, no_, _, _ in PLANES:
     geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
     bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co_, plane_no=no_)
 kd = KDTree(len(BPv))
@@ -197,7 +231,8 @@ kill = []
 for f in bm.faces:
     c = f.calc_center_median()
     i = kd.find(c)[1]
-    if not (Z_BOT - 1e-4 < c.z < ztop(c.y) + 1e-4) or (not f[capL] and is_arm[i]):   # (tail already off)
+    drop = is_hand[i] if KIND == "shirt" else is_arm[i]
+    if not all(plane_ok(c, pl) for pl in PLANES) or (not f[capL] and drop):   # (tail already off)
         kill.append(f)
 bmesh.ops.delete(bm, geom=kill, context="FACES")
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
@@ -239,8 +274,8 @@ for e in bnd:
     loops.append(lp)
 caps = []
 for lp in loops:
-    zs = [v.co.z for e in lp for v in e.verts]
-    if min(zs) > Z_BOT + 0.01 and max(v.co.z - ztop(v.co.y) for e in lp for v in e.verts) < -0.01:
+    lvs = [np.array(v.co) for e in lp for v in e.verts]
+    if not any(all(on_plane(c, pl) for c in lvs) for pl in PLANES):      # not a cut opening -> cap it
         res = bmesh.ops.holes_fill(bm, edges=lp, sides=0)
         if not res["faces"]:                          # tiny holes: fan from the centre
             vs = list({v for e in lp for v in e.verts})
@@ -263,6 +298,18 @@ bm.to_mesh(reg.data)
 bm.free()
 reg.data.update()
 
+RV = np.array([v.co[:] for v in reg.data.vertices])
+bmc = bmesh.new()
+bmc.from_mesh(reg.data)
+BND = np.array([v.co[:] for v in bmc.verts if any(e.is_boundary for e in v.link_edges)])
+bmc.free()
+kdb = KDTree(len(BND))
+for i, q in enumerate(BND):
+    kdb.insert(Vector(q), i)
+kdb.balance()
+COVER_MARGIN = R.get("cover_margin", 0.012)
+covered = np.array([kdb.find(Vector(q))[2] > COVER_MARGIN for q in RV])
+COVERS_POS = RV[covered]
 # vertices made by the cuts / caps have no skin weights: take the nearest body vertex's
 for v in reg.data.vertices:
     if sum(g.weight for g in v.groups) < 1e-6:
@@ -300,6 +347,21 @@ P, N = mesh_vn(me)
 log("region", len(me.vertices), "verts")
 
 # ---- 2. ease
+vgn = [g.name for g in reg.vertex_groups]
+WR = np.zeros((len(P), len(vgn)))
+for v in me.vertices:
+    for g in v.groups:
+        WR[v.index, g.group] = g.weight
+WR /= np.maximum(WR.sum(1, keepdims=True), 1e-9)
+armw = WR[:, [i for i, n in enumerate(vgn) if ("Arm" in n)]].sum(1) if any("Arm" in n for n in vgn) else np.zeros(len(P))
+if KIND == "shirt":
+    dwr = np.full(len(P), 9.0)                         # distance up the forearm from the wrist cut
+    for _, sg in SIDES:
+        co, dd = WRIST[sg]
+        on = P[:, 0] * sg > 0.2
+        dwr = np.where(on, np.minimum(dwr, -((P - co) @ dd)), dwr)
+    dneck = Z_NECK - P[:, 2]
+    dhem = P[:, 2] - ztop(P[:, 1]) + (Z_TOP - Z_BOT)   # height above the (tilted) hem
 piece = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
 only_select(piece)
 bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
@@ -307,26 +369,42 @@ bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
+if KIND == "shirt":
+    pb = None
 for i, (p, n) in enumerate(zip(P, N)):
+    if pb is None:
+        break
     hit = pb.ray_cast(Vector(p + n * REACH), Vector(-n), REACH)     # outermost surface of the piece
     if hit[0] is not None:
         ease[i] = REACH - hit[3]
 bpy.data.objects.remove(piece)
-ok = ~np.isnan(ease)
-log("ease measured", round(float(ok.mean()), 3), "median mm", round(float(np.nanmedian(ease)) * 1000, 1))
-e_lo, e_hi = R.get("ease_min", 0.008), R.get("ease_max", 0.05)
-ease = np.clip(np.where(ok, ease, np.nanmedian(ease)), e_lo, e_hi)
-for _ in range(4):                                  # fill unmeasured from measured neighbours
-    sm = smooth_field(ease, ed, 10)
-    ease = np.where(ok, ease, sm)
-ease = smooth_field(ease, ed, R.get("ease_smooth", 60))
-# tight bands: waistband and knee band
-z = P[:, 2]
 wb, kb = R.get("waistband", 0.04), R.get("kneeband", 0.035)
-t_w = np.clip((ztop(P[:, 1]) - z) / (wb * 2.5), 0, 1)
-t_k = np.clip((z - Z_BOT) / (kb * 3.0), 0, 1)
-band = np.minimum(t_w, t_k) ** 1.5
-ease = R.get("band_ease", 0.007) + (ease - R.get("band_ease", 0.007)) * band
+if KIND == "shirt":
+    # torso close, sleeves fuller and bloused above a snug cuff, snug at the neck and the tucked hem
+    E = R.get("ease", {})
+    ease = E.get("torso", 0.007) + (E.get("sleeve", 0.011) - E.get("torso", 0.007)) * np.clip(armw, 0, 1)
+    ease += E.get("blouse", 0.006) * np.exp(-((dwr - 0.085) / 0.045) ** 2) * (dwr < 1)
+    cuff = R.get("cuff", 0.045)
+    ease = np.where(dwr < cuff + 0.01, np.minimum(ease, E.get("cuff", 0.005)) + 0.0 * dwr, ease)
+    ease = ease * np.clip(dneck / 0.04, 0, 1) + E.get("neck", 0.003) * (1 - np.clip(dneck / 0.04, 0, 1))
+    th = np.clip(dhem / 0.06, 0, 1)
+    ease = ease * th + E.get("hem", 0.004) * (1 - th)
+    ease = smooth_field(ease, ed, 6)
+else:
+    ok = ~np.isnan(ease)
+    log("ease measured", round(float(ok.mean()), 3), "median mm", round(float(np.nanmedian(ease)) * 1000, 1))
+    e_lo, e_hi = R.get("ease_min", 0.008), R.get("ease_max", 0.05)
+    ease = np.clip(np.where(ok, ease, np.nanmedian(ease)), e_lo, e_hi)
+    for _ in range(4):                                  # fill unmeasured from measured neighbours
+        sm = smooth_field(ease, ed, 10)
+        ease = np.where(ok, ease, sm)
+    ease = smooth_field(ease, ed, R.get("ease_smooth", 60))
+    # tight bands: waistband and knee band
+    z = P[:, 2]
+    t_w = np.clip((ztop(P[:, 1]) - z) / (wb * 2.5), 0, 1)
+    t_k = np.clip((z - Z_BOT) / (kb * 3.0), 0, 1)
+    band = np.minimum(t_w, t_k) ** 1.5
+    ease = R.get("band_ease", 0.007) + (ease - R.get("band_ease", 0.007)) * band
 # seat bump over the capped tail
 ease += R.get("seat_bump", 0.012) * np.exp(-(dtail / R.get("seat_r", 0.07)) ** 2)
 # crotch: stay under 40 % of the gap to the other surface along the normal
@@ -348,12 +426,16 @@ def gap(p, n):
     return 9.0
 
 
+if KIND == "shirt":     # the arms are part of the garment: gaps are to any body surface but the hands
+    body_noarm = BVHTree.FromPolygons([tuple(x) for x in BPv],
+                                      [list(p.vertices) for p in body.data.polygons if not is_hand[list(p.vertices)].any()])
 G = np.array([gap(p, n) for p, n in zip(P, N)])
-body_arms = BVHTree.FromPolygons([tuple(x) for x in BPv],
-                                 [list(p.vertices) for p in body.data.polygons if is_arm[list(p.vertices)].all()])
-GA = np.array([(lambda h: h[3] if h[0] is not None else 9.0)(body_arms.ray_cast(Vector(p + n * 0.002), Vector(n), 0.25))
-               for p, n in zip(P, N)])
-G = np.minimum(G, GA / 0.4 * R.get("hand_share", 0.55))
+if KIND != "shirt":
+    body_arms = BVHTree.FromPolygons([tuple(x) for x in BPv],
+                                     [list(p.vertices) for p in body.data.polygons if is_arm[list(p.vertices)].all()])
+    GA = np.array([(lambda h: h[3] if h[0] is not None else 9.0)(body_arms.ray_cast(Vector(p + n * 0.002), Vector(n), 0.25))
+                   for p, n in zip(P, N)])
+    G = np.minimum(G, GA / 0.4 * R.get("hand_share", 0.55))
 ease = np.minimum(ease, 0.4 * G)
 ease = smooth_field(ease, ed, 8)
 ease = np.minimum(ease, 0.42 * G)                     # re-limit after smoothing
@@ -366,7 +448,10 @@ mid.data.vertices.foreach_set("co", Pm.ravel())
 mid.data.update()
 mid.name = mid.data.name = f"{PIECE}_mid"
 # store per-vertex design coordinates as attributes for the detail pass
-for name, val in (("ease", ease), ("z0", P[:, 2])):
+extra_attr = {"armw": armw}
+if KIND == "shirt":
+    extra_attr.update({"dwr": np.minimum(dwr, 1.0), "dhem": dhem})
+for name, val in (("ease", ease), ("z0", P[:, 2]), *extra_attr.items()):
     a = mid.data.attributes.new(name, "FLOAT", "POINT")
     a.data.foreach_set("value", val.astype(np.float32))
 
@@ -403,59 +488,122 @@ disp = np.zeros(len(Ph))
 occ = np.ones(len(Ph))
 zh = Ph[:, 2]
 x, y = Ph[:, 0], Ph[:, 1]
-front = y < np.interp(zh, [Z_BOT, Z_TOP], [0.05, 0.04])
-ZT = ztop(y)                                          # local waist line per detail vertex
-# waistband: raised, top stitch + bottom edge groove
-in_wb = zh > ZT - wb
-disp += np.where(in_wb, 0.0016, 0.0) * np.clip((ZT - zh) / 0.004, 0, 1)
-disp += groove(np.abs(zh - (ZT - wb)), 0.0016, 0.0012) + groove(np.abs(zh - (ZT - 0.007)), 0.0009, 0.0004)
-# knee band
-in_kb = zh < Z_BOT + kb
-disp += np.where(in_kb, 0.0016, 0.0) * np.clip((zh - Z_BOT) / 0.004, 0, 1)
-disp += groove(np.abs(zh - (Z_BOT + kb)), 0.0016, 0.0012) + groove(np.abs(zh - (Z_BOT + 0.007)), 0.0009, 0.0004)
-# fly placket (front, character's left of centre), J-curve into the centre seam
-fly_bot = Z_TOP - R.get("fly_len", 0.15)
-fz = (zh < ZT - wb) & (zh > fly_bot) & front
-dfly = np.where(fz, np.abs(x - 0.022), 9.0)
-jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front
-jx = 0.022 * np.clip((zh - (fly_bot - 0.03)) / 0.03, 0, 1) ** 0.6
-dfly = np.minimum(dfly, np.where(jz, np.abs(x - jx), 9.0))
-disp += groove(dfly, 0.0016, 0.0011)
-# centre seams (front below the fly, back) on the pelvis
-pelvis = zh > CROTCH_Z - 0.02
-disp += groove(np.where(pelvis & (zh < ZT - wb) & ((~front) | (zh < fly_bot - 0.02)), np.abs(x), 9.0), 0.0015, 0.0009)
-# slit pockets: slanted lines on the front hips
-for s in (1, -1):
-    a0, a1 = np.array([0.085 * s, Z_TOP - wb]), np.array([0.135 * s, Z_TOP - wb - 0.11])
-    q = np.stack([x, zh], 1)
-    u = np.clip(((q - a0) @ (a1 - a0)) / ((a1 - a0) @ (a1 - a0)), 0, 1)
-    dp = np.linalg.norm(q - (a0 + u[:, None] * (a1 - a0)), axis=1)
-    disp += groove(np.where(front & (zh < Z_TOP - wb) & (zh > Z_TOP - wb - 0.115), dp, 9.0), 0.0018, 0.0014)
-# legs: side seam (outer), inseam (inner), front crease; folds above the knee and on the flare
-easeh_f = np.zeros(len(Ph), np.float32)
-hi.data.attributes["ease"].data.foreach_get("value", easeh_f)
-easeh = easeh_f.astype(float)
-for side, (h, ax, fwd, lat) in LEGS.items():
-    sgn = 1 if side == "Left" else -1
-    on = (x * sgn > 0.005) & (zh < CROTCH_Z + 0.04)
-    rel = Ph - h
-    along = rel @ ax
-    radial = rel - along[:, None] * ax
-    rr = np.linalg.norm(radial, axis=1)
-    phi = np.arctan2(radial @ (-lat * sgn), radial @ fwd)         # 0 = front, +pi/2 = outer side
-    arc = lambda a0: np.abs((phi - a0 + np.pi) % (2 * np.pi) - np.pi) * rr  # noqa: E731
-    disp += np.where(on, groove(arc(np.pi / 2), 0.0016, 0.0010) + groove(arc(-np.pi / 2), 0.0016, 0.0009)
-                     + groove(arc(0.0), 0.0035, 0.0006), 0.0)
-    # gathered folds above the knee band: horizontal ripples fading upward
-    kz = (zh - (Z_BOT + kb)) / 0.12
-    wk = np.clip(1 - kz, 0, 1) * (kz > 0) * on
-    ph = 0.9 * np.sin(phi * 2.3 + 1.7 * sgn) + 0.6 * np.sin(phi * 5.1 + zh * 40)
-    amp = 0.55 + 0.45 * np.sin(phi * 3.7 + zh * 23 + sgn)
-    ripple = np.sin((zh / 0.026 + 0.25 * ph) * 2 * np.pi)
-    disp += 0.0014 * ripple * amp * wk
-    # flare folds: long soft diagonal folds where the cloth stands off the thigh
-    fl = np.clip((easeh - 0.02) / 0.02, 0, 1) * on
-    disp += 0.0022 * np.sin(phi * 5 + zh / 0.05) * fl
+if KIND == "breeches":
+    front = y < np.interp(zh, [Z_BOT, Z_TOP], [0.05, 0.04])
+    ZT = ztop(y)                                          # local waist line per detail vertex
+    # waistband: raised, top stitch + bottom edge groove
+    in_wb = zh > ZT - wb
+    disp += np.where(in_wb, 0.0016, 0.0) * np.clip((ZT - zh) / 0.004, 0, 1)
+    disp += groove(np.abs(zh - (ZT - wb)), 0.0016, 0.0012) + groove(np.abs(zh - (ZT - 0.007)), 0.0009, 0.0004)
+    # knee band
+    in_kb = zh < Z_BOT + kb
+    disp += np.where(in_kb, 0.0016, 0.0) * np.clip((zh - Z_BOT) / 0.004, 0, 1)
+    disp += groove(np.abs(zh - (Z_BOT + kb)), 0.0016, 0.0012) + groove(np.abs(zh - (Z_BOT + 0.007)), 0.0009, 0.0004)
+    # fly placket (front, character's left of centre), J-curve into the centre seam
+    fly_bot = Z_TOP - R.get("fly_len", 0.15)
+    fz = (zh < ZT - wb) & (zh > fly_bot) & front
+    dfly = np.where(fz, np.abs(x - 0.022), 9.0)
+    jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front
+    jx = 0.022 * np.clip((zh - (fly_bot - 0.03)) / 0.03, 0, 1) ** 0.6
+    dfly = np.minimum(dfly, np.where(jz, np.abs(x - jx), 9.0))
+    disp += groove(dfly, 0.0016, 0.0011)
+    # centre seams (front below the fly, back) on the pelvis
+    pelvis = zh > CROTCH_Z - 0.02
+    disp += groove(np.where(pelvis & (zh < ZT - wb) & ((~front) | (zh < fly_bot - 0.02)), np.abs(x), 9.0), 0.0015, 0.0009)
+    # slit pockets: slanted lines on the front hips
+    for s in (1, -1):
+        a0, a1 = np.array([0.085 * s, Z_TOP - wb]), np.array([0.135 * s, Z_TOP - wb - 0.11])
+        q = np.stack([x, zh], 1)
+        u = np.clip(((q - a0) @ (a1 - a0)) / ((a1 - a0) @ (a1 - a0)), 0, 1)
+        dp = np.linalg.norm(q - (a0 + u[:, None] * (a1 - a0)), axis=1)
+        disp += groove(np.where(front & (zh < Z_TOP - wb) & (zh > Z_TOP - wb - 0.115), dp, 9.0), 0.0018, 0.0014)
+    # legs: side seam (outer), inseam (inner), front crease; folds above the knee and on the flare
+    easeh_f = np.zeros(len(Ph), np.float32)
+    hi.data.attributes["ease"].data.foreach_get("value", easeh_f)
+    easeh = easeh_f.astype(float)
+    for side, (h, ax, fwd, lat) in LEGS.items():
+        sgn = 1 if side == "Left" else -1
+        on = (x * sgn > 0.005) & (zh < CROTCH_Z + 0.04)
+        rel = Ph - h
+        along = rel @ ax
+        radial = rel - along[:, None] * ax
+        rr = np.linalg.norm(radial, axis=1)
+        phi = np.arctan2(radial @ (-lat * sgn), radial @ fwd)         # 0 = front, +pi/2 = outer side
+        arc = lambda a0: np.abs((phi - a0 + np.pi) % (2 * np.pi) - np.pi) * rr  # noqa: E731
+        disp += np.where(on, groove(arc(np.pi / 2), 0.0016, 0.0010) + groove(arc(-np.pi / 2), 0.0016, 0.0009)
+                         + groove(arc(0.0), 0.0035, 0.0006), 0.0)
+        # gathered folds above the knee band: horizontal ripples fading upward
+        kz = (zh - (Z_BOT + kb)) / 0.12
+        wk = np.clip(1 - kz, 0, 1) * (kz > 0) * on
+        ph = 0.9 * np.sin(phi * 2.3 + 1.7 * sgn) + 0.6 * np.sin(phi * 5.1 + zh * 40)
+        amp = 0.55 + 0.45 * np.sin(phi * 3.7 + zh * 23 + sgn)
+        ripple = np.sin((zh / 0.026 + 0.25 * ph) * 2 * np.pi)
+        disp += 0.0014 * ripple * amp * wk
+        # flare folds: long soft diagonal folds where the cloth stands off the thigh
+        fl = np.clip((easeh - 0.02) / 0.02, 0, 1) * on
+        disp += 0.0022 * np.sin(phi * 5 + zh / 0.05) * fl
+elif KIND == "shirt":
+    def attr(nm):
+        a_ = np.zeros(len(Ph), np.float32)
+        hi.data.attributes[nm].data.foreach_get("value", a_)
+        return a_.astype(float)
+    armh, dwh, dhh = attr("armw"), attr("dwr"), attr("dhem")
+    torso = armh < 0.25
+    front = (y < 0.0) & torso
+    # button placket: raised strip with stitch lines, buttons every 6.5 cm
+    plk = front & (zh < Z_NECK - 0.004)
+    disp += np.where(plk & (np.abs(x) < 0.0125), 0.0008, 0.0)
+    disp += groove(np.where(plk, np.abs(np.abs(x) - 0.0125), 9.0), 0.0011, 0.0008)
+    for zb_ in np.arange(Z_NECK - 0.03, float(ztop(-0.1)) - (Z_TOP - Z_BOT) + 0.05, -R.get("button_step", 0.065)):
+        dbt = np.sqrt(x ** 2 + (zh - zb_) ** 2)
+        disp += np.where(plk, 0.0017 * np.exp(-(dbt / 0.0036) ** 2) - 0.0005 * np.exp(-((dbt - 0.0045) / 0.0012) ** 2), 0.0)
+    # side seams of the torso, armhole seam, sleeve underseams
+    yc = 0.0
+    phit = np.arctan2(x, -(y - yc))
+    rt = np.hypot(x, y - yc)
+    disp += np.where(torso, groove(np.abs(np.abs(phit) - np.pi / 2) * rt, 0.0015, 0.0009), 0.0)
+    disp += groove(np.abs(armh - 0.5) * 0.05, 0.0014, 0.0009) * (np.abs(x) > 0.06)
+    for s_, sg in SIDES:
+        a0_, a1_, a2_ = bone[f"{s_}Arm"][0], bone[f"{s_}ForeArm"][0], bone[f"{s_}Hand"][0]
+        on = (x * sg > 0.08) & (armh > 0.3)
+        # nearest point on the arm polyline -> radial frame around it, 'down' = 0
+        best = np.full(len(Ph), 9.0)
+        rad = np.zeros_like(Ph)
+        axs = np.zeros_like(Ph)
+        for q0, q1 in ((a0_, a1_), (a1_, a2_)):
+            dq = q1 - q0
+            u = np.clip(((Ph - q0) @ dq) / (dq @ dq), 0, 1)
+            c_ = q0 + u[:, None] * dq
+            dist = np.linalg.norm(Ph - c_, axis=1)
+            take = dist < best
+            best = np.where(take, dist, best)
+            rad = np.where(take[:, None], Ph - c_, rad)
+            axs = np.where(take[:, None], np.tile(dq / np.linalg.norm(dq), (len(Ph), 1)), axs)
+        down = np.array([0, 0, -1.0]) - axs * axs[:, 2:3] * -1
+        down -= axs * np.sum(down * axs, 1, keepdims=True)
+        down /= np.maximum(np.linalg.norm(down, axis=1, keepdims=True), 1e-9)
+        side = np.cross(axs, down)
+        phi = np.arctan2(np.sum(rad * side, 1) * sg, np.sum(rad * down, 1))
+        rr = np.linalg.norm(rad, axis=1)
+        disp += np.where(on, groove(np.abs(phi) * rr, 0.0015, 0.0009), 0.0)        # underseam
+        # cuff: raised band, edge grooves, a cufflink on the back of the wrist
+        cuff = R.get("cuff", 0.045)
+        inc = on & (dwh < cuff)
+        disp += np.where(inc, 0.0015 * np.clip(dwh / 0.003, 0, 1), 0.0)
+        disp += np.where(on, groove(np.abs(dwh - cuff), 0.0015, 0.0011) + groove(np.abs(dwh - 0.006), 0.0008, 0.0004), 0.0)
+        dl = np.hypot((np.abs(phi) - np.pi * 0.62) * rr, dwh - cuff * 0.5)
+        disp += np.where(on, 0.0022 * np.exp(-(dl / 0.0042) ** 2), 0.0)
+        # gathers above the cuff and at the inner elbow
+        g_ = np.clip(1 - (dwh - cuff) / 0.09, 0, 1) * (dwh > cuff) * on
+        ph_ = 0.8 * np.sin(phi * 2.1 + sg) + 0.5 * np.sin(phi * 4.7 + dwh * 50)
+        disp += 0.0012 * np.sin((dwh / 0.021 + 0.3 * ph_) * 2 * np.pi) * g_ * (0.6 + 0.4 * np.sin(phi * 3.3))
+        de = np.linalg.norm(Ph - a1_, axis=1)
+        inner = np.clip(np.cos(phi - np.pi * 0.5 * sg * 0), 0, 1)
+        disp += 0.0013 * np.sin(de / 0.012 * 2 * np.pi) * np.exp(-(de / 0.045) ** 2) * on * (0.5 + 0.5 * inner)
+    # tucked hem: soft blousing folds just above the breeches line
+    bl = np.clip(1 - dhh / 0.08, 0, 1) * torso
+    phb = 0.9 * np.sin(phit * 3.1) + 0.5 * np.sin(phit * 7.3 + zh * 30)
+    disp += 0.0013 * np.sin(phit * 9 + phb) * bl
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
 Ph2 = Ph + Nh * disp[:, None]
 hi.data.vertices.foreach_set("co", Ph2.ravel())
@@ -467,7 +615,7 @@ log("detail disp mm min/max", round(float(disp.min()) * 1000, 2), round(float(di
 lo = mid
 only_select(lo)
 for a in list(lo.data.attributes):
-    if a.name in ("ease", "z0"):
+    if a.name in ("ease", "z0", "armw", "dwr", "dhem"):
         lo.data.attributes.remove(a)
 tri = sum(len(p.vertices) - 2 for p in lo.data.polygons)
 m = lo.modifiers.new("dec", "DECIMATE")
@@ -612,6 +760,7 @@ for src, dst in R.get("weight_merge", {"Tail": "Hips"}).items():   # the tail is
         WL[:, vg_names.index(dst)] += WL[:, vg_names.index(src)]
         WL[:, vg_names.index(src)] = 0
 WL /= np.maximum(WL.sum(1, keepdims=True), 1e-9)
+np.savez_compressed(OUT / f"{PIECE}_covers.npz", pos=COVERS_POS.astype(np.float32))
 np.savez_compressed(OUT / f"{PIECE}_weights.npz", pos=np.array([v.co[:] for v in lo.data.vertices], np.float32),
                     W=WL, names=np.array(vg_names))
 for o in (hi,):
@@ -621,6 +770,8 @@ bpy.ops.export_scene.gltf(filepath=str(OUT / f"{PIECE}.glb"), use_selection=True
 report = {"char": CHAR, "piece": PIECE, "source": "make_garment.py (designed)", "tris": tris,
           "z_top_bot": [Z_TOP, Z_BOT],
           "weights": f"{PIECE}_weights.npz",
+          "tuck": R.get("tuck"),
+          "covers_file": f"{PIECE}_covers.npz",
           "weight_smooth": R.get("weight_smooth", 20),
           "covers": {"z_top": Z_TOP, "rise": RISE, "y0": Y0, "z_bot": Z_BOT, "margin": R.get("cover_margin", 0.012)}, "ease_mm_p10_50_90": np.round(np.percentile(ease, [10, 50, 90]) * 1000, 1).tolist(),
           "detail_mean_srgb": round(mean_detail, 3), "colors": COLORS, "base_color": base_name,

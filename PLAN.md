@@ -668,4 +668,16 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   line) instead of ray masks; **all shells: weights averaged across UV-seam duplicate vertices** (they drifted apart
   in the smoothing and the seams opened in poses — the riding-pose holes). Tan / navy / olive and riding pose clean.
   `dressed_closeup.py --only <piece> --tint piece=r,g,b --pose riding`. Validator 0/0, three.js ok.
+- **Designed shirt (Pete: full sleeves + cuffs, plain front, collar may change, tucked)** — make_garment kind "shirt":
+  cut planes = neck base 1.28 m, tilted hem 0.85 m (6 cm inside the breeches line, same 0.3 rise), both wrists (Hand
+  joint, plane ⟂ forearm); ease by rule (torso 7 mm, sleeves 11 mm + 6 mm blouse above a 5 mm cuff, 3 mm at the neck,
+  4 mm at the hem); detail: button placket + buttons every 6.5 cm, side seams, armhole seam, sleeve underseams, 4.5 cm
+  cuffs with cufflink, gathers above the cuffs, inner-elbow folds, blousing at the tuck. Cotton detail texture,
+  colours cream / white / blue. Collar + wing tips stay modelled (`shirt@collar`), the old V shirt front is dropped
+  ("accessory_drop"). Generic: every designed garment writes `<piece>_covers.npz` (exact body vertices it hides).
+  **Layering (dress_goose):** a designed garment is a complete piece; faces with another shell in front (≤ 6 cm) or
+  just behind (≤ 2 cm, poking through) are split into sub-meshes "<piece>__<a+b>" hidden while a/b is worn
+  (LAYER_IGNORE: shirt ignores bowtie / gloves / breeches; breeches ignore the shirt); "tuck": the shirt torso below
+  the breeches waist line − 1.2 cm is hidden while the breeches are worn (a clean line, no jagged hem). The game must
+  toggle these like the body sub-meshes. Male dressed visible 18.0k tris; validator 0/0, three.js ok.
 
