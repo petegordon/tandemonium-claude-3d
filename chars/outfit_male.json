@@ -119,7 +119,8 @@
       "region": [
         "hand",
         "forearm"
-      ]
+      ],
+      "lock": true
     },
     {
       "name": "boots",
@@ -130,7 +131,8 @@
       "region": [
         "shin",
         "foot"
-      ]
+      ],
+      "lock": true
     },
     {
       "name": "coat",

@@ -1,12 +1,15 @@
 """P3.3 (D10): label every face of an aligned outfit with a garment (or "body") by colour family x
 body region, then smooth.
 
-  blender -b --factory-startup --python scripts/extract_garments.py -- --char outfit_male
+  blender -b --factory-startup --python scripts/extract_garments.py -- --char outfit_male [--use-ref]
+
+--use-ref: after the rules + smoothing, faces seen squarely in the reference views take the SAM 2
+label from <char>_refvotes.npz (ref_project.py -> sam_masks.py; seeded from a rules-only run).
 
 Needs garment_explore.py's out/<char>-goose/<char>_faces.npz (per-face Lab, region, distance to the
 rig-fitted base body). Colour families (Lab, chroma C = |ab|), first match wins:
   cream  L >= 62 | black  L < 20 and C < 8 | red  a >= 15 | brown  C >= 13 | tan  C < 13 | dark (rest)
-chars/<char>.json "garments": ordered rules {name, family: [...], region: [...], layered (another surface 8-45 mm behind: outer layer),
+chars/<char>.json "garments": ordered rules {name, family: [...], region: [...], lock (SAM may not override), layered (another surface 8-45 mm behind: outer layer),
 ax_max (|x| limit), inside_of (strictly inside an earlier garment's front x-extent per 2 cm band), z_min / z_max, y_max (front is -Y)
 (m, base frame), L_min, dist_min / dist_max (m from the fitted body)}; the first matching rule labels the face, unmatched =
 "other". Then SMOOTH rounds of an area-weighted majority vote over vertex-sharing faces (baked shadows
@@ -31,6 +34,11 @@ CHAR = argv[argv.index("--char") + 1]
 ISLAND_M2 = float(argv[argv.index("--island") + 1]) if "--island" in argv else 4e-4
 ISLAND_ROUNDS = 2
 PIECE_ISLAND_M2 = 15e-4   # 40e-4 swallowed glove fingers (separate small islands)
+USE_REF = "--use-ref" in argv
+REF_MIN_W = 0.5     # summed facing weight (0.3 let edge-on vent faces in)
+REF_PROP = 6
+REF_NEAR = 0.006    # m: shell thickness ~5 mm
+REF_AGREE = 0.6     # share of the votes for the winning label
 SMOOTH = int(argv[argv.index("--smooth") + 1]) if "--smooth" in argv else 2
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
@@ -92,6 +100,7 @@ def layered(idx):
 
 label = np.zeros(nf, int)
 done = np.zeros(nf, bool)
+locked = np.zeros(nf, bool)       # labelled by a "lock" rule: the reference masks may not override
 for r in RULES:
     m = ~done
     if "family" in r:
@@ -129,6 +138,8 @@ for r in RULES:
         m &= dist < r["dist_max"]
     label[m] = NAMES.index(r["name"])
     done |= m
+    if r.get("lock"):
+        locked |= m
 
 # majority smoothing over faces sharing a vertex
 lv = np.empty(len(me.loops), int)
@@ -141,6 +152,50 @@ for _ in range(SMOOTH):
     fh = np.zeros((nf, nl))
     np.add.at(fh, lf, vh[lv])
     label = fh.argmax(1)
+
+# reference masks (sam_masks.py): faces seen squarely in the clean reference views take the SAM label
+REF_STATS = None
+if USE_REF:
+    R = np.load(D / f"{CHAR}_refvotes.npz")
+    assert [str(n) for n in R["names"]] == NAMES, "refvotes.npz names differ: re-run sam_masks.py"
+    vt = R["votes"]
+    tot_v = vt.sum(1)
+    take = (tot_v >= REF_MIN_W) & (vt.max(1) >= REF_AGREE * np.maximum(tot_v, 1e-9))
+    new = vt.argmax(1)
+    # colour must stay plausible: a face only takes a SAM label whose rules allow its colour family
+    # (misregistered views otherwise paint e.g. glove onto the red sleeve behind the hand)
+    fam_ok = np.zeros((nl, len(FAMILIES)), bool)
+    for r in RULES:
+        g = NAMES.index(r["name"])
+        fam_ok[g, [FAMILIES.index(f) for f in r.get("family", FAMILIES)]] = True
+    fam_ok[NAMES.index("other")] = True
+    take &= fam_ok[new, family] & ~locked
+    REF_STATS = {"faces_voted": int((tot_v > 0).sum()), "taken": int(take.sum()),
+                 "changed": int((take & (new != label)).sum())}
+    label = np.where(take, new, label)
+    # across the shell: the generated meshes are ~5 mm double-walled, inner-wall faces (normals inward)
+    # show through at creases but no view sees them -> nearest settled face within REF_NEAR
+    tk = np.flatnonzero(take)
+    kdt = KDTree(len(tk))
+    for i, f in enumerate(tk):
+        kdt.insert(cen[f], i)
+    kdt.balance()
+    across = 0
+    for f in np.flatnonzero(~take & ~locked):
+        _, j, d = kdt.find(cen[f])
+        if d < REF_NEAR and label[f] != label[tk[j]]:
+            label[f] = label[tk[j]]
+            across += 1
+    REF_STATS["across_shell"] = across
+    # faces the references settle stay fixed; the rest take their neighbours' majority (crease strips
+    # hidden in folds or seen edge-on get absorbed; big unseen areas keep their rule labels)
+    for _ in range(REF_PROP):
+        vh = np.zeros((len(me.vertices), nl))
+        np.add.at(vh, (lv, label[lf]), area[lf])
+        fh = np.zeros((nf, nl))
+        np.add.at(fh, lf, vh[lv])
+        label = np.where(take | locked, label, fh.argmax(1))
+    print("REF", json.dumps(REF_STATS))
 
 # islands: same-label connected components (faces sharing a vertex) under ISLAND_M2 join the label
 # that borders them most (buttons, collar specks, hem fragments)

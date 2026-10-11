@@ -86,7 +86,21 @@
       "region": [
         "hand",
         "forearm"
-      ]
+      ],
+      "lock": true
+    },
+    {
+      "name": "gloves",
+      "family": [
+        "black",
+        "dark",
+        "brown",
+        "tan"
+      ],
+      "region": [
+        "hand"
+      ],
+      "lock": true
     },
     {
       "name": "boots",
@@ -97,7 +111,8 @@
       "region": [
         "shin",
         "foot"
-      ]
+      ],
+      "lock": true
     },
     {
       "name": "bodice",

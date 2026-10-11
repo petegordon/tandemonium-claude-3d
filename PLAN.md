@@ -553,3 +553,13 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   head → hat (no change visible: the remaining hat flecks are the dark band/brim underside tight to the head).
   Rule-based colour labelling is at its limit on baked-shadow albedo; next lever = project 2D garment masks from the
   clean reference views (segmentation on refs/<char>/prepped) onto the mesh, or hand touch-up.
+- **P3.3 reference masks (Pete chose)** — `scripts/ref_project.py` (Blender: per face, visibility + pixel in each prepped
+  view via review_candidate's height/bottom/mass-centre normalisation; 91–96 % of visible area lands on the matte) →
+  `scripts/sam_masks.py` (ComfyUI venv, transformers Sam2 + facebook/sam2.1-hiera-large, 856 MB in the HF cache; seeds =
+  farthest-point interior samples of the rule-label splat, negatives from neighbours; one call per view, per-pixel argmax
+  logit; facing-weighted votes) → `extract_garments.py --use-ref` (take SAM label if weight ≥ 0.5, ≥ 60 % agreement,
+  colour family allowed by that garment's rules, face not from a `lock` rule; then across-shell copy ≤ 6 mm and 6 rounds of
+  neighbour propagation). Gloves/boots rules locked; female non-cream hand = gloves. **Result: SAM masks are crisp on the
+  refs, but votes reach ~1/3 of faces; leftovers sit where no view sees squarely (double-wall inner faces showing through at
+  creases, edge-on folds, vent lining).** Male ≈ rules-only (fewer chest strips, new vent slivers); female slightly cleaner.
+  Compare `renders/outfit_<x>_pieces_rules_vs_sam.png`.
