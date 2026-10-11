@@ -68,7 +68,7 @@ for pc, obs in groups.items():
         if o.type == "MESH":
             o.hide_render = o not in obs
     V = np.array([o.matrix_world @ v.co for o in obs for v in o.data.vertices])
-    if pc == "gloves":                       # frame one hand (the pair is a metre apart)
+    if pc in ("gloves", "cuffs"):            # frame one hand (the pair is a metre apart)
         V = V[V[:, 0] > 0]
     lo, hi = V.min(0), V.max(0)
     ctr = (lo + hi) / 2
