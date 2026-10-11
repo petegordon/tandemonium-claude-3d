@@ -11,7 +11,11 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P4 bike / P5 riding | **Goose-fit tandem (26 in, D22) + riding clips, at Pete's gate** (2026-10-11).
+| P4 bike / P5 riding | **Delivered: release `p5-goose-riders`** (2026-10-11).
+- **Assets:** goose_tandem / goose_captain / goose_stoker GLBs.
+- **Game integration:** tandemonium local branch `feat/goose-riders-p5` (5e54aeb), not pushed. Tests and `npm run smoke:geese` pass; each goose leans independently.
+- **Where:** `docs/goose-fit-tandem.md` sections 6–8.
+- **Next:** Pete playtests the branch (`?riders=fused` = the old model); push/PR on his word; then the styling pass (step-through frame, stoker stem, tubes). |
 - **Bike:** `make_bike.py --fit out/fit/frame_goosefit_26in.json --tag goosefit26`.
 - **Clips:** `ride_fit.py --bike goosefit26 --max-bar-raise 0 --clips` (captain first, then the stoker with `--base` the captain's scene) writes `out/<char>-goose/<char>_rider.glb` with `Pedal_/Ride_/Lean_L_/Lean_R_<seat>`.
 - **Where:** `docs/goose-fit-tandem.md` sections 6–7; sheets `docs/img/p5_*.png`.
