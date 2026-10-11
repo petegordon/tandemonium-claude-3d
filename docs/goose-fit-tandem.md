@@ -209,3 +209,17 @@ Open items:
   - **Limit:** above 30° the stoker's far hand can't stay on her grip.
 - **"Show Solo" option** (game, off by default): a solo ride shows only the captain goose.
 - **Issue tandemonium#407:** choose which goose (male / female) rides each seat.
+
+## 10. P5.6 the female goose in the front seat (for Tandemonium #407)
+
+**Question:** does her skirt need a different riding hem as captain? **Decision: yes**, one more piece on top of the P5.4 hem.
+
+- **Fit:** she fits the captain seat as built: legs reach 0.94, hands on the grips, 0 mm contact error, nothing stretched. Her skirt clears both wheels (0 verts in either disc).
+- **Problem:** the stoker's grips sit 21 cm behind the captain's hips; her bustle reaches 38 cm back. With the male stoker seated, his hand bones come within 2 cm of the skirt — his hands sink into the bustle.
+- **Why the P5.4 hem can't fix it:** the bustle pad is skinned to `Hips`, not the skirt chains (158 of the verts by the grips are pure Hips), so scaling the back chains does nothing past 0.55.
+- **Fix:** `ride_fit.py --bustle F` adds `Cloth_skirt_bustle` (a Hips child at the back of the waistband, pointing back), moves the skirt's Hips weight behind the waistband onto it over 8 cm, and while riding scales its depth by F. **F = 0.35:** her hands' clearance goes from 2 to 5.6 cm, and the back still reads as a dress (0.15 looks sliced flat).
+- **Game:** a `Cloth_` bone, so the Pedal clips already carry it; no game code change. Off the bike the bustle is full.
+- **Stoker seat:** unchanged (the bustle sits over the rear wheel there, P5.4).
+- **The male goose as stoker** (also needed for #407): fits with no stretch: legs 0.95, hands and feet 0 mm.
+- **Command (captain clips, when #407 is built):** `ride_fit.py --char outfit_female --seat Captain --bike goosefit26 --max-bar-raise 0 --riding-hem 0.70,0.82,0.92 --bustle 0.35 --side-lean 35 --clips`.
+- **Sheet:** `docs/img/p56_front_seat_skirt.png` (male stoker behind her; before / after).

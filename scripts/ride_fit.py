@@ -26,6 +26,10 @@ Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left ped
 --riding-hem B,S,F (P5.4, the stoker's skirt): each skirt / dress chain root is scaled toward the waist by its
   sector (back, side, front) while riding -- the hem rises and draws in, off the rear wheel; keyed (scale) in
   Pedal_<seat> with the chains. Reports skirt vertices inside the rear wheel's disc per frame.
+--bustle F (P5.6, the skirt in the front seat): the bustle pad is skinned to Hips, so no chain reaches it; a new
+  bone Cloth_skirt_bustle (child of Hips, at the back of the waist, pointing back) takes the Hips weight of the
+  skirt behind the waist (ramped over BUSTLE_RAMP), and riding scales its depth by F -- the bustle folds flat
+  against her back, clear of the stoker's bars. Keyed in Pedal_<seat> (a Cloth_ bone: the game plays it).
 Writes renders/_tmp/fit_<tag>_<k>_<view>.png, out/bike/fit_<char>_<seat>_<tag>.json.
 """
 import json
@@ -66,6 +70,9 @@ TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
 SIDE_LEAN = arg("--side-lean", 35.0)   # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
 CLIPS = "--clips" in argv
 HEM = [float(x) for x in arg("--riding-hem", "").split(",")] if "--riding-hem" in argv else None
+BUSTLE = arg("--bustle", 0.0) if "--bustle" in argv else None
+BUSTLE_BONE = "Cloth_skirt_bustle"
+BUSTLE_RAMP = 0.08     # m behind the waistband's back over which the skirt passes from Hips to the bustle bone
 NCLIP = 24
 HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
 PALM_AT = 0.6          # grip crosses the palm this far down the hand (fraction of the hand bone)
@@ -92,6 +99,48 @@ for o in goose_objs:            # skinned meshes must ride with the rig object (
 for o in goose_objs:                                   # all pieces worn: layered sub-meshes hidden (as the game)
     if o.type == "MESH" and "__" in o.name:
         o.hide_render = o.hide_viewport = True
+
+
+def add_bustle_bone():
+    """Cloth_skirt_bustle: Hips child at the back of the waistband; takes the skirt's Hips weight behind it."""
+    skirts = [o for o in goose_objs if o.type == "MESH" and o.name.split(".")[0].split("__")[0] in ("skirt", "dress")]
+    to_arm = rig.matrix_world.inverted()
+    pts = {o: np.array([(to_arm @ o.matrix_world @ v.co)[:] for v in o.data.vertices]) for o in skirts}
+    allv = np.concatenate(list(pts.values()))
+    top = allv[:, 2].max()
+    band = allv[allv[:, 2] > top - 0.04]
+    back_y = float(band[:, 1].max())                   # forward is -Y: the waistband's back
+    hz = rig.data.bones["Hips"].head_local.z
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = rig.data.edit_bones.new(BUSTLE_BONE)
+    eb.head = (0.0, back_y, hz)
+    eb.tail = (0.0, back_y + 0.10, hz)
+    eb.roll = 0.0
+    eb.parent = rig.data.edit_bones["Hips"]
+    eb.use_deform = True
+    bpy.ops.object.mode_set(mode="OBJECT")
+    moved = 0
+    for o in skirts:
+        hg = o.vertex_groups.get("Hips")
+        if hg is None:
+            continue
+        bg = o.vertex_groups.get(BUSTLE_BONE) or o.vertex_groups.new(name=BUSTLE_BONE)
+        for v, co in zip(o.data.vertices, pts[o]):
+            t = min(1.0, max(0.0, (co[1] - back_y) / BUSTLE_RAMP))
+            if t <= 0:
+                continue
+            w = next((g.weight for g in v.groups if g.group == hg.index), 0.0)
+            if w <= 0:
+                continue
+            hg.add([v.index], w * (1 - t), "REPLACE")
+            bg.add([v.index], w * t, "REPLACE")
+            moved += 1
+    print("BUSTLE bone at y", round(back_y, 3), "z", round(hz, 3), "verts", moved)
+
+
+if BUSTLE is not None:
+    add_bustle_bone()
 bike = bpy.data.objects["bike_rig"]
 chains = json.loads((ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_cloth_chains.json").read_text(encoding="utf-8"))
 DRAPE = chains["drape"]
@@ -171,10 +220,12 @@ def apply_follow():
                 f = HEM["BSF".index(c["tag"][0])]
                 pbs[c["bones"][0]].scale = (f, f, f)
         upd()
+    if BUSTLE is not None:
+        pbs[BUSTLE_BONE].scale = (1.0, BUSTLE, 1.0)     # bone Y points back: fold the bustle's depth only
+        upd()
 
 
-def skirt_in_wheel():
-    """Skirt / dress vertices inside the rear wheel's disc (|x| < 4 cm, within the tyre radius of the hub)."""
+def skirt_verts():
     o = GOBJ.get("skirt") or GOBJ.get("dress")
     if o is None:
         return None
@@ -183,11 +234,47 @@ def skirt_in_wheel():
     M = np.array(o.matrix_world)
     V = np.array([v.co[:] for v in me.vertices])
     o.evaluated_get(dg).to_mesh_clear()
-    V = V @ M[:3, :3].T + M[:3, 3]
-    hub = bw("Wheel_R")
+    return V @ M[:3, :3].T + M[:3, 3]
+
+
+def skirt_in_wheel(wheel="R"):
+    """Skirt / dress vertices inside a wheel's disc (|x| < 4 cm, within the tyre radius of the hub)."""
+    V = skirt_verts()
+    if V is None:
+        return None
+    hub = bw("Wheel_" + wheel)
     R = BIKE_REP["wheel_m"] / 2 * bike.scale[0]
     d = np.hypot(V[:, 1] - hub.y, V[:, 2] - hub.z)
     return int(((np.abs(V[:, 0]) < 0.04) & (d < R)).sum())
+
+
+def skirt_clearance():
+    """Captain's skirt vs the bike and the stoker's space: verts in each wheel disc, verts within 3 cm of the
+    stoker stem tube, verts within 8 cm of a stoker grip, and how far behind the captain's hips the skirt reaches."""
+    V = skirt_verts()
+    if V is None:
+        return None
+    out = {"in_front_wheel": skirt_in_wheel("F"), "in_rear_wheel": skirt_in_wheel("R")}
+    stem = bpy.data.objects.get("goosefit_stoker_stem")
+    if stem is not None:
+        dg = bpy.context.evaluated_depsgraph_get()
+        me = stem.evaluated_get(dg).to_mesh()
+        M = np.array(stem.matrix_world)
+        S = np.array([v.co[:] for v in me.vertices]) @ M[:3, :3].T + M[:3, 3]
+        stem.evaluated_get(dg).to_mesh_clear()
+        lo, hi = S.min(0) - 0.03, S.max(0) + 0.03
+        out["near_stoker_stem"] = int(np.all((V > lo) & (V < hi), axis=1).sum())
+        out["stoker_stem_top_z"] = round(float(S[:, 2].max()), 3)
+    for side in ("L", "R"):
+        g = np.array(bw(f"Grip_S_{side}")[:])
+        out[f"near_stoker_grip_{side}"] = int((np.linalg.norm(V - g, axis=1) < 0.08).sum())
+    hip = (gw("LeftUpLeg") + gw("RightUpLeg")) / 2
+    out["skirt_back_of_hips_m"] = round(float(hip.y - V[:, 1].min()), 3)     # bike forward is +Y? (sign below)
+    out["skirt_front_of_hips_m"] = round(float(V[:, 1].max() - hip.y), 3)
+    out["skirt_low_z_m"] = round(float(V[:, 2].min()), 3)
+    out["grip_S_y"] = round(float(bw("Grip_S_L").y), 3)
+    out["hip_y"] = round(float(hip.y), 3)
+    return out
 
 
 def reset():
@@ -477,6 +564,7 @@ for k in SCALES:
     rep["bike_length_m"] = round(BIKE_REP["length_m"] * k, 3)
     rep["saddle_top_m"] = round(bw("Seat_" + SEAT).z, 3)
     rep["grip_z_m"] = round(wrist_target("L", rep["bar_raise_m"])[0].z, 3)
+    rep["skirt"] = skirt_clearance()
     report[str(k)] = rep
     print("FIT", k, json.dumps(rep))
     tgt = Vector((0, 0, 0.98))                    # frame ground to hat top (900x700: height = 0.78 span)
@@ -505,7 +593,7 @@ if STANDING:                                  # off the bike: rest pose, origina
 UPPER = ("Spine", "Spine1", "Spine2", "Neck", "Neck1", "Neck2", "Neck3", "Head", "LeftShoulder", "LeftArm",
          "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand")
 LOWER = tuple(f"{s_}{b}" for s_ in ("Left", "Right") for b in ("UpLeg", "Leg", "Foot", "ToeBase")) + \
-    tuple(b for c in chains["chains"] for b in c["bones"])
+    tuple(b for c in chains["chains"] for b in c["bones"]) + ((BUSTLE_BONE,) if BUSTLE is not None else ())
 
 
 def bake(name, frames, bset):
@@ -550,7 +638,7 @@ if CLIPS:
             set_crank(2 * math.pi * f / NCLIP)
             r = pose_on_bike(LEAN)
             clip_rep[f] = max(r["foot_err_mm_L"], r["foot_err_mm_R"], r["grip_err_mm_L"], r["grip_err_mm_R"])
-            skirt_rep[f] = skirt_in_wheel()
+            skirt_rep[f] = skirt_in_wheel("F" if SEAT == "Captain" else "R")
         return go
 
     bake(f"Pedal_{SEAT}", [pedal_frame(f) for f in range(NCLIP + 1)], LOWER)
@@ -566,7 +654,7 @@ if CLIPS:
     bake(f"Lean_L_{SEAT}", [still(SIDE_LEAN)] * 2, UPPER)
     bake(f"Lean_R_{SEAT}", [still(-SIDE_LEAN)] * 2, UPPER)
     report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN,
-                       "riding_hem": HEM, "skirt_verts_in_rear_wheel": [skirt_rep[f] for f in range(NCLIP + 1)]}
+                       "riding_hem": HEM, "bustle": BUSTLE, f"skirt_verts_in_{'front' if SEAT == 'Captain' else 'rear'}_wheel": [skirt_rep[f] for f in range(NCLIP + 1)]}
     print("CLIPS", json.dumps(report["clips"]))
     # export the goose alone: rig back at the origin, rest pose, all pieces (layered ones too)
     sc.frame_end = NCLIP
