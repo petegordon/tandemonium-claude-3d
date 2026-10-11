@@ -747,3 +747,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   recolourable). dress_goose: NO_MASK hat (head stays whole -- the hidden forehead showed as a dark gap).
   garment_sheet.py now covers all 8 pieces. Male dressed visible 19.7k; validator 0/0, three.js ok.
 - **three.js check toggles sub-meshes; rigid hat** -- check.mjs hides every "<base>__<keys>" mesh (all pieces worn), as the game must; it showed the tail and inner layers before. dress_goose RIGID hat -> Head (it bent with the neck). Open: T-pose armpit (shirt / jacket sleeves tear under the arm).
+- **Pete's fixes: eyes in poses, bow-tie line, T-pose armpits, boots** -- the base blend carries a second set of eye parts
+  parented to the body *object* (not deformed): dress_goose drops eye parts not parented to the rig. Bow tie neck band
+  dropped (accessory_drop). Armpits: inner layers now copy the outer layer's FINAL weights (pass C runs coat -> vest ->
+  shirt; outermost wins; not the vest under the arm); designed outer pieces also hide inner faces clearly behind them
+  (LAYER_NEAR 4 cm); an extra armpit weight smoothing was tried and dropped (it tore the jacket). Boots below the knee
+  (top 0.355, breeches end 0.32 inside them), roughness 0.6, top 20 cm eased into a round tube over the breeches cuff.
+  Open: small shirt patch under the arm in the full T-pose. Validator 0/0, three.js ok, 19.4k.
+

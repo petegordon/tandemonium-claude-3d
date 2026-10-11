@@ -47,9 +47,10 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
-FOLLOW_OUTER = {"shirt": ("waistcoat",), "waistcoat": ("coat",)}   # inner garment takes the outer one's weights where covered
-LAYER_NEAR = 0.0      # designed outer pieces: proximity layer test (off: it hid the shirt V)
+FOLLOW_OUTER = {"shirt": ("waistcoat", "coat"), "waistcoat": ("coat",)}   # (outermost last: it wins)   # inner garment takes the outer one's weights where covered
+LAYER_NEAR = 0.04     # designed outer pieces: proximity layer test (only points clearly behind them)
 NO_MASK = {"hat"}
+ARMPIT_SMOOTH = 0
 RIGID = {"hat": "Head"}   # (it bent with the neck bones)
 LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
@@ -74,6 +75,8 @@ rig = bpy.data.objects["goose_rig"]
 for o in list(bpy.data.objects):                    # keep rig, body, eye parts
     if o.type == "MESH" and o is not body and not (o.name.split("_")[0] in ("eyeball", "lid", "catchlight")):
         bpy.data.objects.remove(o)
+    elif o.type == "MESH" and o is not body and o.parent is not rig:
+        bpy.data.objects.remove(o)       # stale eye copies parented to the body object: they stayed put in poses
 cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text())
 names = [g.name for g in body.vertex_groups]
 me = body.data
@@ -301,7 +304,7 @@ for k, o in shells.items():
             Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo
             Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
             print("TUCK", k, "->", tk["into"], int((f_ > 0).sum()), "verts")
-        for outer in FOLLOW_OUTER.get(k, ()):
+        for outer in ():                                 # (moved to pass C: final weights)
             wjf = D / "shells" / f"{outer}_weights.npz"
             if outer not in shells or not wjf.exists():
                 continue
@@ -314,6 +317,9 @@ for k, o in shells.items():
             ob = BVHTree.FromObject(shells[outer], bpy.context.evaluated_depsgraph_get())
             hitd = np.array([ob.find_nearest(Vector(x))[3] for x in X])
             f_ = np.clip((0.035 - hitd) / 0.012, 0, 1)      # within ~3 cm of the outer piece -> its weights
+            if outer == "waistcoat":                        # (the vest has no sleeves: not under the arm)
+                armsh = Wv[:, [names.index(n) for n in names if "Arm" in n or "Shoulder" in n]].sum(1)
+                f_ *= np.clip((0.35 - armsh) / 0.2, 0, 1)
             ed_ = np.array([e.vertices[:] for e in o.data.edges])
             for _ in range(4):                               # soft border
                 acc = np.zeros(len(f_))
@@ -382,7 +388,9 @@ allnames = names + cnames
 print("CHAINS", [(c["piece"], c["tag"]) for c in chains])
 
 # pass C: weights = body weights x (1 - loose) + chain weights x loose; smooth; 4 influences
-for k, o in shells.items():
+LAYER_RANK = {"coat": 0, "waistcoat": 1, "shirt": 2}
+FINAL = {}
+for k, o in sorted(shells.items(), key=lambda kv: LAYER_RANK.get(kv[0], 9)):
     Wv, X, tl = skin[k]
     Wv = np.concatenate([Wv, np.zeros((len(Wv), len(cnames)))], 1)
     hips = np.zeros(len(allnames))
@@ -429,10 +437,43 @@ for k, o in shells.items():
     acc = np.zeros((grp.max() + 1, Wv.shape[1]))
     np.add.at(acc, grp, Wv)
     Wv = acc[grp] / np.bincount(grp)[grp][:, None]
+    # armpit band (arm share 0.1..0.9): many more smoothing rounds there, so raising the arm stretches
+    # the cloth over a wide area instead of folding a narrow strip of triangles
+    ai_ = [j_ for j_, n_ in enumerate(allnames) if "Arm" in n_ or "Shoulder" in n_]
+    ash_ = Wv[:, ai_].sum(1)
+    band_ = (ash_ > 0.05) & (ash_ < 0.95)
+    for _ in range(ARMPIT_SMOOTH if k in designed else 0):
+        acc = np.zeros_like(Wv)
+        np.add.at(acc, ed[:, 0], Wv[ed[:, 1]])
+        np.add.at(acc, ed[:, 1], Wv[ed[:, 0]])
+        Wv = np.where(band_[:, None], 0.5 * Wv + 0.5 * acc / deg, Wv)
     keep = np.argsort(-Wv, 1)[:, :4]
     lim = np.zeros_like(Wv)
     np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)
     Wv = lim / np.maximum(lim.sum(1, keepdims=True), 1e-9)
+    # inner layers take the outer layer's FINAL weights where they lie under it (outermost wins), so
+    # they move exactly together in every pose (arm raised: no shirt through the jacket)
+    for outer in FOLLOW_OUTER.get(k, ()):
+        if outer not in FINAL:
+            continue
+        Xo, Wo_, bo = FINAL[outer]
+        kdo = KDTree(len(Xo))
+        for i_, q_ in enumerate(Xo):
+            kdo.insert(Vector(q_), i_)
+        kdo.balance()
+        hitd = np.array([bo.find_nearest(Vector(x))[3] for x in X])
+        f_ = np.clip((0.035 - hitd) / 0.012, 0, 1)
+        if outer == "waistcoat":                             # (no sleeves on the vest)
+            ash = Wv[:, [j_ for j_, n_ in enumerate(allnames) if "Arm" in n_ or "Shoulder" in n_]].sum(1)
+            f_ *= np.clip((0.35 - ash) / 0.2, 0, 1)
+        io = np.array([kdo.find(Vector(x))[1] for x in X])
+        Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo_[io]
+        keep = np.argsort(-Wv, 1)[:, :4]
+        lim = np.zeros_like(Wv)
+        np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)
+        Wv = lim / np.maximum(lim.sum(1, keepdims=True), 1e-9)
+        print("FOLLOW", k, "->", outer, int((f_ > 0.5).sum()), "verts")
+    FINAL[k] = (X, Wv, BVHTree.FromPolygons([tuple(x) for x in X], [list(f.vertices) for f in o.data.polygons]))
     for j, n in enumerate(allnames):
         vg = o.vertex_groups.get(n) or o.vertex_groups.new(name=n)
         vg.remove(list(range(len(o.data.vertices))))
@@ -458,7 +499,7 @@ for k in list(designed):
                 # a designed outer piece is a closed, clean surface: anything of this garment within
                 # LAYER_NEAR of it and behind it is under it (rays along a bent normal miss the sides)
                 loc, nrm_, _, dist_ = b.find_nearest(p_)
-                if loc is not None and dist_ < LAYER_NEAR and (loc - p_).dot(nrm_) > -0.002:
+                if loc is not None and dist_ < LAYER_NEAR and (loc - p_).dot(nrm_) > 0.6 * dist_:   # (clearly behind it)
                     vk[v.index].add(s)
                     continue
             if s in LAYER_INWARD_ONLY.get(k, ()):

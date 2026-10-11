@@ -884,8 +884,9 @@ if KIND == "boot":
                 under[i] = max(under[i], hit[3] - 0.01)
         bpy.data.objects.remove(uo)
         ease = np.maximum(ease, np.minimum(under, 0.05) + R.get("ease", {}).get("clear", 0.004))
+    need_b = ease.copy()
     ease = smooth_field(ease, ed, R.get("boot_smooth", 30))
-    ease = np.maximum(ease, 0.003)
+    ease = np.maximum(np.maximum(ease, need_b), 0.003)     # (the boot top stays outside the breeches)
 # crotch: stay under 40 % of the gap to the other surface along the normal
 
 
@@ -977,6 +978,43 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
+if KIND == "boot":
+    # boot top = a clean round tube over the breeches cuff: per leg, radius about the ring centroid held
+    # to at least (breeches radius there + "top_clear"), blended out over "top_len" below the top
+    bo = next(o for o in load(OUT / "breeches.glb") if o.type == "MESH")
+    BRv = np.array([bo.matrix_world @ v.co for v in bo.data.vertices])
+    bpy.data.objects.remove(bo)
+    tl_ = R.get("top_len", 0.07)
+    for _, sg in SIDES:
+        on = (Pm[:, 0] * sg > 0) & (Pm[:, 2] > Z_TOP - tl_ - 0.01)
+        if not on.any():
+            continue
+        ring_ = on & (Pm[:, 2] > Z_TOP - 0.015)
+        cen = Pm[ring_][:, :2].mean(0)
+        br = BRv[(BRv[:, 0] * sg > 0) & (BRv[:, 2] > Z_TOP - tl_ - 0.02) & (BRv[:, 2] < Z_TOP + 0.01)]
+        rb = np.percentile(np.linalg.norm(br[:, :2] - cen, axis=1), 97) if len(br) else 0.0
+        rel = Pm[on][:, :2] - cen
+        rr = np.linalg.norm(rel, axis=1)
+        w_ = np.clip((Pm[on][:, 2] - (Z_TOP - tl_)) / tl_, 0, 1)
+        w_ = w_ * w_ * (3 - 2 * w_)
+        rt = rb + R.get("top_clear", 0.008)
+        rnew = np.maximum(rr, rr + (rt - rr) * w_)
+        Pm[np.flatnonzero(on), 0] = cen[0] + rel[:, 0] / np.maximum(rr, 1e-6) * rnew
+        Pm[np.flatnonzero(on), 1] = cen[1] + rel[:, 1] / np.maximum(rr, 1e-6) * rnew
+        log("boot top radius mm", round(rt * 1000, 1))
+if KIND in ("shirt", "coat") and R.get("armpit_relax", 30):
+    # the offset surface folds over itself in the armpit crease (hidden at rest, crumpled once the arm
+    # rises): relax positions in the arm / torso band, pinned outside it
+    bandp = (armw > 0.2) & (armw < 0.8) & (P[:, 2] > 0.95) & (np.abs(P[:, 0]) > 0.1)
+    bandp = smooth_field(bandp.astype(float), ed, 2) > 0.2
+    for _ in range(R.get("armpit_relax", 30)):
+        Pm = np.where(bandp[:, None], smooth_field(Pm, ed, 1, pin=~bandp), Pm)
+        Pq = np.where(bandp[:, None], smooth_field(Pm, ed, 1, pin=~bandp), Pm)
+        Pm = Pm - 0.5 * (Pq - Pm) * bandp[:, None]
+    req_ = need if KIND == "coat" else np.full(len(P), 0.004)   # never back inside the layers beneath
+    dn_ = np.sum((Pm - P) * N, 1)
+    Pm = Pm + N * np.maximum(req_ - dn_, 0)[:, None]
+    log("armpit relaxed", int(bandp.sum()), "verts")
 if KIND == "glove":
     # the top of the glove tucks under the shirt cuff: within "top_len" of the opening the radius about
     # the wrist axis (through the opening ring's centroid) is held to "top_r", blending back below it

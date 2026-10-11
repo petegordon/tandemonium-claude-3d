@@ -359,7 +359,7 @@
   "garment_design": {
     "breeches": {
       "z_top": 0.91,
-      "z_bot": 0.385,
+      "z_bot": 0.32,
       "tris": 2600,
       "ease_min": 0.008,
       "ease_max": 0.05,
@@ -382,7 +382,8 @@
       },
       "back_rise": 0.3,
       "rise_y0": -0.1,
-      "band_ease": 0.009
+      "band_ease": 0.006,
+      "kneeband": 0.06
     },
     "shirt": {
       "kind": "shirt",
@@ -433,7 +434,8 @@
         "hide": false
       },
       "hem_zone": 0.14,
-      "cuff_clear": 0.007
+      "cuff_clear": 0.007,
+      "armpit_relax": 0
     },
     "waistcoat": {
       "kind": "vest",
@@ -615,7 +617,8 @@
       "seat_fit": true,
       "under_max": 0.03,
       "thickness": 0,
-      "offset_smooth": 12
+      "offset_smooth": 12,
+      "armpit_relax": 0
     },
     "gloves": {
       "kind": "glove",
@@ -658,7 +661,7 @@
     },
     "boots": {
       "kind": "boot",
-      "z_top": 0.43,
+      "z_top": 0.355,
       "z_bot": -1.0,
       "tris": 1600,
       "cover_margin": 0.01,
@@ -675,12 +678,12 @@
       ],
       "ease": {
         "boot": 0.004,
-        "clear": 0.009
+        "clear": 0.005
       },
       "sole_z": 0.022,
       "mottle": 0.05,
       "twill": 0.0,
-      "roughness": 0.35,
+      "roughness": 0.6,
       "colors": {
         "black": [
           28,
@@ -701,12 +704,15 @@
       "foot_top": 0.16,
       "boot_voxel": 0.014,
       "boot_relax": 30,
-      "push_above": 0.15
+      "push_above": 0.15,
+      "top_len": 0.2,
+      "top_clear": 0.007
     }
   },
   "accessory_drop": {
     "bowtie": [
-      "shirtfront"
+      "shirtfront",
+      "neckband"
     ]
   },
   "hat_design": {
