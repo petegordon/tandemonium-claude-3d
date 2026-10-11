@@ -211,7 +211,10 @@ disp += groove(np.abs(Zh - (Z_TOP - 0.02)), 0.0015, 0.0012)
 for zt in (z2, z1):
     inb = (Zh < zt) & (Zh > zt - F_["h"])
     u = np.clip((zt - Zh) / F_["h"], 0, 1)
-    disp += np.where(inb, F_["ruffle"] * (0.3 + 0.7 * u) * np.sin(Th * F_["n"] + 0.6 * np.sin(Th * 7)), 0.0)
+    # gathered ruffle: uneven folds (two frequencies, wandering phase) opening toward the tier's edge
+    ph_ = Th * F_["n"] + 1.4 * np.sin(Th * 7 + zt * 40) + 0.8 * np.sin(Th * 17)
+    am_ = 0.55 + 0.45 * np.sin(Th * 5 + zt * 9)
+    disp += np.where(inb, F_["ruffle"] * (0.25 + 0.75 * u) * am_ * np.sin(ph_), 0.0)
     disp += groove(np.abs(Zh - zt), 0.0016, 0.0016) + groove(np.abs(Zh - (zt - 0.006)), 0.0008, 0.0005)
     occm = np.where(np.abs(Zh - zt) < 0.004, 0.75, occm)
 disp += groove(np.abs(Zh - (Z_HEM + 0.004)), 0.001, 0.0008)

@@ -304,8 +304,8 @@
       "flounce": {
         "h": 0.075,
         "out": 0.022,
-        "ruffle": 0.003,
-        "n": 90
+        "ruffle": 0.0035,
+        "n": 70
       },
       "apron": {
         "z_front": 0.45,
@@ -429,6 +429,189 @@
       ],
       "bake_cage": 0.015,
       "bake_ray": 0.05
+    },
+    "gloves": {
+      "kind": "glove",
+      "z_top": 0.9,
+      "z_bot": 0.8,
+      "tris": 1600,
+      "cover_margin": 0.008,
+      "wrist_offset": -0.058,
+      "pre_cuts": 1,
+      "region_sub": 1,
+      "base_smooth": 24,
+      "ease": {
+        "hand": 0.0025,
+        "cuff": 0.002
+      },
+      "mottle": 0.06,
+      "twill": 0.0,
+      "roughness": 0.45,
+      "weight_smooth": 6,
+      "colors": {
+        "dark brown": [
+          40,
+          28,
+          24
+        ],
+        "black": [
+          30,
+          28,
+          28
+        ],
+        "cream": [
+          210,
+          196,
+          176
+        ]
+      },
+      "plain_smooth": 70,
+      "top_r": 0.033,
+      "top_len": 0.1
+    },
+    "boots": {
+      "kind": "boot",
+      "z_top": 0.2,
+      "z_bot": -1.0,
+      "tris": 1600,
+      "cover_margin": 0.01,
+      "region_sub": 0,
+      "base_smooth": 0,
+      "ease_min": 0.004,
+      "ease_max": 0.09,
+      "ease_reach": 0.1,
+      "ease_smooth": 40,
+      "boot_smooth": 4,
+      "seat_fit": false,
+      "over": [],
+      "ease": {
+        "boot": 0.01,
+        "clear": 0.004
+      },
+      "sole_z": 0.022,
+      "mottle": 0.05,
+      "twill": 0.0,
+      "roughness": 0.6,
+      "colors": {
+        "brown": [
+          78,
+          52,
+          38
+        ],
+        "black": [
+          30,
+          28,
+          28
+        ],
+        "oxblood": [
+          72,
+          26,
+          24
+        ]
+      },
+      "foot_top": 0.16,
+      "boot_voxel": 0.014,
+      "boot_relax": 30,
+      "push_above": 0.08,
+      "top_len": 0.12,
+      "top_clear": 0.014,
+      "laces": 0.018
     }
+  },
+  "hat_design": {
+    "style": "lady",
+    "c": [
+      0.0,
+      -0.045
+    ],
+    "brim_ax": [
+      0.14,
+      0.162
+    ],
+    "brim_z": 1.565,
+    "droop": 0.012,
+    "crown_ax": [
+      0.082,
+      0.098
+    ],
+    "crown_top": 1.672,
+    "puffs": {
+      "n": 6,
+      "amp": 0.017,
+      "front": 0.022,
+      "front_az": 35
+    },
+    "rosettes": [
+      [
+        30,
+        0.0,
+        1.0
+      ],
+      [
+        62,
+        0.012,
+        0.8
+      ],
+      [
+        -10,
+        0.006,
+        0.7
+      ]
+    ],
+    "feather": {
+      "ctrl": [
+        [
+          0.05,
+          -0.1,
+          1.63
+        ],
+        [
+          0.13,
+          -0.03,
+          1.78
+        ],
+        [
+          0.24,
+          0.13,
+          1.82
+        ],
+        [
+          0.31,
+          0.29,
+          1.75
+        ]
+      ],
+      "w": 0.05,
+      "n": 84,
+      "serrations": 36,
+      "droop": 0.6,
+      "vane_normal": [
+        1.0,
+        0.0,
+        0.35
+      ],
+      "serr_depth": 0.5
+    },
+    "colors": {
+      "burgundy": [
+        98,
+        26,
+        32
+      ],
+      "plum": [
+        78,
+        40,
+        66
+      ],
+      "green": [
+        42,
+        70,
+        54
+      ]
+    },
+    "segments": 40,
+    "puff_rows": 6,
+    "rose_h": 0.03,
+    "rose_r": 0.05
   }
 }

@@ -771,4 +771,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   held 1 cm inside it), bake cage 15 mm / ray 5 cm. Bodice: basque points (exact field cut on a shirt kind: hem_points),
   plane edges (wrists / neck) no longer snapped to the outline (they made fins up the forearm), ease post-smoothing.
   Female visible 20.7k (old hat / gloves / boots still); validator 0/0, three.js ok.
+- **Female hat / gloves / boots** -- scripts/make_ladyhat.py (modelled): flat brim with a slight front droop, short crown
+  wrapped in gathered puffs that roll over a domed top, three petal roses (two rings of cupped petals + bud), curved
+  feather plume (cubic spine, 13-column vane with swept sawtooth barbs drooping off the rachis); felt / satin / feather
+  materials, 3.8k tris, rigid on Head. Gloves = the male glove recipe on her hands (dark brown, under the bodice cuff).
+  Boots = boot recipe, ankle height (top 0.2, under the skirt), lace-up front (eyelet grooves + crossed laces), brown;
+  sole tint now relative to the lowest point (shaped bodies stand lower). Ruffles: uneven gathered folds. Female
+  visible 19.5k (under 20k), male 19.2k; validator 0/0 both, three.js ok both. scripts/garment_sheet.py for her pieces.
 

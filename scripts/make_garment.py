@@ -1018,11 +1018,14 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 mid = reg
 Pm = P + N * ease[:, None]
 if KIND == "boot":
-    # boot top = a clean round tube over the breeches cuff: per leg, radius about the ring centroid held
-    # to at least (breeches radius there + "top_clear"), blended out over "top_len" below the top
-    bo = next(o for o in load(OUT / "breeches.glb") if o.type == "MESH")
-    BRv = np.array([bo.matrix_world @ v.co for v in bo.data.vertices])
-    bpy.data.objects.remove(bo)
+    # boot top = a clean round tube over the breeches cuff (or the leg): per leg, radius about the ring
+    # centroid held to at least (breeches / leg radius there + "top_clear"), blended out over "top_len"
+    if (OUT / "breeches.glb").exists() and "breeches" in R.get("over", ["breeches"]):
+        bo = next(o for o in load(OUT / "breeches.glb") if o.type == "MESH")
+        BRv = np.array([bo.matrix_world @ v.co for v in bo.data.vertices])
+        bpy.data.objects.remove(bo)
+    else:
+        BRv = BPv
     tl_ = R.get("top_len", 0.07)
     for _, sg in SIDES:
         on = (Pm[:, 0] * sg > 0) & (Pm[:, 2] > Z_TOP - tl_ - 0.01)
@@ -1501,7 +1504,7 @@ if KIND == "boot":
     # boot top: turned band + stitch; sole: welt groove and darker edge; heel; back seam; toe cap
     dtop = Z_TOP - zh
     disp += 0.0012 * np.clip(1 - dtop / 0.018, 0, 1) + groove(np.abs(dtop - 0.018), 0.0009, 0.0011)
-    zs_ = R.get("sole_z", 0.022)
+    zs_ = float(zh.min()) + R.get("sole_z", 0.022)       # (above the lowest point: shaped bodies stand lower)
     disp += groove(np.abs(zh - zs_), 0.0012, 0.0014)
     tintm = np.where(zh < zs_, 0.55, tintm)
     for s_, sg in SIDES:
@@ -1516,6 +1519,15 @@ if KIND == "boot":
         # ankle creases
         ank = on & (zh > 0.09) & (zh < 0.16) & (y < h0[1])
         pass                                       # (ankle creases dropped: they read as rings)
+        if R.get("laces"):                           # lace-up front: eyelet rows + crossed laces
+            fr_ = on & (y < h0[1] - 0.005) & (zh > 0.05) & (zh < Z_TOP - 0.01) & (np.abs(x - h0[0]) < 0.022)
+            dxl = np.abs(x - h0[0])
+            disp += np.where(fr_, groove(np.abs(dxl - 0.012), 0.0012, 0.0012), 0.0)
+            for zl in np.arange(0.06, Z_TOP - 0.015, R["laces"]):
+                for sgl in (1, -1):
+                    dd_ = np.abs((zh - zl) - sgl * (x - h0[0]) * 0.7)
+                    disp += np.where(fr_ & (dxl < 0.012), 0.0009 * np.exp(-(dd_ / 0.0016) ** 2), 0.0)
+                    tintm = np.where(fr_ & (dxl < 0.012) & (dd_ < 0.0015), 0.55, tintm)
 if KIND == "glove":
     tintm = np.ones(len(Ph))
     def attr(nm):
