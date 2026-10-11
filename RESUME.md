@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.5 first pass done.** Dressed + skinned + masked geese: `dress_goose.py --char outfit_x` -> `out/<c>-goose/<c>_dressed.glb/.blend` (male 17.7k / female 17.5k visible tris), body toggle sub-meshes, D12 cloth chains (`<c>_cloth_chains.json`). Next: three.js check of the dressed GLBs + chain follow rule in the game viewer, bake polish (shirt patches, hat edges), P3.6 recolour. Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.5 + polish 2.** Dressed + skinned + masked geese: `dress_goose.py --char outfit_x` -> `out/<c>-goose/<c>_dressed.glb/.blend` (male 19.5k / female 20.2k visible tris), body toggle sub-meshes, D12 cloth chains. Polish 2: piece bake + tex_clean (even colour), tail hidden under breeches/coat, modelled bow tie / brooch collar (make_accessory.py), bib part of the dress. Open: shard geometry of extracted shells (waistcoat V, breeches seat, coat hem); new dress/collar designs (Pete). Then P3.6 recolour. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
@@ -80,7 +80,8 @@ ref_project.py --char outfit_x                       # faces -> prepped referenc
 python -I sam_masks.py --char outfit_x               # ComfyUI venv, SAM 2.1 large -> <c>_refvotes.npz
 extract_garments.py --char outfit_x --use-ref        # final labels + pieces -> <c>_garments.npz
 transfer_garments.py --char outfit_x                 # pieces onto the body they are worn on -> pieces/*.glb
-build_shell.py --char outfit_x --piece P [--no-push] # game shell per piece -> shells/P.glb (gloves/boots/hat/bowtie: --no-push)
+build_shell.py --char outfit_x --piece P [--no-push] # game shell per piece -> shells/P.glb (gloves/boots/hat: --no-push); tex_clean.py repaints misses / foreign colours
+make_accessory.py --char outfit_male --piece bowtie   # modelled neckwear (female: --piece collar -> collar.glb + dress@bib.glb)
 assemble_outfit.py --char outfit_x [--green]         # body + all shells render
 dress_goose.py --char outfit_x                       # masks, skinning, cloth chains, poses -> <c>_dressed.glb
 ```

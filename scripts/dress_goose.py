@@ -5,9 +5,12 @@
 1. Opens out/base-goose/base_goose.blend (skinned base body "base_goose_game" + "goose_rig" + eye
    parts). body_shape != base (bodyshape.py): the rest pose moves to the character's shape -- edit
    bones take the shape's heads/tails, the body mesh the deformed rest positions (same weights).
+   Modelled accessories (make_accessory.py, json "clear") first delete faces of the listed extracted
+   shells whose horizontal radial line meets the accessory within 2.5 cm (old fragments of the piece).
 2. Masks: a body vertex is covered when a ray along its normal hits a shell within MASK_D; a face is
    hidden when all its vertices are covered. Replacement pieces force-hide what they replace
-   (gloves: Hand bones, boots: Foot/ToeBase + shin below the boot top, coat / dress: Tail). The
+   (gloves: Hand bones, boots: Foot/ToeBase + shin below the boot top, coat / breeches / dress: Tail --
+   the tail is hidden under clothes; build_shell.py "shell_fill" closes the breeches seat over it). The
    body is split into sub-meshes keyed by the pieces that hide them ("body" = always visible,
    "body__coat+waistcoat" = hidden while any of those is worn).
 3. Skinning (D12 chains: hanging pieces coat / dress get 6 cloth chains, front/side/back x L/R,
@@ -47,7 +50,7 @@ LOOSE_PIECES = {"coat", "dress"}
 CHAIN_AZ = {"FL": 30, "FR": -30, "SL": 90, "SR": -90, "BL": 150, "BR": -150}   # 0 = front, + = character left
 FOLLOW = {"F": 0.7, "S": 0.35, "B": 0.0}
 DRAPE = [1.0, 0.45, 0.15]   # share of the follow per chain bone (root, mid, tip): fabric bends at the knee   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)
-FORCE = {"gloves": ("Hand",), "boots": ("Foot", "ToeBase"), "coat": ("Tail",), "dress": ("Tail", "UpLeg", "Leg")}   # long skirt hangs > MASK_D off the legs
+FORCE = {"gloves": ("Hand",), "boots": ("Foot", "ToeBase"), "coat": ("Tail",), "breeches": ("Tail",), "dress": ("Tail", "UpLeg", "Leg")}   # long skirt hangs > MASK_D off the legs
 RES_W, RES_H = 420, 560
 
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "out" / "base-goose" / "base_goose.blend"))
@@ -100,6 +103,46 @@ for f in sorted((D / "shells").glob("*.glb")):
             bpy.data.objects.remove(x)
     o.name = f.stem
     shells[f.stem] = o
+# modelled accessories (make_accessory.py) clear the old fragments other shells kept around them
+for f in sorted((D / "shells").glob("*.json")):
+    spec = json.loads(f.read_text()).get("clear")
+    if not spec or f.stem not in shells:
+        continue
+    acc = shells[f.stem]
+    keep = [p_.index for p_ in acc.data.polygons if acc.data.materials[p_.material_index].name.split(".")[0] in spec["materials"]]
+    AV = [acc.matrix_world @ v.co for v in acc.data.vertices]
+    cover = BVHTree.FromPolygons(AV, [list(acc.data.polygons[i].vertices) for i in keep])
+    for k in spec["pieces"]:
+        o = shells.get(k)
+        if o is None:
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        kill = []
+        for fc in bm.faces:
+            c = o.matrix_world @ fc.calc_center_median()
+            d = Vector((c.x, c.y - spec["axis_y"], 0))
+            if d.length < 1e-6:
+                continue
+            d.normalize()
+            if any(cover.ray_cast(c, s * d, spec["radial"])[0] is not None for s in (1, -1)):
+                kill.append(fc)
+        bmesh.ops.delete(bm, geom=kill, context="FACES")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(o.data)
+        bm.free()
+        print("CLEAR", f.stem, k, len(kill))
+# "<target>@<name>" add-ons (make_accessory.py "accessory_split") are part of the target garment
+for k in [k for k in shells if "@" in k]:
+    tgt = k.split("@")[0]
+    if tgt in shells:
+        bpy.ops.object.select_all(action="DESELECT")
+        shells[k].select_set(True)
+        shells[tgt].select_set(True)
+        bpy.context.view_layer.objects.active = shells[tgt]
+        bpy.ops.object.join()
+        shells[tgt].name = tgt
+    shells.pop(k)
 dg = bpy.context.evaluated_depsgraph_get()
 sbvh = {k: BVHTree.FromObject(o, dg) for k, o in shells.items()}
 

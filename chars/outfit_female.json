@@ -172,5 +172,42 @@
   },
   "shell_mirror": {
     "boots": "+x"
+  },
+  "shell_clean": {
+    "dress": {
+      "foreign": [
+        "collar",
+        "body"
+      ],
+      "keep_round": [
+        40,
+        3000
+      ]
+    }
+  },
+  "accessory_over": {
+    "collar": [
+      "dress"
+    ]
+  },
+  "accessory_clear": {
+    "collar": {
+      "pieces": [
+        "dress"
+      ],
+      "parts": [
+        "bib",
+        "roll",
+        "standing"
+      ]
+    }
+  },
+  "accessory_split": {
+    "collar": {
+      "dress@bib": [
+        "bib",
+        "roll"
+      ]
+    }
   }
 }

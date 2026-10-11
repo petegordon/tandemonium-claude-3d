@@ -620,3 +620,23 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   generator's own albedo (or the bake cage hitting the inner shell wall), not from piece holes. Next lever: texture
   clean-up per piece (inpaint flecks by garment colour stats) or a bake from the inner/outer wall only. Dressed
   visible tris: male 18.4k, female 18.2k; validator 0/0, three.js ok.
+- **Polish pass 2 (Pete: clean textures, hide the tail, clean bow tie / brooch collar)** —
+  - *Textures:* build_shell bakes colour from the piece again (the whole-outfit bake leaked the coat onto the waistcoat
+    sides); bake misses come out pure black and `tex_clean.py` (scripts venv: numpy/scipy) repaints them from the same
+    UV island, plus texels nearer a *foreign* garment colour (chars json "shell_clean": medians from `<c>_faces.npz`,
+    round blobs kept = buttons). Waistcoat 15 % miss + 20 % foreign repainted (coat-brown sides gone, buttons kept),
+    breeches / coat / shirt / dress likewise. Colour is now even; what is left is **geometry**: overlapping shards of the
+    generated shells shade as dark / light patches (waistcoat V, breeches seat, coat hem).
+  - *Tail:* dress_goose FORCE breeches → Tail too (the reference male has no tail showing). build_shell "shell_fill"
+    closes the breeches seat over uncovered Hips / Tail faces (tail pulled into its root, offset to the piece's median
+    clearance), and the waistcoat chest below the V (the goose's light breast showed through its holes).
+  - *Neckwear modelled (make_accessory.py):* male bowtie = cream standing collar with wing tips, black neck band, cream
+    V shirt front, butterfly bow + knot, placed at the neck base (side-radius flare test) with colours from refs/v3.
+    Female collar = scalloped cream standing collar + gold dome brooch; the terracotta scalloped bib and the round
+    dress-red collar are part of the dress (Pete) → `shells/dress@bib.glb`, joined into the dress by dress_goose.
+    "accessory_clear": dress_goose deletes faces of coat / waistcoat / shirt (male) and dress (female) whose radial line
+    meets the modelled parts within 2.5 cm — the old bow / collar fragments.
+  - Pete: new dress and brooch / necklace / collar designs are needed so the artifacts separate cleanly (design work, his).
+  - Dressed visible tris: male 19.5k, female 20.2k (collar + bib 2.8k; slightly over the 20k budget). Validator 0/0,
+    three.js ok (chains 4 / 6). Review: `scripts/dressed_closeup.py` (toggle pieces, ortho close-ups).
+

@@ -247,5 +247,81 @@
   },
   "shell_tris": {
     "hat": 1500
+  },
+  "shell_clean": {
+    "waistcoat": {
+      "foreign": [
+        "coat",
+        "body",
+        "shirt"
+      ],
+      "keep_round": [
+        80,
+        3000
+      ]
+    },
+    "breeches": {
+      "foreign": [
+        "coat",
+        "body",
+        "shirt",
+        "boots"
+      ]
+    },
+    "coat": {
+      "foreign": [
+        "shirt",
+        "waistcoat",
+        "body"
+      ],
+      "keep_round": [
+        80,
+        3000
+      ]
+    },
+    "shirt": {
+      "foreign": [
+        "coat",
+        "waistcoat",
+        "body",
+        "bowtie"
+      ]
+    }
+  },
+  "shell_fill": {
+    "breeches": [
+      "Hips",
+      "Tail"
+    ],
+    "waistcoat": {
+      "bones": [
+        "Spine",
+        "Spine1",
+        "Spine2",
+        "Hips"
+      ],
+      "z_max": 1.12,
+      "v_slope": 2.5,
+      "x_max": 0.07,
+      "front": true
+    }
+  },
+  "accessory_clear": {
+    "bowtie": {
+      "pieces": [
+        "coat",
+        "waistcoat",
+        "shirt"
+      ],
+      "parts": [
+        "shirtfront",
+        "bow_L",
+        "bow_R",
+        "knot",
+        "collar",
+        "wing_L",
+        "wing_R"
+      ]
+    }
   }
 }
