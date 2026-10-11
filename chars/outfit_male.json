@@ -344,9 +344,10 @@
       ],
       "top": 0.09,
       "bottom": "crotch",
-      "clr": 0.018,
-      "tail_pull": 0.6,
-      "overlap": 4
+      "clr": 0.01,
+      "tail_pull": 0.85,
+      "overlap": 4,
+      "smooth": 1
     },
     "coat": {
       "az": [

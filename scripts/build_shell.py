@@ -300,7 +300,7 @@ if HANG:
             Rg[i, j] = np.linalg.norm((np.array(hit[0]) - c)[:2]) if hit[0] is not None else (Rg[i, j - 1] if j else 0.1)
     if HANG.get("hang"):
         Rg = np.maximum.accumulate(Rg, axis=1)              # fabric cannot tuck in under the tail
-    for _ in range(3):                                      # smooth around the back and down
+    for _ in range(HANG.get("smooth", 3)):                   # smooth around the back and down
         Rg[1:-1] = 0.25 * Rg[:-2] + 0.5 * Rg[1:-1] + 0.25 * Rg[2:]
         Rg[:, 1:-1] = 0.25 * Rg[:, :-2] + 0.5 * Rg[:, 1:-1] + 0.25 * Rg[:, 2:]
     clr = HANG.get("clr", 0.015)
