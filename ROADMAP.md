@@ -82,22 +82,22 @@ front-facing heads, soft even light, one shared body, clothed views drawn over t
 | P3.6 | **Colour changes**: garment detail + tint mask; runtime tint; palette presets. | Recolour demo renders. |
 | P3.7 | **Mix test**: swap pieces between outfits / second outfit. | — |
 
-## P4 — Bike (last asset; reference needs fixes)
+## P4 — Bike (plan: docs/p4-bike-plan.md, decisions D13-D18)
 
 | # | Step | Gate / questions |
 |---|---|---|
-| P4.1 | **Bike reference fixes** (Pete): view and handlebar issues in `bicycle-turnaround.png`. | Clean orthographic side/front/rear/top. |
-| P4.2 | **Generate + clean**; rigid parts as separate nodes (wheels, cranks, pedals, chain, bars). | Part list; IoU vs reference. |
-| P4.3 | **Scale**: goose ↔ bike from the assembly sheet; sets game units (D1). | Saddle/grip/pedal contact targets. |
+| P4.1 | **Rig the game's tandem** (D13): `scripts/make_bike.py` -> `out/bike/bike_rigged.glb` -- metres, part groups, pivots, armature, socket bones, `Pedal` + `WheelSpin` clips, decimated in place < 30k (D18), stoker crank +180 deg (D15). Checks: glTF validator, `tools/threejs_check/bike_check.mjs` (mesh names, every preset key, preset applied, clip invariants). **Built 2026-10-11, at Pete's gate.** | Part grouping, pivots, preset compatibility, decimation. |
+| P4.2 | **Scale + fit**: seat each goose (hip on saddle, foot to pedal at the bottom of the stroke, hands to grips) -> one bike scale + saddle/bar heights; cross-check with `refs/v2/assembly-turnaround.png`. | Side + front renders next to the assembly sheet. |
 
 ## P5 — Riding
 
 | # | Step | Gate / questions |
 |---|---|---|
-| P5.1 | Seated riding pose from the rig (captain front, stoker rear) vs `mannequin-poses.png` riding row + assembly sheet. | Contact distances. |
-| P5.2 | Coat-tail + skirt weighting through the pedalling range (D4). | No mesh breaking. |
-| P5.3 | Pedal (crank-driven leg IK, 180° out of phase -- D15, Pete: players alternate) + lean (captain/stoker independent). | Loop renders. |
-| P5.4 | **Game integration**: replace the fused Track 1 riders behind *Show Riders*; outfits + colours selectable; versus clones. | In-game check by Pete. |
+| P5.1 | **Male captain riding pose by IK contact** (`scripts/ride_fit.py`): Hips -> Seat_Captain, hands -> Grip_C_*, feet -> PedalPin_F*. | Contact distances + renders. |
+| P5.2 | **Pedal clip** `Pedal_Captain`, 24 frames, time-mapped to crankAngle like the bike's `Pedal`. | Loop renders. |
+| P5.3 | **Lean clips** `Lean_L` / `Lean_R`, hands and feet stay on (each goose by its own input; bike tilts by the sum). | Lean renders. |
+| P5.4 | **Female stoker** on the rear sockets (crank + pi, D15); skirt/bustle through the whole stroke (D4/D12). | No mesh breaking. |
+| P5.5 | **Delivery** (D17: separate GLBs, geese attach to sockets at runtime), then **game integration on a branch** in tandemonium behind *Show Riders*. | In-game check by Pete. |
 
 ## P6 — Delivery
 

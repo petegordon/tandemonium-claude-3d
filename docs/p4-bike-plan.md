@@ -1,7 +1,6 @@
 # P4/P5 plan: the tandem, pedalling and leaning geese
 
-Status: **approved with Pete's answers (2026-10-11, section 3a)**. Nothing in here is built yet. Start the new session from this
-file and `RESUME.md`.
+Status: **approved with Pete's answers (2026-10-11, section 3a)**. **P4.1 built 2026-10-11** (section 5); waiting on Pete's gate.
 
 ## 1. The two candidates
 
@@ -158,3 +157,35 @@ Then game integration on a branch in the tandemonium repo:
   These are the references for lean behaviour.
 - **Our geese:** `out/outfit_*-goose/<c>_dressed.glb` (release `p3-dressed-geese`), rig `goose_rig` (Mixamo-style
   names), `scripts/rig_poses.py`.
+
+## 5. P4.1 as built (2026-10-11)
+
+`blender -b --factory-startup --python scripts/make_bike.py` -> `out/bike/bike_rigged.glb` (+ `.blend`, `bike_rig.json`);
+`node tools/threejs_check/bike_check.mjs out/bike/bike_rigged.glb renders/bike_p41_threejs.png`.
+
+- **Units:** 28 in wheel (0.7112 m outer) -> 0.3268 m per source unit; 2.72 m long, saddle tops 1.09 m, wheelbase 2.00 m,
+  crank arms 0.158 m, head angle 70 deg. Forward -Y (glTF +Z), ground z = 0, origin midway between the axles.
+- **Groups / bones:** `Bike_root` (frame, rack, rear mudguard, saddles, rear bar, chains) > `Steer` (fork, front mudguard + stays,
+  lamp, front bar, grips, headset, stem; axis through the headset cups) > `Wheel_F`; `Wheel_R` (+ rear sprocket);
+  `Crank_F` / `Crank_R` > `Pedal_FL/FR/RL/RR`. Meshes are bone-parented (rigid, still plain `Mesh` in three.js).
+  Note: the source's `tyre_rear_low` is the *front* tyre (name kept). The model's drive chain is on the rider's left and the
+  timing chain on the right (mirror of the v3 sheet); kept as is (D13).
+- **Sockets** are non-deforming bones with identity rest rotation in bike space: `Seat_Captain`, `Seat_Stoker` (saddle top,
+  sit-bone band), `Grip_C_L/R` (under `Steer`), `Grip_S_L/R`, `PedalPin_FL/FR/RL/RR` (top of each pedal; they ride the pedal).
+- **D15:** stoker crankset baked half a turn: at rest the captain's left pedal is up and the stoker's left pedal is down.
+- **Clips (24 fps, exactly 1.0 s):** `Pedal` = one forward crank revolution, pedals counter-rotate to stay level
+  (time = crankAngle / 2 pi); `WheelSpin` = one wheel revolution, kept separate from `Pedal` so the game can drive the wheels
+  from distance (time = distance / (pi * 0.7112) mod 1) while coasting. No steering clip (D16).
+- **D18:** each mesh decimated in place; a mesh may deviate <= 4 mm from the source, else it gets a gentler ratio or stays whole
+  (the drive chain stays whole). 58,702 -> 26,214 tris; GLB 6.9 -> 5.3 MB. glTF validator: 0 errors, 0 warnings.
+- **three.js r161 check:** 66/66 mesh names; every preset key resolves (6 colour presets 66/66, 3 holiday presets 14/14);
+  `bike_orange` applied with the game's applyPreset rules matches the original; pedal tilt 0.04 deg over the cycle; stoker
+  exactly 180 deg from the captain; sockets 0 deg rest rotation.
+
+**Integration notes (for P5.5, nothing changed in the game yet):**
+- `bike-model.js` scales by the *non-precise* Box3 (max dim -> 4.4). The current GLB's rotated Sketchfab nodes inflate that box,
+  so the bike really renders 4.13 m long; the new GLB (baked) renders at a true 4.40 m, 6.5 % bigger. Either scale with
+  `setFromObject(model, true)` for both or target 4.13 m.
+- `n.includes('pedal')` would also catch the new `Pedal_*` bones and `PedalPin_*` sockets and spin them; with the rigged bike
+  the cranks should be driven by the `Pedal` clip instead.
+- `isRiders = animations.length > 0` would treat the rigged bike as the old riders GLB (yaw + lean setup); needs its own check.
