@@ -7,7 +7,8 @@
    bones take the shape's heads/tails, the body mesh the deformed rest positions (same weights).
    Modelled accessories (make_accessory.py, json "clear") first delete faces of the listed extracted
    shells whose horizontal radial line meets the accessory within 2.5 cm (old fragments of the piece).
-2. Masks: a body vertex is covered when a ray along its normal hits a shell within MASK_D (or, poking
+2. Masks: designed garments (make_garment.py, json "covers") hide exactly the body band they were built
+   from; for the other shells a body vertex is covered when a ray along its normal hits a shell within MASK_D (or, poking
    through, against its normal within MASK_IN); a face is
    hidden when all its vertices are covered. Replacement pieces force-hide what they replace
    (gloves: Hand bones, boots: Foot/ToeBase + shin below the boot top, coat / breeches / dress: Tail --
@@ -34,6 +35,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
 
 sys.path.insert(0, str(Path(__file__).parent))
 import bodyshape  # noqa: E402
@@ -151,14 +153,29 @@ sbvh = {k: BVHTree.FromObject(o, dg) for k, o in shells.items()}
 # ---- 2. masks
 NRM = np.array([v.normal[:] for v in me.vertices])
 hid_by = [set() for _ in range(len(V))]
+# designed garments (make_garment.py) are built from a known body band: they hide exactly that band
+# (below the waist line by "margin", arms excluded) and take no part in the ray masks
+designed = {}
+for k in shells:
+    jf = D / "shells" / f"{k}.json"
+    cv = json.loads(jf.read_text(encoding="utf-8")).get("covers") if jf.exists() else None
+    if cv:
+        designed[k] = cv
+domv = np.array(names)[W.argmax(1)]
+armv = np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in domv])
+for k, cv in designed.items():
+    zt = cv["z_top"] + cv["rise"] * (V[:, 1] - cv["y0"]) - cv["margin"]
+    for i in np.flatnonzero((V[:, 2] < zt) & (V[:, 2] > cv["z_bot"]) & ~armv):
+        hid_by[i].add(k)
+ray_shells = {k: b for k, b in sbvh.items() if k not in designed}
 for i, (p, n) in enumerate(zip(V, NRM)):
     best = None
-    for k, b in sbvh.items():
+    for k, b in ray_shells.items():
         hit = b.ray_cast(Vector(p) + Vector(n) * 0.0005, Vector(n), MASK_D)
         if hit[0] is not None and (best is None or hit[3] < best[1]):
             best = (k, hit[3])
     if best is None:      # body poking just past a shell (shell right behind the surface): hidden too
-        for k, b in sbvh.items():
+        for k, b in ray_shells.items():
             hit = b.ray_cast(Vector(p) - Vector(n) * 0.0005, -Vector(n), MASK_IN)
             if hit[0] is not None and (best is None or hit[3] < best[1]):
                 best = (k, hit[3])
@@ -227,6 +244,22 @@ for k, o in shells.items():
     d = np.array([sb.find_nearest(Vector(x))[3] for x in X])
     legw = Wv[:, [names.index(n) for n in leg]].sum(1)
     tl = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
+    jf = D / "shells" / f"{k}.json"
+    meta = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
+    if meta.get("weights"):          # designed garment: the body's own weights, matched by position
+        wz = np.load(D / "shells" / meta["weights"])
+        kdw = KDTree(len(wz["pos"]))
+        for i_, q_ in enumerate(wz["pos"]):
+            kdw.insert(Vector(q_), i_)
+        kdw.balance()
+        idx = np.array([kdw.find(Vector(x))[1] for x in X])
+        Wv = np.zeros((len(X), len(names)))
+        for j_, nm in enumerate(wz["names"]):
+            if str(nm) in names:
+                Wv[:, names.index(str(nm))] = wz["W"][idx, j_]
+        Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
+        tl = np.zeros(len(X))
+        print("WEIGHTS", k, "from", meta["weights"])
     skin[k] = (Wv, X, tl)
 bpy.data.objects.remove(src)
 
@@ -307,11 +340,22 @@ for k, o in shells.items():
     # keep the 4 largest influences, normalise
     ed = np.array([e.vertices[:] for e in o.data.edges])
     deg = np.maximum(np.bincount(ed.ravel(), minlength=len(Wv)), 1)[:, None]
-    for _ in range(WEIGHT_SMOOTH):
+    ws = WEIGHT_SMOOTH
+    jf = D / "shells" / f"{k}.json"
+    if jf.exists():
+        ws = json.loads(jf.read_text(encoding="utf-8")).get("weight_smooth", ws)   # designed garments: more
+    for _ in range(ws):
         acc = np.zeros_like(Wv)
         np.add.at(acc, ed[:, 0], Wv[ed[:, 1]])
         np.add.at(acc, ed[:, 1], Wv[ed[:, 0]])
         Wv = 0.5 * Wv + 0.5 * acc / deg
+    # vertices split at UV seams (same position, no shared edge) drift apart in the smoothing and the
+    # seam opens when posed: give every copy the mean of its group
+    _, grp = np.unique(np.round(X, 5), axis=0, return_inverse=True)
+    grp = grp.ravel()
+    acc = np.zeros((grp.max() + 1, Wv.shape[1]))
+    np.add.at(acc, grp, Wv)
+    Wv = acc[grp] / np.bincount(grp)[grp][:, None]
     keep = np.argsort(-Wv, 1)[:, :4]
     lim = np.zeros_like(Wv)
     np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)

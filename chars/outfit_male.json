@@ -361,5 +361,33 @@
       "tail_pull": 0.6,
       "overlap": 4
     }
+  },
+  "garment_design": {
+    "breeches": {
+      "z_top": 0.91,
+      "z_bot": 0.385,
+      "tris": 2600,
+      "ease_min": 0.008,
+      "ease_max": 0.05,
+      "colors": {
+        "tan": [
+          165,
+          133,
+          105
+        ],
+        "navy": [
+          44,
+          56,
+          88
+        ],
+        "olive": [
+          92,
+          98,
+          62
+        ]
+      },
+      "back_rise": 0.3,
+      "rise_y0": -0.1
+    }
   }
 }

@@ -1,12 +1,17 @@
 """Close-up review renders of a dressed goose (dress_goose.py output) with pieces toggled off.
 
   blender -b --factory-startup --python scripts/dressed_closeup.py -- --char outfit_male \
-      [--hide coat,waistcoat] [--z 0.95] [--size 0.7] [--yaws 0,90,180,215] [--tag nocoat]
+      [--hide coat,waistcoat | --only breeches] [--z 0.95] [--size 0.7] [--yaws 0,90,180,215] [--tag nocoat]
+      [--tint breeches=44,56,88] [--pose riding|a_pose|neck_curve]
+
+--tint sets a designed garment's glTF baseColorFactor (make_garment.py: colour / detail-texture mean) --
+the recolour the game does. --pose uses rig_poses.Poser (cloth chains not applied).
 
 Opens out/<char>-goose/<char>_dressed.blend, hides the listed shells and shows the body sub-meshes
 the way the game toggles them ("body__a+b" is hidden while any of a, b is worn), renders an ortho
 row centred at height --z -> renders/<char>_closeup_<tag>.png.
 """
+import json
 import math
 import sys
 from pathlib import Path
@@ -24,6 +29,9 @@ def opt(name, default, cast=str):
 
 CHAR = opt("--char", "outfit_male")
 HIDE = [h for h in opt("--hide", "").split(",") if h]
+ONLY = [h for h in opt("--only", "").split(",") if h]
+TINT = dict(kv.split("=") for kv in opt("--tint", "").split(";") if kv)
+POSE = opt("--pose", "")
 Z = opt("--z", 0.95, float)
 SIZE = opt("--size", 0.7, float)
 YAWS = [float(y) for y in opt("--yaws", "0,90,180,215").split(",")]
@@ -39,13 +47,40 @@ for o in bpy.data.objects:
         continue
     if o.name.startswith("body__"):
         continue
-    if o.name in HIDE:
+    if o.name in HIDE or (ONLY and not o.name.startswith(("body", "eyeball", "lid", "catchlight")) and o.name not in ONLY):
         o.hide_render = True
     elif not o.name.startswith(("body", "eyeball", "lid", "catchlight")):
         worn.add(o.name)
 for o in bpy.data.objects:
     if o.type == "MESH" and o.name.startswith("body__"):
         o.hide_render = bool(set(o.name[6:].split("+")) & worn)
+if "--no-body" in argv:                         # garment only (diagnostics)
+    for o in bpy.data.objects:
+        if o.type == "MESH" and o.name.startswith(("body", "eyeball", "lid", "catchlight")):
+            o.hide_render = True
+for k, rgb in TINT.items():
+    meta = json.loads((D / "shells" / f"{k}.json").read_text(encoding="utf-8"))
+    c = np.array([float(x) for x in rgb.split(",")]) / 255.0
+    lin = lambda v: np.where(v > 0.04045, ((v + 0.055) / 1.055) ** 2.4, v / 12.92)  # noqa: E731
+    fac = tuple(np.clip(lin(c) / lin(np.array([meta.get("detail_mean_srgb", 1.0)]))[0], 0, 1)) + (1.0,)
+    for m in bpy.data.objects[k].data.materials:
+        for n in m.node_tree.nodes:
+            if n.type in ("MIX", "MIX_RGB") and getattr(n, "blend_type", "") == "MULTIPLY":
+                (n.inputs["B"] if "B" in n.inputs else n.inputs[2]).default_value = fac
+    print("TINT", k, [round(x, 3) for x in fac])
+if "--flat" in argv:                            # diagnostics: no normal maps
+    for o in bpy.data.objects:
+        for m in (o.data.materials if o.type == "MESH" else []):
+            for l in list(m.node_tree.links):
+                if l.to_node.type == "BSDF_PRINCIPLED" and l.to_socket.name == "Normal":
+                    m.node_tree.links.remove(l)
+if POSE:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from rig_poses import Poser  # noqa: E402
+    poser = Poser(bpy.data.objects["goose_rig"])
+    poser.reset()
+    getattr(poser, POSE)()
+    bpy.context.view_layer.update()
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
 sc.render.resolution_x = sc.render.resolution_y = RES

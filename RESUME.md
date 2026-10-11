@@ -81,6 +81,8 @@ python -I sam_masks.py --char outfit_x               # ComfyUI venv, SAM 2.1 lar
 extract_garments.py --char outfit_x --use-ref        # final labels + pieces -> <c>_garments.npz
 transfer_garments.py --char outfit_x                 # pieces onto the body they are worn on -> pieces/*.glb
 build_shell.py --char outfit_x --piece P [--no-push] # game shell per piece -> shells/P.glb (gloves/boots/hat: --no-push); tex_clean.py repaints misses / foreign colours
+make_garment.py --char outfit_male --piece breeches   # DESIGNED garment from the body (replaces build_shell for breeches) -> renders/<c>_garment_<p>.png
+dressed_closeup.py --char outfit_male --only breeches [--tint breeches=44,56,88] [--pose riding]
 make_accessory.py --char outfit_male --piece bowtie   # modelled neckwear (female: --piece collar -> collar.glb + dress@bib.glb)
 assemble_outfit.py --char outfit_x [--green]         # body + all shells render
 dress_goose.py --char outfit_x                       # masks, skinning, cloth chains, poses -> <c>_dressed.glb

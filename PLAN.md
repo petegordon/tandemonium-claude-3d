@@ -654,4 +654,18 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   are now rebuilt as a full ring ("shell_hang" az 0–360, "z_top" 0.91 = 5 cm above the vest's 0.86 hem, down to the
   crotch + 2 cm, 1 cm off the body, tail stub 85 % pulled); everything of the piece above the band is dropped. Clean
   waistband all round; left: jagged seam at the crotch line, swatch-tile patches, shards on the back of the thighs.
+- **Designed breeches (Pete: one full, reusable piece of clothing; naked goose + green base; recolour)** —
+  `scripts/make_garment.py` (chars json "garment_design") builds the garment from the BODY, with the extracted piece
+  only as a shape guide: body band welded (glTF splits it at UV seams) → tail off and its hole capped on the closed body
+  → cut at a tilted waist line (0.91 m front, rising 0.3 m/m to cover the tail base at the back; a level cut left a
+  hole once the tail is hidden) and 0.385 m (inside the boots) → one surface through the crotch → Taubin-smoothed →
+  ease = the piece's outer surface along the normal (jodhpur flare), smoothed, tight waistband / knee band, ≤ 40 % of
+  the gap to the other thigh and clear of the hands, seat bump → game mesh 2548 tris; detail mesh (142k verts) with
+  waistband / knee band, fly placket, slit pockets, side seams, inseams, front creases, centre seams, irregular folds
+  above the knee → normal map + neutral tweed detail texture × one baseColorFactor (glTF), so a recolour is one value.
+  Skin: the body's own weights carried through the subdivision (`breeches_weights.npz`; Tail merged into Hips),
+  20 smoothing rounds. dress_goose: designed garments hide exactly their body band ("covers", 1.2 cm under the waist
+  line) instead of ray masks; **all shells: weights averaged across UV-seam duplicate vertices** (they drifted apart
+  in the smoothing and the seams opened in poses — the riding-pose holes). Tan / navy / olive and riding pose clean.
+  `dressed_closeup.py --only <piece> --tint piece=r,g,b --pose riding`. Validator 0/0, three.js ok.
 
