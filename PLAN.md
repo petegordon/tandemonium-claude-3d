@@ -639,4 +639,14 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   - Pete: new dress and brooch / necklace / collar designs are needed so the artifacts separate cleanly (design work, his).
   - Dressed visible tris: male 19.5k, female 20.2k (collar + bib 2.8k; slightly over the 20k budget). Validator 0/0,
     three.js ok (chains 4 / 6). Review: `scripts/dressed_closeup.py` (toggle pieces, ortho close-ups).
+- **Polish pass 2b (Pete: vest front only, split bow tie / shirt, coat + breeches hang over the tail)** —
+  dress_goose masks also hide body faces with a shell up to 1.5 cm *behind* them (body poking through the vest);
+  build_shell "shell_keep" (vest: front ±55°, ≤ 2.5 cm off the body: back strap / flyaway shards gone);
+  make_accessory "accessory_split": bowtie = bow + knot + neck band, collar / wing tips / V shirt front →
+  `shirt@collar.glb` (joined into the shirt). "shell_hang": the back sector of the breeches (crotch → tail root
+  + 9 cm, ±65° about the back) and coat (hem → tail root + 8 cm, hanging = radius never shrinks downwards) is rebuilt
+  as a smooth grid around the body with the tail pulled 60 % into a rounded stub; the coat skirt now falls over it.
+  tex_clean fills wide repainted areas with a tiled fabric swatch of the garment (largest clean square) instead of
+  nearest-texel streaks. Still rough: vest V edge shards, coat vent edge strips, breeches side shards.
+  Dressed visible tris: male 19.0k, female 19.8k; validator 0/0, three.js ok.
 

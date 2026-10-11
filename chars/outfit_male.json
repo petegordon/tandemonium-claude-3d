@@ -289,10 +289,6 @@
     }
   },
   "shell_fill": {
-    "breeches": [
-      "Hips",
-      "Tail"
-    ],
     "waistcoat": {
       "bones": [
         "Spine",
@@ -322,6 +318,47 @@
         "wing_L",
         "wing_R"
       ]
+    }
+  },
+  "shell_keep": {
+    "waistcoat": {
+      "az_max": 55,
+      "dist_max": 0.025
+    }
+  },
+  "accessory_split": {
+    "bowtie": {
+      "shirt@collar": [
+        "collar",
+        "wing_L",
+        "wing_R",
+        "shirtfront"
+      ]
+    }
+  },
+  "shell_hang": {
+    "breeches": {
+      "az": [
+        115,
+        245
+      ],
+      "top": 0.09,
+      "bottom": "crotch",
+      "clr": 0.018,
+      "tail_pull": 0.6,
+      "overlap": 4
+    },
+    "coat": {
+      "az": [
+        125,
+        235
+      ],
+      "top": 0.08,
+      "bottom": "hem",
+      "clr": 0.034,
+      "hang": true,
+      "tail_pull": 0.6,
+      "overlap": 4
     }
   }
 }

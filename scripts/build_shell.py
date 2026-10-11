@@ -52,9 +52,12 @@ TRIS = opt("--tris", _cfg.get("shell_tris", {}).get(PIECE, BUDGET.get(PIECE, 200
 MIRROR = opt("--mirror", _cfg.get("shell_mirror", {}).get(PIECE, ""))   # "+x": keep the +X half, mirror it to -X
 BAKE_SRC = opt("--bake-src", "piece")  # piece: colour from this piece only (misses are filled by tex_clean);
                                        # all: from the whole outfit (outer layers leaked in: coat on the waistcoat)
+# "shell_keep" {piece: {az_max, dist_max}}: drop faces outside the front sector / too far off the body
+# "shell_hang" {piece: {az, top, bottom, clr, hang, tail_pull}}: back sector rebuilt over the tail
 FILL = _cfg.get("shell_fill", {}).get(PIECE)   # bones whose uncovered body faces are closed over (tail hole)
 FILL_OPT = {}
-if isinstance(FILL, dict):   # {"bones", "z_max" (+ "v_slope" * |x|: V neckline), "x_max", "front": normal faces -Y}
+if isinstance(FILL, dict):   # {"bones", "z_max" (+ "v_slope" * |x|: V neckline), "x_max", "front" / "back": normal
+    # faces -Y / +Y, "replace": drop the piece's own faces over the region, "tail_pull": 0 keeps the tail's shape}
     FILL_OPT, FILL = FILL, FILL["bones"]
 CLEAN = _cfg.get("shell_clean", {}).get(PIECE, {})   # tex_clean.py options
 KEY = (0.0, 0.0, 0.0)                  # texels the bake misses come out pure black
@@ -104,6 +107,7 @@ rig = load(ROOT / "out" / "base-goose" / "base_goose_rigged.glb")
 arm = next(o for o in rig if o.type == "ARMATURE")
 body = next(o for o in rig if o.type == "MESH" and o.name.startswith("base_goose_game"))
 TAIL_ROOT = np.array(arm.matrix_world @ arm.data.bones["Tail"].head_local) if "Tail" in arm.data.bones else None
+CROTCH_Z = min((arm.matrix_world @ arm.data.bones[b].head_local).z for b in ("LeftUpLeg", "RightUpLeg") if b in arm.data.bones)
 for o in rig:
     if o is not body:
         bpy.data.objects.remove(o) if o.name in bpy.data.objects else None
@@ -156,6 +160,32 @@ if MIRROR:                                       # a symmetric pair with one bad
 only_select(hi)
 bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+KEEP = _cfg.get("shell_keep", {}).get(PIECE)
+keep_report = None
+if KEEP:
+    # keep only the part of the piece that shows: faces within az_max of the front (around the torso axis
+    # at their height) and within dist_max of the body -- the vest's back strap / sides sit under the coat
+    # and its flyaway shards stick out of it
+    BVk = np.array([v.co[:] for v in body.data.vertices])
+    core = BVk[np.abs(BVk[:, 0]) < 0.15]
+    bm = bmesh.new()
+    bm.from_mesh(hi.data)
+    kill = []
+    for f in bm.faces:
+        c = np.array(f.calc_center_median())
+        near = core[np.abs(core[:, 2] - c[2]) < 0.01]
+        yc = (near[:, 1].min() + near[:, 1].max()) / 2 if len(near) else 0.0
+        az = math.degrees(math.atan2(c[0], -(c[1] - yc)))
+        d = (Vector(c) - body_bvh.find_nearest(Vector(c))[0]).length
+        if abs(az) > KEEP.get("az_max", 180) or d > KEEP.get("dist_max", 9.0):
+            kill.append(f)
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    keep_report = {**KEEP, "faces_dropped": len(kill), "faces_kept": len(bm.faces)}
+    bm.to_mesh(hi.data)
+    bm.free()
+    hi.data.update()
+    log("keep", keep_report)
 fill_report = None
 if FILL:
     # The tail is hidden under breeches / coat (P3.5 FORCE), which leaves the hole the generated
@@ -169,7 +199,7 @@ if FILL:
     BN = np.array([v.normal[:] for v in body.data.vertices])
     if "Tail" in gn and TAIL_ROOT is not None:     # (base rest pose; the sliders do not move the tail root much)
         tw = Wb[:, gn.index("Tail")] / np.maximum(Wb.sum(1), 1e-9)
-        BV = BV + tw[:, None] * 0.85 * (TAIL_ROOT - BV)
+        BV = BV + tw[:, None] * FILL_OPT.get("tail_pull", 0.85) * (TAIL_ROOT - BV)
     HP = np.array([v.co[:] for v in hi.data.vertices])
     zlo, ztop = np.percentile(HP[:, 2], [2, 97])
     polys = [list(pp.vertices) for pp in body.data.polygons]
@@ -181,6 +211,26 @@ if FILL:
     cand &= np.abs(fc[:, 0]) < FILL_OPT.get("x_max", 9.0)
     if FILL_OPT.get("front"):
         cand &= fn[:, 1] < -0.3
+    if FILL_OPT.get("back"):
+        cand &= fn[:, 1] > 0.3
+    if FILL_OPT.get("replace"):
+        # the generated piece is shards over these faces (male seat around the tail): drop every piece
+        # face whose nearest body face is a candidate, so the filler rebuilds the whole region smoothly
+        full = BVHTree.FromPolygons([tuple(x) for x in BV], polys)
+        bm = bmesh.new()
+        bm.from_mesh(hi.data)
+        kill = [f for f in bm.faces if (lambda h: h[2] is not None and cand[h[2]])(full.find_nearest(f.calc_center_median()))]
+        bmesh.ops.delete(bm, geom=kill, context="FACES")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(hi.data)
+        bm.free()
+        hi.data.update()
+        hb = BVHTree.FromObject(hi, bpy.context.evaluated_depsgraph_get())
+        HP = np.array([v.co[:] for v in hi.data.vertices])
+        log("replace: dropped", len(kill), "piece faces")
+    bake_piece = hi.copy()                      # colour source: the piece without the filler
+    bake_piece.data = hi.data.copy()
+    bpy.context.scene.collection.objects.link(bake_piece)
     miss = np.array([c and hb.ray_cast(Vector(x), Vector(nn), 0.06)[0] is None for c, x, nn in zip(cand, fc, fn)])
     if miss.any():
         from mathutils.kdtree import KDTree
@@ -212,6 +262,74 @@ if FILL:
         fill_report = {"bones": FILL, "uncovered_faces": int(miss.sum()), "filler_faces": int(sel.sum()),
                        "clearance_mm": round(clr * 1000, 1)}
         log("fill", fill_report)
+HANG = _cfg.get("shell_hang", {}).get(PIECE)
+hang_report = None
+if HANG:
+    # Pete: breeches and coat cover the tail and hang over it. The back sector az[0]..az[1] (0 = front)
+    # between z_top (tail root + "top") and z_bot ("bottom": "crotch" + 2 cm or "hem" = the piece's own
+    # 2nd percentile there) is rebuilt as a smooth grid around the body: radius = body radius (tail pulled
+    # tail_pull into its root, a rounded stub) + "clr"; "hang": the radius never shrinks going down
+    # (cloth falls straight past the tail instead of tucking under it). The piece's own (shard) faces
+    # inside the sector are replaced; the colour comes from the garment (tex_clean fill).
+    BVh = np.array([v.co[:] for v in body.data.vertices])
+    tw = Wb[:, gn.index("Tail")] / np.maximum(Wb.sum(1), 1e-9)
+    BVh = BVh + tw[:, None] * HANG.get("tail_pull", 0.6) * (TAIL_ROOT - BVh)
+    fullh = BVHTree.FromPolygons([tuple(x) for x in BVh], [list(pp.vertices) for pp in body.data.polygons])
+    domh = np.array(gn)[Wb.argmax(1)]
+    core = BVh[(np.abs(BVh[:, 0]) < 0.15) & (domh != "Tail")]
+    a0, a1 = [math.radians(a) for a in HANG["az"]]
+
+    def yc(z):
+        near = core[np.abs(core[:, 2] - z) < 0.01]
+        return (near[:, 1].min() + near[:, 1].max()) / 2 if len(near) else float(TAIL_ROOT[1])
+
+    def azz(c):
+        return math.atan2(c[0], -(c[1] - yc(c[2]))) % (2 * math.pi)
+    HPh = np.array([v.co[:] for v in hi.data.vertices])
+    in_sec = np.array([a0 <= azz(c) <= a1 for c in HPh]) & (np.abs(HPh[:, 0]) < 0.2)
+    z_top = float(TAIL_ROOT[2]) + HANG.get("top", 0.08)
+    z_bot = CROTCH_Z + 0.02 if HANG.get("bottom") == "crotch" else float(np.percentile(HPh[in_sec & (HPh[:, 2] < z_top), 2], 2))
+    ths = np.linspace(a0, a1, HANG.get("n_az", 25))
+    zs = np.linspace(z_top, z_bot, HANG.get("n_z", 14))
+    Rg = np.zeros((len(ths), len(zs)))
+    for i, th in enumerate(ths):
+        d = np.array([math.sin(th), -math.cos(th), 0.0])
+        for j, z in enumerate(zs):
+            c = np.array([0.0, yc(z), z])
+            hit = fullh.ray_cast(Vector(c + d * 0.5), Vector(-d), 0.5)
+            Rg[i, j] = np.linalg.norm((np.array(hit[0]) - c)[:2]) if hit[0] is not None else (Rg[i, j - 1] if j else 0.1)
+    if HANG.get("hang"):
+        Rg = np.maximum.accumulate(Rg, axis=1)              # fabric cannot tuck in under the tail
+    for _ in range(3):                                      # smooth around the back and down
+        Rg[1:-1] = 0.25 * Rg[:-2] + 0.5 * Rg[1:-1] + 0.25 * Rg[2:]
+        Rg[:, 1:-1] = 0.25 * Rg[:, :-2] + 0.5 * Rg[:, 1:-1] + 0.25 * Rg[:, 2:]
+    clr = HANG.get("clr", 0.015)
+    edge = math.radians(HANG.get("overlap", 10))
+    bm = bmesh.new()
+    bm.from_mesh(hi.data)
+    kill = [f for f in bm.faces if (lambda c: abs(c[0]) < 0.2 and a0 + edge <= azz(c) <= a1 - edge
+                                    and z_bot - 0.03 < c[2] < z_top - 0.015)(np.array(f.calc_center_median()))]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(hi.data)
+    bm.free()
+    hi.data.update()
+    if "bake_piece" not in globals():
+        bake_piece = hi.copy()                  # colour source: the piece without the rebuilt sector
+        bake_piece.data = hi.data.copy()
+        bpy.context.scene.collection.objects.link(bake_piece)
+    bm = bmesh.new()
+    bm.from_mesh(hi.data)
+    grid = [[bm.verts.new(np.array([0.0, yc(z), z]) + np.array([math.sin(th), -math.cos(th), 0.0]) * (Rg[i, j] + clr))
+             for j, z in enumerate(zs)] for i, th in enumerate(ths)]
+    for i in range(len(ths) - 1):
+        for j in range(len(zs) - 1):
+            bm.faces.new([grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]])
+    bm.to_mesh(hi.data)
+    bm.free()
+    hi.data.update()
+    hang_report = {**HANG, "z_top_bot": [round(z_top, 3), round(z_bot, 3)], "replaced_faces": len(kill)}
+    log("hang", hang_report)
 shell = hi.copy()
 shell.data = hi.data.copy()
 shell.name = shell.data.name = f"{PIECE}_shell"
@@ -315,11 +433,8 @@ bpy.ops.uv.pack_islands(margin=0.004, rotate=True)
 bpy.ops.object.mode_set(mode="OBJECT")
 
 bake_src = hi
-if FILL:
-    bake_src = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
-    only_select(bake_src)
-    bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+if FILL or HANG:
+    bake_src = bake_piece
 if BAKE_SRC == "all" and not MIRROR:
     # colour from the real clothed surface: a piece has holes where fragments were labelled to other
     # pieces, and rays through them baked the shirt patches / waistcoat flecks
@@ -414,7 +529,7 @@ out_ = np.array([sh_bvh.ray_cast(Vector(p), Vector(nn), 0.3)[0] is None for p, n
 report = {"char": CHAR, "piece": PIECE, "tris": tri_count(shell), "voxel_mm": VOXEL * 1000,
           "offset_mm": OFFSET * 1000, **push_stats, "covered_body_verts": int(cov.sum()),
           "covered_body_outside": round(float(out_.mean()), 3) if len(out_) else None,
-          "bake_src": BAKE_SRC, "fill": fill_report, "tex_clean": clean_report}
+          "bake_src": BAKE_SRC, "keep": keep_report, "fill": fill_report, "hang": hang_report, "tex_clean": clean_report}
 OUT.mkdir(exist_ok=True)
 (OUT / f"{PIECE}.json").write_text(json.dumps(report, indent=1))
 print("SHELL", json.dumps(report))

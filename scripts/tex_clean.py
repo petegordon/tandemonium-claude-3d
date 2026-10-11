@@ -9,9 +9,9 @@ geometry) come out --key (pure black). tris.npy: the shell's UV triangles (N, 3,
    colour leaks in, filled by build_shell.py from <char>_faces.npz; "wL": weight of lightness in the
    distance, "margin"): texels nearer a foreign colour than an own one are repainted, except compact round
    blobs of "keep_round" [min, max] px (buttons).
-3. repaint: inside a UV island, from the nearest good texel of the same island, blurred over the
-   repainted area; islands with no good texel take the garment colour plus noise of the garment's own
-   spread; everything off the mesh is padded from the nearest texel (bake margin).
+3. repaint: thin gaps from the nearest good texel of the same UV island; wider areas (rebuilt / filled
+   geometry) from a fabric swatch (the largest clean square of the garment, mean removed, tiled) over the
+   island's median colour; seams softened; everything off the mesh is padded from the nearest texel.
 Prints one JSON line with texel shares.
 """
 import argparse
@@ -81,29 +81,36 @@ good2 = good & ~outl
 fix = cov & ~good2
 
 out = img.copy()
+# fabric swatch: the largest clean square of the garment (distance transform peak), tiled over the texture
+dgood = ndimage.distance_transform_edt(good2)
+cy, cx = np.unravel_index(np.argmax(dgood), dgood.shape)
+half = int(max(4, min(dgood[cy, cx] * 0.7, 96)))
+sw = img[cy - half:cy + half, cx - half:cx + half]
+sw = sw - sw.reshape(-1, 3).mean(0)                       # texture only; the colour comes from the island
+reps = (H // sw.shape[0] + 2, W // sw.shape[1] + 2, 1)
+tile = np.tile(np.concatenate([sw, sw[:, ::-1]], 1), (reps[0], reps[1] // 2 + 1, 1))[:H, :W]
 isl, n_isl = ndimage.label(ndimage.binary_dilation(cov, iterations=1))
-spread = img[good2].std(0) if good2.any() else np.zeros(3)
 med_rgb = np.median(img[good2], 0) if good2.any() else np.full(3, 128.0)
-rng = np.random.default_rng(0)
-noise = ndimage.gaussian_filter(rng.standard_normal((H, W)), 1.2)
-noise /= max(noise.std(), 1e-9)
+dist_fix, idx_all = ndimage.distance_transform_edt(~good2, return_indices=True)
 for i in range(1, n_isl + 1):
     m = isl == i
     f = fix & m
     if not f.any():
         continue
     src = good2 & m
+    base = np.median(img[src], 0) if src.sum() >= 50 else med_rgb
     if src.sum() >= 20:
         _, idx = ndimage.distance_transform_edt(~src, return_indices=True)
-        filled = img[idx[0], idx[1]]
-        out[f] = filled[f]
+        near = img[idx[0], idx[1]][f]
+        dd = ndimage.distance_transform_edt(~src)[f]
     else:
-        out[f] = med_rgb + noise[f][:, None] * spread * 0.6
-# soften the repainted texels (nearest-fill streaks), keep good texels
-blur = np.stack([ndimage.gaussian_filter(out[..., c], 2.0) for c in range(3)], -1)
-wt = ndimage.gaussian_filter(good2.astype(float), 2.0)
-sm = np.stack([ndimage.gaussian_filter(out[..., c] * good2, 2.0) for c in range(3)], -1) / np.maximum(wt, 1e-6)[..., None]
-out[fix] = np.where(wt[fix][:, None] > 0.05, 0.5 * sm[fix] + 0.5 * blur[fix], blur[fix])
+        near, dd = np.tile(base, (int(f.sum()), 1)), np.full(int(f.sum()), 99.0)
+    w = np.clip((dd - 2) / 8, 0, 1)[:, None]                 # thin gaps: nearest texel; wide areas: swatch
+    out[f] = (1 - w) * near + w * (base + tile[f])
+# soften the seam between kept and repainted texels
+blur = np.stack([ndimage.gaussian_filter(out[..., c], 1.2) for c in range(3)], -1)
+seam = fix & (dist_fix < 4)
+out[seam] = blur[seam]
 # bake margin: pad off-mesh texels from the nearest mesh texel
 _, idx = ndimage.distance_transform_edt(~cov, return_indices=True)
 out[~cov] = out[idx[0], idx[1]][~cov]

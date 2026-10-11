@@ -7,7 +7,8 @@
    bones take the shape's heads/tails, the body mesh the deformed rest positions (same weights).
    Modelled accessories (make_accessory.py, json "clear") first delete faces of the listed extracted
    shells whose horizontal radial line meets the accessory within 2.5 cm (old fragments of the piece).
-2. Masks: a body vertex is covered when a ray along its normal hits a shell within MASK_D; a face is
+2. Masks: a body vertex is covered when a ray along its normal hits a shell within MASK_D (or, poking
+   through, against its normal within MASK_IN); a face is
    hidden when all its vertices are covered. Replacement pieces force-hide what they replace
    (gloves: Hand bones, boots: Foot/ToeBase + shin below the boot top, coat / breeches / dress: Tail --
    the tail is hidden under clothes; build_shell.py "shell_fill" closes the breeches seat over it). The
@@ -44,6 +45,7 @@ POSES_ON = "--no-poses" not in argv
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
+MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
 LOOSE_PIECES = {"coat", "dress"}
@@ -155,6 +157,11 @@ for i, (p, n) in enumerate(zip(V, NRM)):
         hit = b.ray_cast(Vector(p) + Vector(n) * 0.0005, Vector(n), MASK_D)
         if hit[0] is not None and (best is None or hit[3] < best[1]):
             best = (k, hit[3])
+    if best is None:      # body poking just past a shell (shell right behind the surface): hidden too
+        for k, b in sbvh.items():
+            hit = b.ray_cast(Vector(p) - Vector(n) * 0.0005, -Vector(n), MASK_IN)
+            if hit[0] is not None and (best is None or hit[3] < best[1]):
+                best = (k, hit[3])
     if best:
         hid_by[i].add(best[0])
 dom = np.array(names)[W.argmax(1)]
