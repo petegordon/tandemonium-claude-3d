@@ -1,7 +1,11 @@
 // P2.5: load a rigged goose GLB in headless Chrome with the GAME's three.js (from the
 // tandemonium repo's node_modules), play every clip, verify bones move, screenshot each clip.
 //
-//   node tools/threejs_check/check.mjs out/base-goose/base_goose_rigged.glb [renders/threejs_check.png]
+//   node tools/threejs_check/check.mjs out/base-goose/base_goose_rigged.glb [renders/threejs_check.png] [chains.json]
+//
+// chains.json (dress_goose.py, D12): the cloth-chain follow rule is applied after every pose, the way the
+// game will: chain bone j takes, in world space, slerp(Hips rotation delta, thigh rotation delta,
+// follow * drape[j]) of its rest rotation, root first.
 //
 // Uses ../tandemonium/node_modules/{three,puppeteer}; nothing in that repo is modified.
 import http from "node:http";
@@ -15,6 +19,7 @@ const require = createRequire(path.join(GAME, "puppeteer", "package.json"));
 const puppeteer = require("puppeteer");
 const glb = path.resolve(ROOT, process.argv[2]);
 const shot = path.resolve(ROOT, process.argv[3] || "renders/threejs_check.png");
+const chainsFile = process.argv[4] ? path.resolve(ROOT, process.argv[4]) : null;
 
 const types = { ".js": "text/javascript", ".mjs": "text/javascript", ".glb": "model/gltf-binary", ".html": "text/html" };
 const page_html = `<!doctype html><html><body style="margin:0;background:#888">
@@ -25,6 +30,28 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 const out = { three: THREE.REVISION };
 try {
   const gltf = await new GLTFLoader().loadAsync("/model.glb");
+  const chains = await fetch("/chains.json").then(r => r.ok ? r.json() : null).catch(() => null);
+  gltf.scene.updateMatrixWorld(true);
+  const restQ = {};                                   // rest world rotations (before any clip)
+  gltf.scene.traverse(o => { if (o.isBone) restQ[o.name] = o.getWorldQuaternion(new THREE.Quaternion()); });
+  const delta = (b) => b.getWorldQuaternion(new THREE.Quaternion()).multiply(restQ[b.name].clone().invert());
+  const applyFollow = () => {
+    if (!chains) return;
+    gltf.scene.updateMatrixWorld(true);
+    const hips = gltf.scene.getObjectByName("Hips");
+    for (const c of chains.chains) {
+      const hq = delta(hips), tq = delta(gltf.scene.getObjectByName(c.thigh));
+      c.bones.forEach((bn, j) => {
+        const b = gltf.scene.getObjectByName(bn);
+        const q = hq.clone().slerp(tq, c.follow * chains.drape[j]);
+        const world = q.multiply(restQ[bn]);
+        const parentW = b.parent.getWorldQuaternion(new THREE.Quaternion());
+        b.quaternion.copy(parentW.invert().multiply(world));
+        b.updateMatrixWorld(true);
+      });
+    }
+  };
+  out.chains = chains ? chains.chains.length : 0;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x888888);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.0));
   const sun = new THREE.DirectionalLight(0xffffff, 2.0); sun.position.set(1, 2, 3); scene.add(sun);
@@ -86,6 +113,7 @@ try {
       mixer.stopAllAction();
       if (clip) { const a = mixer.clipAction(clip); a.reset().play(); }
       mixer.setTime(0.01);
+      applyFollow();
       cam.position.set(center.x + view[0] * 4.2, center.y + 0.1, center.z + view[1] * 4.2);
       cam.lookAt(center.x, center.y, center.z);
       renderer.render(scene, cam);
@@ -105,6 +133,7 @@ const server = http.createServer((req, res) => {
   let file = null;
   if (u === "/" || u === "/index.html") { res.writeHead(200, { "Content-Type": "text/html" }); return res.end(page_html); }
   if (u === "/model.glb") file = glb;
+  else if (u === "/chains.json") file = chainsFile;
   else if (u.startsWith("/three/")) file = path.join(GAME, u.slice(1));
   if (!file || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { "Content-Type": types[path.extname(file)] || "application/octet-stream" });

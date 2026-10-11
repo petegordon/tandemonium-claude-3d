@@ -273,8 +273,7 @@ for k, o in shells.items():
             vg.add([int(i)], float(Wv[i, j]), "REPLACE")
     am = o.modifiers.new("arm", "ARMATURE")
     am.object = rig
-    o.parent = rig
-    o.matrix_parent_inverse = rig.matrix_world.inverted()
+    # no parenting: skinned meshes stay root nodes in glTF (NODE_SKINNED_MESH_NON_ROOT otherwise)
 (D / f"{CHAR}_cloth_chains.json").write_text(json.dumps(
     {"rule": "chain bone j takes, in armature space, slerp(Hips rotation delta, thigh rotation delta, "
              "follow * drape[j]), root first", "drape": DRAPE, "chains": chains}, indent=1))
@@ -286,7 +285,13 @@ report = {"char": CHAR, "mask_faces": stats, "tris": tris, "tris_dressed_visible
 print("DRESS", json.dumps({"tris_dressed_visible": visible, "body_visible": tris.get("body", 0)}))
 bpy.ops.wm.save_as_mainfile(filepath=str(D / f"{CHAR}_dressed.blend"))
 bpy.ops.object.select_all(action="SELECT")
-bpy.ops.export_scene.gltf(filepath=str(D / f"{CHAR}_dressed.glb"), use_selection=True, export_format="GLB")
+bpy.context.view_layer.objects.active = rig
+out_glb = D / f"{CHAR}_dressed.glb"
+bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
+                          export_tangents=True, export_animations=True, export_animation_mode="NLA_TRACKS",
+                          export_yup=True)                      # same settings as make_anims.py (base goose)
+from glb_fix_tangents import main as fix_tangents  # noqa: E402
+fix_tangents(str(out_glb))
 
 # ---- 4. pose test renders
 if POSES_ON:

@@ -608,3 +608,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   (glTF has no constraints; the game implements it, `<char>_cloth_chains.json`): chain bone j takes slerp(Hips Δrot,
   thigh Δrot, follow × drape[j]) in armature space, follow F .7 / S .35 / B 0, drape [1, .45, .15] so the hem bends at the
   knee and hangs. Female: 6 chains, riding skirt drapes over the knees; male: 4 (coat fronts/sides; tails stay on Hips).
+- **Dressed GLBs in-engine** — dress_goose export = make_anims settings (skins, tangents, NLA-track clips, Y-up) +
+  glb_fix_tangents; shells no longer parented to the rig (skinned meshes must be root nodes). **glTF validator 0 errors /
+  0 warnings** (male 34.5 MB, female 26.3 MB, 9 clips each). `tools/threejs_check/check.mjs <glb> <png> [chains.json]`
+  now applies the D12 follow rule after each pose, as the game will (world-space slerp of the Hips/thigh rotation
+  deltas × follow × drape, root first): the game's three.js r161 shows rest / T / A / riding / neck / honk correctly for
+  both; the female riding skirt drapes over the knees exactly as in Blender.
