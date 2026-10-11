@@ -339,15 +339,15 @@
   "shell_hang": {
     "breeches": {
       "az": [
-        115,
-        245
+        0,
+        360
       ],
-      "top": 0.09,
+      "z_top": 0.91,
       "bottom": "crotch",
       "clr": 0.01,
       "tail_pull": 0.85,
-      "overlap": 4,
-      "smooth": 1
+      "smooth": 1,
+      "n_az": 48
     },
     "coat": {
       "az": [

@@ -274,8 +274,10 @@ if HANG:
     BVh = np.array([v.co[:] for v in body.data.vertices])
     tw = Wb[:, gn.index("Tail")] / np.maximum(Wb.sum(1), 1e-9)
     BVh = BVh + tw[:, None] * HANG.get("tail_pull", 0.6) * (TAIL_ROOT - BVh)
-    fullh = BVHTree.FromPolygons([tuple(x) for x in BVh], [list(pp.vertices) for pp in body.data.polygons])
     domh = np.array(gn)[Wb.argmax(1)]
+    armv = np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in domh])   # rays must not hit the arms
+    fullh = BVHTree.FromPolygons([tuple(x) for x in BVh], [list(pp.vertices) for pp in body.data.polygons
+                                                           if not armv[list(pp.vertices)].any()])
     core = BVh[(np.abs(BVh[:, 0]) < 0.15) & (domh != "Tail")]
     a0, a1 = [math.radians(a) for a in HANG["az"]]
 
@@ -287,9 +289,10 @@ if HANG:
         return math.atan2(c[0], -(c[1] - yc(c[2]))) % (2 * math.pi)
     HPh = np.array([v.co[:] for v in hi.data.vertices])
     in_sec = np.array([a0 <= azz(c) <= a1 for c in HPh]) & (np.abs(HPh[:, 0]) < 0.2)
-    z_top = float(TAIL_ROOT[2]) + HANG.get("top", 0.08)
+    z_top = HANG["z_top"] if "z_top" in HANG else float(TAIL_ROOT[2]) + HANG.get("top", 0.08)
+    ring = (a1 - a0) >= 2 * math.pi - 1e-6                  # full ring (waistband): wraps, no side edges
     z_bot = CROTCH_Z + 0.02 if HANG.get("bottom") == "crotch" else float(np.percentile(HPh[in_sec & (HPh[:, 2] < z_top), 2], 2))
-    ths = np.linspace(a0, a1, HANG.get("n_az", 25))
+    ths = np.linspace(a0, a1, HANG.get("n_az", 25), endpoint=not ring)
     zs = np.linspace(z_top, z_bot, HANG.get("n_z", 14))
     Rg = np.zeros((len(ths), len(zs)))
     for i, th in enumerate(ths):
@@ -301,14 +304,19 @@ if HANG:
     if HANG.get("hang"):
         Rg = np.maximum.accumulate(Rg, axis=1)              # fabric cannot tuck in under the tail
     for _ in range(HANG.get("smooth", 3)):                   # smooth around the back and down
-        Rg[1:-1] = 0.25 * Rg[:-2] + 0.5 * Rg[1:-1] + 0.25 * Rg[2:]
+        Rg[1:-1] = (0.25 * Rg[:-2] + 0.5 * Rg[1:-1] + 0.25 * Rg[2:]) if not ring else Rg[1:-1]
+        if ring:
+            Rg = 0.25 * np.roll(Rg, 1, 0) + 0.5 * Rg + 0.25 * np.roll(Rg, -1, 0)
         Rg[:, 1:-1] = 0.25 * Rg[:, :-2] + 0.5 * Rg[:, 1:-1] + 0.25 * Rg[:, 2:]
     clr = HANG.get("clr", 0.015)
-    edge = math.radians(HANG.get("overlap", 10))
+    edge = 0.0 if ring else math.radians(HANG.get("overlap", 10))
+    z_lo_kill = z_bot + 0.01 if HANG.get("bottom") == "crotch" else z_bot - 0.03   # legs stay below the crotch line
+    # (a full ring is the waistband: everything of the piece above it goes -- the generated top edge was
+    # hidden under the vest and is ragged)
     bm = bmesh.new()
     bm.from_mesh(hi.data)
-    kill = [f for f in bm.faces if (lambda c: abs(c[0]) < 0.2 and a0 + edge <= azz(c) <= a1 - edge
-                                    and z_bot - 0.03 < c[2] < z_top - 0.015)(np.array(f.calc_center_median()))]
+    kill = [f for f in bm.faces if (lambda c: (ring or abs(c[0]) < 0.2) and (ring or a0 + edge <= azz(c) <= a1 - edge)
+                                    and z_lo_kill < c[2] < (9.0 if ring else z_top - 0.015))(np.array(f.calc_center_median()))]
     bmesh.ops.delete(bm, geom=kill, context="FACES")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
     bm.to_mesh(hi.data)
@@ -322,9 +330,10 @@ if HANG:
     bm.from_mesh(hi.data)
     grid = [[bm.verts.new(np.array([0.0, yc(z), z]) + np.array([math.sin(th), -math.cos(th), 0.0]) * (Rg[i, j] + clr))
              for j, z in enumerate(zs)] for i, th in enumerate(ths)]
-    for i in range(len(ths) - 1):
+    for i in range(len(ths) - (0 if ring else 1)):
+        i2 = (i + 1) % len(ths)
         for j in range(len(zs) - 1):
-            bm.faces.new([grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]])
+            bm.faces.new([grid[i][j], grid[i][j + 1], grid[i2][j + 1], grid[i2][j]])
     bm.to_mesh(hi.data)
     bm.free()
     hi.data.update()

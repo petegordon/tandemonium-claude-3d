@@ -649,4 +649,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   tex_clean fills wide repainted areas with a tiled fabric swatch of the garment (largest clean square) instead of
   nearest-texel streaks. Still rough: vest V edge shards, coat vent edge strips, breeches side shards.
   Dressed visible tris: male 19.0k, female 19.8k; validator 0/0, three.js ok.
+- **Breeches-only check (Pete)** — `dressed_closeup.py --hide <all but breeches>` showed the generated waistband ragged
+  and holed (it was hidden under the vest) and the rebuilt seat reaching 0.99 m (it read as a vest back). The breeches
+  are now rebuilt as a full ring ("shell_hang" az 0–360, "z_top" 0.91 = 5 cm above the vest's 0.86 hem, down to the
+  crotch + 2 cm, 1 cm off the body, tail stub 85 % pulled); everything of the piece above the band is dropped. Clean
+  waistband all round; left: jagged seam at the crotch line, swatch-tile patches, shards on the back of the thighs.
 
