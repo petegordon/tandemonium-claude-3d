@@ -4,7 +4,7 @@
       [--tris 1600] [--voxel 0.003] [--offset 0.003] [--tex 1024]
 
 Input: out/<char>-goose/pieces/<piece>.glb (transfer_garments.py: the piece on the body it is worn on)
-and that body (chars json "body_shape": base -> base game mesh, fitted -> base mesh deformed by
+and that body (chars json "body_shape" via bodyshape.py: base game mesh, or deformed by
 <char>_rigfit.json). Same recipe as retopo_bake.py for the base goose:
   1. solidify --solid (cut pieces are open sheets), voxel remesh (one closed solid), drop specks;
   2. QEM decimate to --tris, dissolve degenerates, triangulate n-gons;
@@ -27,6 +27,9 @@ import bpy
 import numpy as np
 from mathutils import Euler, Vector
 from mathutils.bvhtree import BVHTree
+
+sys.path.insert(0, str(Path(__file__).parent))
+import bodyshape  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 
@@ -93,8 +96,7 @@ bpy.context.view_layer.objects.active = body
 bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
 for m in list(body.modifiers):
     body.modifiers.remove(m)
-if cfg.get("body_shape", "base") == "fitted":
-    fits = json.loads((D / f"{CHAR}_rigfit.json").read_text())["transforms"]
+if cfg.get("body_shape", "base") != "base":
     rig2 = load(ROOT / "out" / "base-goose" / "base_goose_rigged.glb")
     arm2 = next(o for o in rig2 if o.type == "ARMATURE")
     names = [g.name for g in body.vertex_groups]
@@ -104,13 +106,7 @@ if cfg.get("body_shape", "base") == "fitted":
         for g in v.groups:
             W[v.index, g.group] = g.weight
     W /= np.maximum(W.sum(1, keepdims=True), 1e-9)
-    F = V.copy()
-    for i, n in enumerate(names):
-        if n in fits:
-            h0 = np.array(arm2.matrix_world @ arm2.data.bones[n].head_local)
-            m = W[:, i] > 0
-            F[m] += W[m, i, None] * ((np.array(fits[n]["head"]) + (V[m] - h0) @ np.array(fits[n]["A"]).T) - V[m])
-    body.data.vertices.foreach_set("co", F.ravel())
+    body.data.vertices.foreach_set("co", bodyshape.deform(V, W, names, arm2, bodyshape.body_transforms(ROOT, CHAR, arm2)).ravel())
     body.data.update()
     for o in rig2:
         bpy.data.objects.remove(o)

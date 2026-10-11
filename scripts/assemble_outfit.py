@@ -16,6 +16,9 @@ import bpy
 import numpy as np
 from mathutils import Euler, Vector
 
+sys.path.insert(0, str(Path(__file__).parent))
+import bodyshape  # noqa: E402
+
 argv = sys.argv[sys.argv.index("--") + 1:]
 CHAR = argv[argv.index("--char") + 1]
 GREEN = "--green" in argv
@@ -35,8 +38,7 @@ cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text())
 rig = load(ROOT / "out" / "base-goose" / "base_goose_rigged.glb")
 arm = next(o for o in rig if o.type == "ARMATURE")
 body = next(o for o in rig if o.type == "MESH" and o.name.startswith("base_goose_game"))
-if cfg.get("body_shape", "base") == "fitted":
-    fits = json.loads((D / f"{CHAR}_rigfit.json").read_text())["transforms"]
+if cfg.get("body_shape", "base") != "base":
     names = [g.name for g in body.vertex_groups]
     V = np.array([v.co[:] for v in body.data.vertices])
     W = np.zeros((len(V), len(names)))
@@ -44,19 +46,10 @@ if cfg.get("body_shape", "base") == "fitted":
         for g in v.groups:
             W[v.index, g.group] = g.weight
     W /= np.maximum(W.sum(1, keepdims=True), 1e-9)
-    F = V.copy()
-    for i, n in enumerate(names):
-        if n in fits:
-            h0 = np.array(arm.matrix_world @ arm.data.bones[n].head_local)
-            m = W[:, i] > 0
-            F[m] += W[m, i, None] * ((np.array(fits[n]["head"]) + (V[m] - h0) @ np.array(fits[n]["A"]).T) - V[m])
-    body.data.vertices.foreach_set("co", F.ravel())
+    body.data.vertices.foreach_set("co", bodyshape.deform(V, W, names, arm, bodyshape.body_transforms(ROOT, CHAR, arm)).ravel())
     body.data.update()
 for m in list(body.modifiers):
     body.modifiers.remove(m)
-if cfg.get("body_shape", "base") == "fitted":
-    for o in rig:                                   # eyes sit on the base head; same head after the fit
-        pass
 if GREEN:
     g = bpy.data.materials.new("green")
     g.use_nodes = True

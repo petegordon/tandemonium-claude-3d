@@ -10,8 +10,8 @@ out/<char>-goose/pieces/<piece>.glb (UVs + texture kept), <char>_outfit_on_base.
 <char>_transfer.json (poke-through of the base body through the transferred outfit, by region) and
 renders/<char>_transfer_overlay.png (base body green + transferred outfit).
 chars/<char>.json "body_shape": "base" (default, D1: clothes move onto the shared base body) or
-"fitted" (D11, female: the character wears its own shape = base mesh deformed by its rig-fit, own
-joints; clothes stay where they are, the body shown/checked is the fitted one).
+"fitted" (D11: the character wears its rig-fit body; clothes stay where they are) or "sliders"
+(bodyshape.py: clothes go inverse rig-fit -> base rest -> forward slider shape).
 """
 import json
 import math
@@ -25,6 +25,9 @@ from mathutils import Euler, Vector
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
+sys.path.insert(0, str(Path(__file__).parent))
+import bodyshape  # noqa: E402
+
 argv = sys.argv[sys.argv.index("--") + 1:]
 CHAR = argv[argv.index("--char") + 1]
 RENDER = "--no-render" not in argv
@@ -32,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 RENDERS = ROOT / "renders"
 K = 4
+LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 RES = 640
 
 
@@ -83,17 +87,30 @@ for i, c in enumerate(F):
     kd.insert(c, i)
 kd.balance()
 Wo = np.zeros((len(X), len(names)))
+dmin = np.zeros(len(X))
 for i, x in enumerate(X):
     hits = kd.find_n(x, K)
     w = np.array([1.0 / max(d, 1e-4) for _, _, d in hits])
     Wo[i] = (w[:, None] * W[[j for _, j, _ in hits]]).sum(0) / w.sum()
+    dmin[i] = hits[0][2]
+# loose cloth (skirt, bustle, coat tails) hangs from the pelvis, not the legs: weights blend to Hips
+# from LOOSE_D0 to LOOSE_D1 off the body (leg weights round-tripped through two leg maps flared the hem)
+leg = np.array([n.endswith(("UpLeg", "Leg", "Foot", "ToeBase")) for n in names])
+tl = np.clip((dmin - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (Wo[:, leg].sum(1) > 0.5)
+hips = np.zeros(len(names))
+hips[names.index("Hips")] = 1.0
+Wo = (1 - tl)[:, None] * Wo + tl[:, None] * hips
+print("LOOSE verts on Hips", round(float((tl > 0.5).mean()), 3))
 
 SHAPE = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text()).get("body_shape", "base")
 Xr = X.copy()
-for i in (fitted_idx if SHAPE == "base" else []):   # D11: "fitted" = the character wears its own fitted body
+for i in (fitted_idx if SHAPE != "fitted" else []):   # "fitted": the character wears its own rig-fit body
     n = names[i]
     m = Wo[:, i] > 0
     Xr[m] += Wo[m, i, None] * ((H0[n] + (X[m] - HN[n]) @ AI[n].T) - X[m])
+WORN = bodyshape.body_transforms(ROOT, CHAR, arm)
+if SHAPE == "sliders":                                  # then onto the slider body, same skin weights
+    Xr = bodyshape.deform(Xr, Wo, names, arm, WORN)
 me.vertices.foreach_set("co", Xr.ravel())
 me.update()
 moved = np.linalg.norm(Xr - X, axis=1)
@@ -103,10 +120,10 @@ G = np.load(D / f"{CHAR}_garments.npz")
 piece, pnames = G["piece"], [str(n) for n in G["piece_names"]]
 assert len(piece) == len(me.polygons)
 
-if SHAPE == "fitted":                          # the body the clothes sit on is the fitted base mesh
-    V = F
+if SHAPE != "base":                            # the body the clothes sit on: fitted / slider shape
+    V = bodyshape.deform(V, W, names, arm, WORN)
     me_b = body.data
-    me_b.vertices.foreach_set("co", (F @ np.linalg.inv(np.array(body.matrix_world.to_3x3())).T).ravel())
+    me_b.vertices.foreach_set("co", (V @ np.linalg.inv(np.array(body.matrix_world.to_3x3())).T).ravel())
     me_b.update()
     NRM = np.array([(body.matrix_world.to_3x3() @ v.normal).normalized() for v in me_b.vertices])
 # poke-through of the base body through the whole transferred outfit (same metric as rig_fit.py)

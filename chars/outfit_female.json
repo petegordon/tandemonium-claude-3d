@@ -157,7 +157,7 @@
       "boots"
     ]
   },
-  "body_shape": "fitted",
+  "body_shape": "sliders",
   "shape": {
     "arm_girth": 0.58,
     "torso_girth": 0.85,

@@ -589,3 +589,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   torso_girth 0.85, hip_girth 0.95, leg_girth 0.70, leg_length 1.15, leg_pitch 3° (her boots sit 4–5 cm behind the base
   feet; the pitch rotates the whole leg chain, children inherit it), height 1.0. Outside-share vs rig-fit: torso 10.6 vs
   11.6 %, thighs/hips 5.5 vs 5.8, boots/shins 8.0 vs 7.4; hands 12 vs 6 and feet 44 vs 18 (both replaced by gloves / boots).
+- **Female on sliders + shells** — chars json `"body_shape": "sliders"`; transfer = inverse rig-fit → forward sliders (shared
+  `bodyshape.py`, also used by build_shell / assemble). Loose cloth hangs from the pelvis: outfit verts 1.5–3.5 cm off the
+  body blend their weights to Hips (leg weights round-tripped through two leg maps flared the skirt hem; 35 % of her verts,
+  6 % of his). Female shells: dress 8820, gloves 2940, hat 1800, boots 1568, collar 392 = 15.5k. Male shells rebuilt after the
+  loose-cloth change (15.2k). Both read well; leftovers for P3.5: wrists / feet / tail / chest V.
