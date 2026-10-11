@@ -155,8 +155,8 @@ KIND = R.get("kind", "breeches")
 is_hand = np.array(["Hand" in d for d in dom])
 SIDES = (("Left", 1), ("Right", -1))
 # cut planes: (point, normal, keep: -1 = the side away from the normal / +1 = toward it, x-side filter)
-if KIND in ("shirt", "coat"):
-    Z_NECK = R["z_neck"]
+if KIND in ("shirt", "coat", "glove"):
+    Z_NECK = R.get("z_neck", 1.28)
     WRIST = {}
     # the hand bone starts at the joint, but its first ~hand-width is feathered: the visible wrist is
     # where the body texture turns to dark skin -> the cuff ends there (+ "wrist_offset")
@@ -259,6 +259,9 @@ elif KIND == "vest":
     R.setdefault("seat_bump", 0.0)
 else:
     PLANES = [((0, Y0, Z_TOP), (0, -RISE, 1), -1, 0), ((0, 0, Z_BOT), (0, 0, 1), 1, 0)]
+if KIND == "glove":
+    # the hand from the wrist plane (tucked under the shirt cuff by "wrist_offset" < 0) to the fingertips
+    PLANES = [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), 1, sg) for _, sg in SIDES]
 if KIND == "coat":
     # outline: back neck plane + wrist planes (sleeves end above the shirt cuff); hem (hip length,
     # longer tails at the back) and the open front with notched lapels as an exact field cut
@@ -430,6 +433,8 @@ for f in bm.faces:
     drop = False if KIND == "shirt" else is_arm[i]   # (shirt: the wrist planes cut the hands off)
     if KIND in ("vest", "coat"):
         drop = ("Hand" in dom[i]) or inside_amount(np.array(c)) < -0.03   # (exact cut below)
+    if KIND == "glove":
+        drop = not ("Hand" in dom[i] or "ForeArm" in dom[i])
     if not all(plane_ok(c, pl) for pl in PLANES) or ((not f[capL] or KIND == "vest") and drop):   # (tail already off)
         kill.append(f)
 if "--debug" in argv:
@@ -458,7 +463,10 @@ for v in bm.verts:
     parts.append(comp)
 parts.sort(key=len)
 log("region parts", [len(p_) for p_ in parts[-4:]])
-bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
+if KIND == "glove":     # each hand (and its separate finger shells) -- drop only real specks
+    bmesh.ops.delete(bm, geom=[v for p in parts[:-2] for v in p], context="VERTS")   # (claw shells off)
+else:
+    bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
 if KIND in ("vest", "coat"):
     # exact outline: split every edge where the inside-distance field changes sign, join the split
     # points across each face, drop the outside -- the edge lies on the outline curves (no sawtooth)
@@ -599,6 +607,9 @@ excl = is_arm if KIND != "shirt" else np.zeros(len(BPv), bool)
 if KIND == "vest":
     COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Arm" not in d_ and "Hand" not in d_
                            and inside_amount(q) > COVER_MARGIN])
+elif KIND == "glove":
+    COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Hand" in d_ and
+                           all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES if (q[0] * pl[3]) >= 0.25)])
 elif KIND == "coat":
     COVERS_POS = np.array([q for q, d_ in zip(BPv, dom) if "Hand" not in d_ and inside_amount(q) > COVER_MARGIN
                            and all(plane_dist(q, pl) > COVER_MARGIN for pl in PLANES)])
@@ -630,6 +641,8 @@ for e in bm.edges:
         for v in e.verts:
             boundary[v.index] = True
 bm.free()
+if R.get("plain_smooth", 0):          # (gloves: the mitten's segment ridges must not print through)
+    P = smooth_field(P, ed, R["plain_smooth"], pin=boundary)
 for _ in range(R.get("base_smooth", 10)):
     P = smooth_field(P, ed, 1, pin=boundary)
     Pb = smooth_field(P, ed, 1, pin=boundary)
@@ -686,7 +699,7 @@ for v in me.vertices:
         WR[v.index, g.group] = g.weight
 WR /= np.maximum(WR.sum(1, keepdims=True), 1e-9)
 armw = WR[:, [i for i, n in enumerate(vgn) if ("Arm" in n)]].sum(1) if any("Arm" in n for n in vgn) else np.zeros(len(P))
-if KIND in ("shirt", "coat"):
+if KIND in ("shirt", "coat", "glove"):
     dwr = np.full(len(P), 9.0)                         # distance up the forearm from the wrist cut
     for _, sg in SIDES:
         co, dd = WRIST[sg]
@@ -701,7 +714,7 @@ bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
-if KIND in ("shirt", "vest", "coat"):
+if KIND in ("shirt", "vest", "coat", "glove"):
     pb = None
 for i, (p, n) in enumerate(zip(P, N)):
     if pb is None:
@@ -772,6 +785,11 @@ ease = np.minimum(ease, 0.4 * G)
 ease = smooth_field(ease, ed, 8)
 ease = np.minimum(ease, 0.42 * G)                     # re-limit after smoothing
 ease = np.maximum(ease, 0.004)
+if KIND == "glove":
+    E = R.get("ease", {})
+    ease = np.full(len(P), E.get("hand", 0.0025))
+    ease += E.get("cuff", 0.002) * np.clip(1 + dwr / 0.02, 0, 1)    # (dwr < 0 on the hand side) the opening flares a little
+    ease = smooth_field(ease, ed, 4)
 if KIND == "coat":
     E = R.get("ease", {})
     ease = E.get("torso", 0.02) + (E.get("sleeve", 0.018) - E.get("torso", 0.02)) * np.clip(armw, 0, 1)
@@ -825,7 +843,29 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
-if KIND in ("coat",) and R.get("offset_smooth", 0):
+if KIND == "glove":
+    # the top of the glove tucks under the shirt cuff: within "top_len" of the opening the radius about
+    # the wrist axis (through the opening ring's centroid) is held to "top_r", blending back below it
+    for s_, sg in SIDES:
+        co_, dd_ = WRIST[sg]
+        on = P[:, 0] * sg > 0.25
+        dep = -dwr                                  # depth into the hand from the opening
+        ring_ = on & (np.abs(dep) < 0.008)
+        if not ring_.any():
+            continue
+        rel0 = Pm[ring_] - co_
+        cen = co_ + (rel0 - np.outer(rel0 @ dd_, dd_)).mean(0)
+        sel_ = on & (dep < R.get("top_len", 0.06))
+        rel = Pm[sel_] - cen
+        al = rel @ dd_
+        rad = rel - np.outer(al, dd_)
+        rr = np.linalg.norm(rad, axis=1)
+        w_ = np.clip(1 - (dep[sel_] - R.get("top_len", 0.06) * 0.6) / (R.get("top_len", 0.06) * 0.4), 0, 1)
+        rnew = np.where(rr > R.get("top_r", 0.034), R.get("top_r", 0.034), rr)
+        rr2 = rr + (rnew - rr) * w_
+        Pm[sel_] = cen + np.outer(al, dd_) + rad / np.maximum(rr, 1e-6)[:, None] * rr2[:, None]
+        log("glove top", s_, "max radius before mm", round(float(rr.max()) * 1000, 1))
+if KIND in ("coat", "vest") and R.get("offset_smooth", 0):
     # the offset direction tilts at open edges (one-sided normals) and spikes the edge: smooth the
     # offset vectors, then restore at least the required depth along the normal
     Dv = N * ease[:, None]
@@ -914,6 +954,9 @@ if KIND == "shirt":
     extra_attr.update({"dwr": np.minimum(dwr, 1.0), "dhem": dhem})
 if KIND == "coat":
     extra_attr.update({"dwr": np.minimum(dwr, 1.0)})
+if KIND == "glove":
+    extra_attr.update({"dwr": np.clip(-dwr, -1.0, 1.0),
+                       "back": np.array([n_[0] * (1 if p_[0] > 0 else -1) for p_, n_ in zip(P, N)])})
 for name, val in (("ease", ease), ("z0", P[:, 2]), *extra_attr.items()):
     a = mid.data.attributes.new(name, "FLOAT", "POINT")
     a.data.foreach_set("value", val.astype(np.float32))
@@ -1231,6 +1274,36 @@ if KIND == "coat":
     # soft drape folds on the back skirt and tails
     sk = bk & (zh < V_.get("waist_z", 0.93))
     disp += 0.0018 * np.sin(phit * 9 + 0.6 * np.sin(zh * 20)) * np.clip((V_.get("waist_z", 0.93) - zh) / 0.12, 0, 1) * sk
+if KIND == "glove":
+    tintm = np.ones(len(Ph))
+    def attr(nm):
+        a_ = np.zeros(len(Ph), np.float32)
+        hi.data.attributes[nm].data.foreach_get("value", a_)
+        return a_.astype(float)
+    dh_, bk_ = attr("dwr"), attr("back")              # depth into the hand from the opening, back-of-hand facing
+    # rolled opening band + stitch
+    disp += 0.0012 * np.clip(1 - dh_ / 0.012, 0, 1) + groove(np.abs(dh_ - 0.012), 0.0008, 0.0009)
+    for s_, sg in SIDES:
+        on = x * sg > 0.25
+        h0, h1 = bone[f"{s_}Hand"]
+        ax = (h1 - h0) / np.linalg.norm(h1 - h0)
+        rel = Ph - h0
+        along = rel @ ax
+        side = np.cross(ax, np.array([0, 1.0, 0]))
+        side /= np.linalg.norm(side)
+        lat = rel @ side
+        back = on & (bk_ > 0.25)
+        # three points stitched on the back of the hand
+        for off in (-0.012, 0.0, 0.012):
+            m_ = back & (along > 0.05) & (along < 0.12)
+            disp += np.where(m_, groove(np.abs(lat - off), 0.0007, 0.0007), 0.0)
+        # side seams round the edge of the hand, soft creases over the knuckles and the palm
+        disp += np.where(on & (np.abs(bk_) < 0.2), groove(np.abs(bk_) * 0.02, 0.0006, 0.0006), 0.0)
+        kn = on & (along > 0.12) & (along < 0.2)
+        disp += np.where(kn, 0.00025 * np.sin(along / 0.009 * 2 * np.pi), 0.0)
+        # wrist wrinkles just in from the opening
+        wr = on & (dh_ > 0.015) & (dh_ < 0.05)
+        disp += np.where(wr, 0.0003 * np.sin(dh_ / 0.011 * 2 * np.pi + 1.3 * np.sin(lat * 60)) * np.clip(1 - (dh_ - 0.015) / 0.035, 0, 1), 0.0)
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
 if KIND in ("vest", "coat"):
     occ = occ * tintm

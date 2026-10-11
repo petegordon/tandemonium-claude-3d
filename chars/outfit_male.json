@@ -508,7 +508,8 @@
       "region_sub": 0,
       "edge_iter": 0,
       "edge_relax": 0,
-      "lo_edge_iter": 6
+      "lo_edge_iter": 6,
+      "offset_smooth": 12
     },
     "coat": {
       "kind": "coat",
@@ -615,6 +616,45 @@
       "under_max": 0.03,
       "thickness": 0,
       "offset_smooth": 12
+    },
+    "gloves": {
+      "kind": "glove",
+      "z_top": 0.9,
+      "z_bot": 0.8,
+      "tris": 1600,
+      "cover_margin": 0.008,
+      "wrist_offset": -0.058,
+      "pre_cuts": 1,
+      "region_sub": 1,
+      "base_smooth": 24,
+      "ease": {
+        "hand": 0.0025,
+        "cuff": 0.002
+      },
+      "mottle": 0.06,
+      "twill": 0.0,
+      "roughness": 0.45,
+      "weight_smooth": 6,
+      "colors": {
+        "black": [
+          34,
+          31,
+          30
+        ],
+        "brown": [
+          92,
+          60,
+          40
+        ],
+        "grey": [
+          120,
+          116,
+          110
+        ]
+      },
+      "plain_smooth": 25,
+      "top_r": 0.033,
+      "top_len": 0.1
     }
   },
   "accessory_drop": {

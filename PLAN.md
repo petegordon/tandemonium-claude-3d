@@ -732,4 +732,10 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   ragged line, visible under the flared hem: breeches now stay whole under the jacket (LAYER_IGNORE). Hem: boundary
   verts on the hem line are pinned back to it after the hang / relax / offset steps (the row above eased onto it), and
   the game-mesh re-snap accepts hem verts up to 6 cm off. Straight hem all round. Validator 0/0, three.js ok, 19.7k.
+- **Designed gloves + garments sheet** -- make_garment kind "glove": the hand from a wrist plane 5.8 cm above the
+  visible wrist (tucks under the shirt cuff) to the tips; claw shells dropped; the mitten base smoothed (25 plain +
+  24 Taubin rounds); 2.5 mm ease, top 10 cm held to a 33 mm round tube about the wrist axis so it sits inside the
+  cuff; details: rolled opening + stitch, three points on the back, side seams, light knuckle / wrist creases;
+  leather finish (roughness 0.45), black / brown / grey. dress_goose: gloves stay whole under the cuffs. Vest offset
+  vectors smoothed like the jacket. scripts/garment_sheet.py: each garment on its own, front / side / back.
 

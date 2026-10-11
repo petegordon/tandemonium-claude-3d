@@ -33,6 +33,7 @@ ONLY = [h for h in opt("--only", "").split(",") if h]
 TINT = dict(kv.split("=") for kv in opt("--tint", "").split(";") if kv)
 POSE = opt("--pose", "")
 Z = opt("--z", 0.95, float)
+XC = opt("--x", 0.0, float)   # camera target x (e.g. a hand)
 SIZE = opt("--size", 0.7, float)
 YAWS = [float(y) for y in opt("--yaws", "0,90,180,215").split(",")]
 TAG = opt("--tag", "+".join(HIDE) or "all")
@@ -108,7 +109,7 @@ tmp.mkdir(parents=True, exist_ok=True)
 row = []
 for yaw in YAWS:
     y = math.radians(yaw)
-    c = Vector((0, 0, Z))
+    c = Vector((XC, 0, Z))
     cam.location = c + Vector((5 * math.sin(y), -5 * math.cos(y), 0))
     cam.rotation_euler = (c - cam.location).to_track_quat("-Z", "Y").to_euler()
     sc.render.filepath = str(tmp / "cl.png")
