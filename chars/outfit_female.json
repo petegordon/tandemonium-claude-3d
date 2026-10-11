@@ -157,5 +157,14 @@
       "boots"
     ]
   },
-  "body_shape": "fitted"
+  "body_shape": "fitted",
+  "shape": {
+    "arm_girth": 0.58,
+    "torso_girth": 0.85,
+    "hip_girth": 0.95,
+    "leg_girth": 0.7,
+    "leg_length": 1.15,
+    "height": 1.0,
+    "leg_pitch": 3.0
+  }
 }

@@ -583,3 +583,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   12k before P3.5 masks). `scripts/assemble_outfit.py [--green]` renders the set. Reads well; leftovers: base tail through
   the vent, base chest through the waistcoat V, bake speckle (shirt patches, cream flecks on the waistcoat) → P3.5 masks.
   Pete idea: female shape as a few symmetric sliders (arm / torso / leg girth, leg length, height) instead of per-bone fit.
+- **Female body sliders (Pete's idea, replaces her per-bone fit)** — `scripts/bodyshape.py` (shared: sliders → per-bone maps
+  in the rig_fit format; `body_transforms()` / `deform()` for every outfit script) + `scripts/shape_preview.py` (base | rig-fit
+  | sliders, and slider body inside the outfit + outside share). chars/outfit_female.json "shape": arm_girth 0.58,
+  torso_girth 0.85, hip_girth 0.95, leg_girth 0.70, leg_length 1.15, leg_pitch 3° (her boots sit 4–5 cm behind the base
+  feet; the pitch rotates the whole leg chain, children inherit it), height 1.0. Outside-share vs rig-fit: torso 10.6 vs
+  11.6 %, thighs/hips 5.5 vs 5.8, boots/shins 8.0 vs 7.4; hands 12 vs 6 and feet 44 vs 18 (both replaced by gloves / boots).
