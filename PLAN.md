@@ -505,3 +505,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
 - **P3.1 started** — `comfy_job.py prep --right drawn` option (female costume is asymmetric: drawn right view
   instead of mirrored left). Male + female outfit views prepped (mattes clean). The 8-run seed sweep was stopped by
   Claude Code's low-memory reaper before any run finished; restart from `RESUME.md` after the reboot.
+- **P3.1 DONE (2026-10-10)** — 8-run Pixal3D sweep (seeds 42/7/123/2026 per outfit, ~3 min each, no reaps after reboot).
+  Male mean IoU 0.943/0.931/0.931/0.943, all 1 glove per side. Female 0.924/0.925/0.925/0.921; s42 hand check
+  false-negative on +X (glove visible), s42 peach cheeks/collar. Close-ups: `renders/outfit_{male,female}_closeups.png`.
+  **Pete picked male s2026** (clean bowler, bow tie, boots; tiny cufflink blob) and **female s7** (best 3-tier bustle,
+  cream cheeks; right boot smeared to a point — fix at garment stage, or borrow s123's boots). `clean_hi.py --height 1.65`
+  (provisional = base height; P3.2 sets real scale) → `out/outfit_{male,female}-goose/outfit_*_goose_hi.glb` (IoU unchanged).

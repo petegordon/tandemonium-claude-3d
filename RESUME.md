@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.1.** Male + female outfit views cropped and prepped (`refs/outfit_male|outfit_female/prepped/`, female uses the drawn right view). **Next: run the 8-run seed sweep** (it was stopped by Claude Code's low-memory reaper before any run finished). |
+| P3 outfits | **In progress — P3.2 next.** P3.1 done: Pete picked **male s2026**, **female s7** (sweep notes in PLAN.md). Cleaned hi meshes `out/outfit_male|outfit_female-goose/outfit_*_goose_hi.glb` (provisional height 1.65 m). Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
@@ -41,7 +41,9 @@ bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye
 - Local-only outputs (gitignored): `out/` (base goose .blend/GLBs, candidates) and `renders/`. Key ones are
   also on the GitHub releases.
 
-## Next steps (P3.1 → P3.3)
+## Next steps (P3.2 → P3.3)
+
+Steps 1–4 below are DONE for P3.1 (kept for re-runs); resume at step 5.
 
 1. Start ComfyUI (above), confirm ~10 GB free VRAM (`nvidia-smi`), Blender closed.
 2. Seed sweep (background; ~3 min per run):

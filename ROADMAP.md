@@ -9,7 +9,7 @@ measured checks + renders, and the questions Pete needs to answer before the nex
 ## Status (2026-10-10)
 
 P0 done · **P1 base goose done** (release `base-goose-p1`) · **P2 standard rig done** (release
-`base-goose-p2-rigged`) · **P3 in progress**: P3.1 outfit views prepped, seed sweep next · P4–P6 not started.
+`base-goose-p2-rigged`) · **P3 in progress**: P3.1 done (male s2026, female s7), P3.2 align next · P4–P6 not started.
 Restart instructions: `RESUME.md`.
 
 ## Architecture: one goose, many outfits
