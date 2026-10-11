@@ -165,3 +165,35 @@ Open items:
 - **Off the bike:** unchanged.
 - **Option B** (step-through rear frame) is planned for the styling pass. It moves her bar stem.
 - **Before/after:** `docs/img/p54_riding_hem.png`.
+
+## 8. P5.5 delivery + game integration (2026-10-11)
+
+**Delivery** (`out/delivery/`, release `p5-goose-riders`):
+- `scripts/glb_pack_images.py` re-encodes the textures as JPEG q88, at most 1024 px. Images with real alpha stay PNG; geometry, skins and clips are byte-identical.
+- Files:
+
+  | file | built from | size |
+  |---|---|---|
+  | `goose_tandem.glb` | `bike_rigged_goosefit26.glb` | 5.3 -> 3.3 MB |
+  | `goose_captain.glb` | `outfit_male_rider.glb` | 22.3 -> 4.7 MB |
+  | `goose_stoker.glb` | `outfit_female_rider.glb` | 19.4 -> 4.0 MB |
+
+- **Validator:** 0 errors on all three. Warnings:
+  - bike: 3 missing tangents on the new goosefit tubes;
+  - riders: skinned meshes sit under the rig node (three.js is fine with that).
+
+**Game** (tandemonium, local branch `feat/goose-riders-p5` from `origin/main`, commit 5e54aeb, not pushed):
+- **Files:** `tandem-3d/goose/*.glb`; `js/goose-riders.js` (three.js wiring); `js/goose-rider-clips.js` (the clip contract, unit-tested).
+- **`bike-model.js`:**
+  - detects the goose bike by its `Pedal` clip and sockets;
+  - doesn't spin `pedal` nodes for it;
+  - uses precise bounds and keeps the 4.4 m length (bike and geese scale together, D21);
+  - counts the bike as loaded only once both geese are seated (so versus clones carry them);
+  - each goose leans by its own rider's lean (`captainLean` / `stokerLean`) while the bike tilts by the aggregate, as with the fused model;
+  - versus clones get their own geese and mixers.
+- **`config.js`:** `BIKE_MODEL_PATH` is now the goose tandem; `?riders=fused` brings the old fused model back. The chooser keeps the plain frame.
+- **`front-view-camera.js`:** camera height times `riderViewScale`, because the geese stand about 14% taller at the game's 4.4 m bike length.
+- **Checks:**
+  - `npm test`: 416/416, 5 of them new;
+  - `npm run smoke:geese`: PASS (loads, sockets, crank-driven legs, captain right and stoker left at once, versus clone);
+  - `smoke:ride`: unchanged.
