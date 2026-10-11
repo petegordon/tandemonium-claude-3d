@@ -540,3 +540,10 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   0.5 %, gloves 4.8 %, breeches 21.6 %, boots 14.6 %, body 7.8 %, unlabelled 0.1 %. Coat vs breeches needed height bands +
   stand-off distance (coat tails stand off the body; shadowed breeches read coat-brown). Female (region does the work, the
   whole dress is one red): hat 4.8, bodice 6.3, sleeves 10.4, skirt+bustle 67.5, collar 0.4, gloves 1.7, boots 4.2, body 4.8 %.
+- **P3.3 cleanup round (Pete: "clean up more")** — new gates: `layered` (ray inward finds another surface 8–45 mm behind,
+  past the ~5 mm double wall = outer layer: coat tails over breeches, bow tie over collar), `ax_max`, `y_max`, `L_min`;
+  hat = anything above z 1.60 + head faces ≥2 cm off the fitted head; waistcoat button column rule. Island merge:
+  same-label components < 4 cm² join their main neighbour (detached pieces like buttons vote by nearest faces), then a
+  piece-level pass < 15 cm² (40 cm² swallowed glove fingers). Layered-tan-torso → coat was tried and reverted (the
+  waistcoat is "layered" too). Mid-split pieces in chars json "pieces": male hat 3.2 / coat 45.7 / chest 6.1 / breeches
+  18.1 / gloves 4.4 / boots 14.9 / body 7.1 %; female hat 5.3 / dress 84.3 / collar 0.5 / gloves 1.5 / boots 4.1 / body 4.2 %.

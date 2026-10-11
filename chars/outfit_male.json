@@ -20,10 +20,15 @@
   "garments": [
     {
       "name": "hat",
+      "z_min": 1.6
+    },
+    {
+      "name": "hat",
       "region": [
         "head"
       ],
-      "z_min": 1.6
+      "z_min": 1.55,
+      "dist_min": 0.02
     },
     {
       "name": "body",
@@ -57,6 +62,18 @@
       "L_min": 45
     },
     {
+      "name": "shirt",
+      "family": [
+        "tan"
+      ],
+      "region": [
+        "neck",
+        "torso"
+      ],
+      "z_min": 1.28,
+      "L_min": 45
+    },
+    {
       "name": "bowtie",
       "family": [
         "black",
@@ -66,10 +83,26 @@
         "neck",
         "torso"
       ],
-      "z_min": 1.27,
-      "z_max": 1.36,
+      "z_min": 1.24,
+      "z_max": 1.38,
       "y_max": -0.02,
-      "dist_min": 0.008
+      "ax_max": 0.075,
+      "layered": true
+    },
+    {
+      "name": "waistcoat",
+      "family": [
+        "black",
+        "dark",
+        "brown"
+      ],
+      "region": [
+        "torso"
+      ],
+      "z_min": 0.9,
+      "z_max": 1.25,
+      "y_max": -0.05,
+      "ax_max": 0.035
     },
     {
       "name": "body",
@@ -116,33 +149,6 @@
     {
       "name": "coat",
       "family": [
-        "brown",
-        "dark",
-        "black"
-      ],
-      "region": [
-        "hips",
-        "thigh"
-      ],
-      "z_min": 0.66
-    },
-    {
-      "name": "coat",
-      "family": [
-        "brown",
-        "dark",
-        "black"
-      ],
-      "region": [
-        "hips",
-        "thigh"
-      ],
-      "z_min": 0.6,
-      "dist_min": 0.015
-    },
-    {
-      "name": "coat",
-      "family": [
         "tan",
         "dark",
         "cream"
@@ -151,6 +157,34 @@
         "upper_arm",
         "forearm"
       ]
+    },
+    {
+      "name": "coat",
+      "family": [
+        "brown",
+        "dark",
+        "black"
+      ],
+      "region": [
+        "hips",
+        "thigh"
+      ],
+      "z_min": 0.7
+    },
+    {
+      "name": "coat",
+      "family": [
+        "brown",
+        "dark",
+        "black",
+        "tan"
+      ],
+      "region": [
+        "hips",
+        "thigh"
+      ],
+      "z_min": 0.6,
+      "layered": true
     },
     {
       "name": "waistcoat",
@@ -182,5 +216,27 @@
         "shin"
       ]
     }
-  ]
+  ],
+  "pieces": {
+    "hat": [
+      "hat"
+    ],
+    "coat": [
+      "coat"
+    ],
+    "chest": [
+      "shirt",
+      "bowtie",
+      "waistcoat"
+    ],
+    "breeches": [
+      "breeches"
+    ],
+    "gloves": [
+      "gloves"
+    ],
+    "boots": [
+      "boots"
+    ]
+  }
 }

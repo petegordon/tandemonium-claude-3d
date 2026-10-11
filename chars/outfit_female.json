@@ -20,10 +20,15 @@
   "garments": [
     {
       "name": "hat",
+      "z_min": 1.6
+    },
+    {
+      "name": "hat",
       "region": [
         "head"
       ],
-      "z_min": 1.6
+      "z_min": 1.55,
+      "dist_min": 0.02
     },
     {
       "name": "body",
@@ -43,6 +48,19 @@
       ],
       "z_max": 1.4,
       "L_min": 45
+    },
+    {
+      "name": "collar",
+      "family": [
+        "brown",
+        "tan"
+      ],
+      "region": [
+        "neck",
+        "torso"
+      ],
+      "z_min": 1.25,
+      "L_min": 30
     },
     {
       "name": "body",
@@ -95,5 +113,24 @@
         "foot"
       ]
     }
-  ]
+  ],
+  "pieces": {
+    "hat": [
+      "hat"
+    ],
+    "dress": [
+      "bodice",
+      "sleeves",
+      "skirt"
+    ],
+    "collar": [
+      "collar"
+    ],
+    "gloves": [
+      "gloves"
+    ],
+    "boots": [
+      "boots"
+    ]
+  }
 }
