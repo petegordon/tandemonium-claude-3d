@@ -24,6 +24,15 @@
     },
     {
       "name": "hat",
+      "family": [
+        "red"
+      ],
+      "region": [
+        "head"
+      ]
+    },
+    {
+      "name": "hat",
       "region": [
         "head"
       ],

@@ -7,7 +7,7 @@ Needs garment_explore.py's out/<char>-goose/<char>_faces.npz (per-face Lab, regi
 rig-fitted base body). Colour families (Lab, chroma C = |ab|), first match wins:
   cream  L >= 62 | black  L < 20 and C < 8 | red  a >= 15 | brown  C >= 13 | tan  C < 13 | dark (rest)
 chars/<char>.json "garments": ordered rules {name, family: [...], region: [...], layered (another surface 8-45 mm behind: outer layer),
-ax_max (|x| limit), z_min / z_max, y_max (front is -Y)
+ax_max (|x| limit), inside_of (strictly inside an earlier garment's front x-extent per 2 cm band), z_min / z_max, y_max (front is -Y)
 (m, base frame), L_min, dist_min / dist_max (m from the fitted body)}; the first matching rule labels the face, unmatched =
 "other". Then SMOOTH rounds of an area-weighted majority vote over vertex-sharing faces (baked shadows
 leave speckle), and same-label islands under --island m^2 (default 4 cm^2) join the label bordering
@@ -110,6 +110,18 @@ for r in RULES:
         m &= np.abs(cen[:, 0]) < r["ax_max"]
     if "dist_min" in r:
         m &= dist >= r["dist_min"]
+    if "inside_of" in r:                      # strictly inside another garment's x-extent per 2 cm band
+        ref = (label == NAMES.index(r["inside_of"])) & (cen[:, 1] < 0)
+        band = np.floor(cen[:, 2] / 0.02).astype(int)
+        ok = np.zeros(nf, bool)
+        for bz in np.unique(band[m]):
+            rb = ref & (band == bz)
+            if rb.sum() < 20:
+                continue
+            lo, hi = np.percentile(cen[rb, 0], [20, 80])   # 5-95 reached the tan lapel highlights
+            sel = m & (band == bz) & (cen[:, 0] > lo + 0.01) & (cen[:, 0] < hi - 0.01)
+            ok |= sel
+        m &= ok
     if r.get("layered"):
         idx = np.flatnonzero(m)
         m[idx[~layered(idx)]] = False

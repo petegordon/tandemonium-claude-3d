@@ -547,3 +547,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   piece-level pass < 15 cm² (40 cm² swallowed glove fingers). Layered-tan-torso → coat was tried and reverted (the
   waistcoat is "layered" too). Mid-split pieces in chars json "pieces": male hat 3.2 / coat 45.7 / chest 6.1 / breeches
   18.1 / gloves 4.4 / boots 14.9 / body 7.1 %; female hat 5.3 / dress 84.3 / collar 0.5 / gloves 1.5 / boots 4.1 / body 4.2 %.
+- **P3.3 round 2** — added `inside_of` gate (strictly inside another garment's front x-extent per 2 cm band) to turn
+  shadowed waistcoat creases from coat → waistcoat: at 5–95 % it grabbed the lapels (tan lapel highlights widen the
+  extent), at 20–80 % it fragmented the bow tie / shirt V → reverted for the male (gate kept, unused). Female: red in
+  head → hat (no change visible: the remaining hat flecks are the dark band/brim underside tight to the head).
+  Rule-based colour labelling is at its limit on baked-shadow albedo; next lever = project 2D garment masks from the
+  clean reference views (segmentation on refs/<char>/prepped) onto the mesh, or hand touch-up.
