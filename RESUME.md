@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.4 next.** P3.1 picks male s2026 / female s7. P3.2 head fit + P3.2b rig-fit accepted. **P3.3 done** (Pete: SAM version): garment labels + mid-split pieces (male hat/coat/chest/breeches/gloves/boots, female hat/dress/collar/gloves/boots) in `out/<char>-goose/<char>_garments.npz`. Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.4.** P3.1–P3.3 done (male s2026 / female s7, SAM labels). Male: 8 pieces (hat, coat, waistcoat, shirt, bowtie, breeches, gloves, boots) transferred onto the base body and built as game shells (`out/outfit_male-goose/shells/`, 15.2k tris). **Next: female body sliders** (Pete: arm / torso / leg girth, leg length, height instead of per-bone fit), then her 5 shells, then P3.5 masks. Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
@@ -78,6 +78,9 @@ extract_garments.py --char outfit_x                  # rules (chars/<c>.json "ga
 ref_project.py --char outfit_x                       # faces -> prepped reference pixels -> <c>_refproj.npz
 python -I sam_masks.py --char outfit_x               # ComfyUI venv, SAM 2.1 large -> <c>_refvotes.npz
 extract_garments.py --char outfit_x --use-ref        # final labels + pieces -> <c>_garments.npz
+transfer_garments.py --char outfit_x                 # pieces onto the body they are worn on -> pieces/*.glb
+build_shell.py --char outfit_x --piece P [--no-push] # game shell per piece -> shells/P.glb (gloves/boots/hat/bowtie: --no-push)
+assemble_outfit.py --char outfit_x [--green]         # body + all shells render
 ```
 
 ## Base goose rebuild chain (if anything upstream changes)
