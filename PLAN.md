@@ -563,3 +563,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   refs, but votes reach ~1/3 of faces; leftovers sit where no view sees squarely (double-wall inner faces showing through at
   creases, edge-on folds, vent lining).** Male ≈ rules-only (fewer chest strips, new vent slivers); female slightly cleaner.
   Compare `renders/outfit_<x>_pieces_rules_vs_sam.png`.
+- **P3.4 step 1 transfer** — `scripts/transfer_garments.py`: outfit verts take K=4 IDW skin weights from the rig-fitted
+  base, then the blended per-bone inverse → base rest frame; per-piece GLBs in `out/<char>-goose/pieces/`. Male: moved
+  median 7 / p90 24 mm, poke = rig-fit numbers (tail untucked again in rest → P3.5 mask), looks right. **Female: moved p90
+  135 / max 300 mm** — skirt verts inherit LEG weights so the inverse leg stretch (×1.18) squashes/flares the skirt;
+  arm girth 0.55 inverts to ×1.8 → puffy sleeves, huge gloves. Design question raised: inflate clothes to the shared base
+  body (D9 as decided) vs a per-character body shape (female = base mesh + "female" morph/bone scales from the rig-fit).
