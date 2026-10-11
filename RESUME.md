@@ -19,7 +19,8 @@ D3 new standard rig · D4 skirt/coat tails = bone chains + weight painting · D5
 D6 one shared base body · D7 v3 references are the source of truth · D8 mitten hands ·
 bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye/beak/tongue looks approved ·
 **D9 (P3.2)** rig-fit transfer: head pieces use the head fit; body garments move to the base body by fitting the base rig
-bone-by-bone to each outfit (limb lengths, arm/spine angles; targets = gloves, boots, shoulders) then inverse skinning ·
+bone-by-bone to each outfit (limb lengths, arm/spine angles, **per-bone girth scale**; targets = gloves, boots, shoulders)
+then inverse skinning; P3.4 offsets shells to clear the rest; P3.5 masks hide body (tail, toes, thighs) under garments ·
 **D10 (P3.3)** garment extraction by texture colour + body region (refined by distance map), not distance alone.
 
 ## Machine setup (Windows 11, laptop RTX 5070 Ti 12 GB, 32 GB RAM)

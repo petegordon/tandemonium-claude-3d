@@ -520,3 +520,7 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   transform can't fit head and body. Both: the generator "paints" clothes tight on the body (male: 36 % of outfit
   surface within 5 mm of the base) and the base body pokes out (thighs, tail through the jacket back, webbed feet past
   the boots) → pure distance-to-body extraction (P3.3) will not separate garments; needs texture/region segmentation.
+- **Poke-through measured** (`scripts/poke_depth.py`, body points >3 mm outside the aligned outfit): male torso 77 % (median
+  13 mm, p90 26), thighs/hips 71 % (13 / 59, max 122 = tail through jacket back), hands 58 % (9 / 18), boots 62 % (8 / 16),
+  feet 60 % (11 / 45). Female feet/shins median 28–44 mm (feet 8.5 cm low). Base body ≈ 1–1.5 cm thicker than the
+  generator's under-clothes body. Pete: **rig-fit + per-bone girth scale, then P3.4 shell offset + P3.5 body masks.**
