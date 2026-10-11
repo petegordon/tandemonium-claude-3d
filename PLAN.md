@@ -594,3 +594,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   body blend their weights to Hips (leg weights round-tripped through two leg maps flared the skirt hem; 35 % of her verts,
   6 % of his). Female shells: dress 8820, gloves 2940, hat 1800, boots 1568, collar 392 = 15.5k. Male shells rebuilt after the
   loose-cloth change (15.2k). Both read well; leftovers for P3.5: wrists / feet / tail / chest V.
+- **P3.5 first pass** — `scripts/dress_goose.py`: base_goose.blend (skinned body + rig + eyes) → worn shape (bodyshape:
+  edit bones + rest mesh) → masks (body vert covered if a normal ray hits a shell ≤ 6 cm, face hidden if all 3 covered;
+  forced: gloves→Hand, boots→Foot/Toe, coat→Tail, dress→Tail+legs) → body split into toggle sub-meshes keyed by the hiding
+  pieces → shells skinned by Data Transfer (nearest face interp.), loose cloth → Hips **only for coat/dress** (on boots and
+  baggy breeches it tore the riding pose), 6 rounds of edge smoothing, 4 influences, normalised → `<char>_dressed.glb/.blend`
+  + `renders/<char>_dressed_poses.png` (rest, A, riding, neck). **Dressed visible tris: male 17.7k, female 18.2k (≤ 20k).**
+  Rest / A / neck clean for both; riding: male coat skirts over the lap rough, female skirt cannot follow the thighs →
+  D4 bone chains next.
