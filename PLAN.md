@@ -569,3 +569,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   135 / max 300 mm** — skirt verts inherit LEG weights so the inverse leg stretch (×1.18) squashes/flares the skirt;
   arm girth 0.55 inverts to ×1.8 → puffy sleeves, huge gloves. Design question raised: inflate clothes to the shared base
   body (D9 as decided) vs a per-character body shape (female = base mesh + "female" morph/bone scales from the rig-fit).
+- **D11 (Pete)** — per-character body shape: female = shared base mesh + rig deformed by her rig-fit (own joints, slimmer
+  arms, longer legs; one topology, same weights/bone names → clips stay shared); male stays on the base (D1).
+  `chars/outfit_female.json "body_shape": "fitted"` → transfer_garments keeps her clothes in place and checks them against
+  the fitted body: poke torso 5.5 %, hands 4 %, boots 6 %, feet 14 % (toes → mask). Pete: SAM labels "fairly accurate";
+  idea logged: a three.js page to paint/fix cut lines by hand if needed.

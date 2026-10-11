@@ -21,7 +21,9 @@ bind pose = model rest pose · Mixamo-style bone names · hip joint 14 cm · eye
 **D9 (P3.2)** rig-fit transfer: head pieces use the head fit; body garments move to the base body by fitting the base rig
 bone-by-bone to each outfit (limb lengths, arm/spine angles, **per-bone girth scale**; targets = gloves, boots, shoulders)
 then inverse skinning; P3.4 offsets shells to clear the rest; P3.5 masks hide body (tail, toes, thighs) under garments ·
-**D10 (P3.3)** garment extraction by texture colour + body region (refined by distance map), not distance alone.
+**D10 (P3.3)** garment extraction by texture colour + body region (refined by distance map), not distance alone ·
+**D11 (P3.4)** per-character body shape: female = shared base mesh + rig deformed by her rig-fit (own joints, slimmer
+arms, longer legs) and her clothes keep the reference proportions; male stays on the base body (D1), clothes inflated.
 
 ## Machine setup (Windows 11, laptop RTX 5070 Ti 12 GB, 32 GB RAM)
 

@@ -9,6 +9,9 @@ body as if the base had worn it. Splits by piece (<char>_garments.npz "piece") a
 out/<char>-goose/pieces/<piece>.glb (UVs + texture kept), <char>_outfit_on_base.glb (all pieces),
 <char>_transfer.json (poke-through of the base body through the transferred outfit, by region) and
 renders/<char>_transfer_overlay.png (base body green + transferred outfit).
+chars/<char>.json "body_shape": "base" (default, D1: clothes move onto the shared base body) or
+"fitted" (D11, female: the character wears its own shape = base mesh deformed by its rig-fit, own
+joints; clothes stay where they are, the body shown/checked is the fitted one).
 """
 import json
 import math
@@ -85,8 +88,9 @@ for i, x in enumerate(X):
     w = np.array([1.0 / max(d, 1e-4) for _, _, d in hits])
     Wo[i] = (w[:, None] * W[[j for _, j, _ in hits]]).sum(0) / w.sum()
 
+SHAPE = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text()).get("body_shape", "base")
 Xr = X.copy()
-for i in fitted_idx:
+for i in (fitted_idx if SHAPE == "base" else []):   # D11: "fitted" = the character wears its own fitted body
     n = names[i]
     m = Wo[:, i] > 0
     Xr[m] += Wo[m, i, None] * ((H0[n] + (X[m] - HN[n]) @ AI[n].T) - X[m])
@@ -99,6 +103,12 @@ G = np.load(D / f"{CHAR}_garments.npz")
 piece, pnames = G["piece"], [str(n) for n in G["piece_names"]]
 assert len(piece) == len(me.polygons)
 
+if SHAPE == "fitted":                          # the body the clothes sit on is the fitted base mesh
+    V = F
+    me_b = body.data
+    me_b.vertices.foreach_set("co", (F @ np.linalg.inv(np.array(body.matrix_world.to_3x3())).T).ravel())
+    me_b.update()
+    NRM = np.array([(body.matrix_world.to_3x3() @ v.normal).normalized() for v in me_b.vertices])
 # poke-through of the base body through the whole transferred outfit (same metric as rig_fit.py)
 bvh = BVHTree.FromObject(outfit, bpy.context.evaluated_depsgraph_get())
 x_abs, z_rel = np.abs(V[:, 0]), V[:, 2] / H
@@ -119,7 +129,7 @@ for k, m in regions.items():
     po = po[po > 3]
     poke[k] = {"outside_gt3mm": round(float(len(po) / max(1, m.sum())), 3),
                "poke_median_mm": round(float(np.median(po)), 1) if len(po) else 0.0}
-report = {"char": CHAR, "moved_mm": np.round(np.percentile(moved, [50, 90, 100]) * 1000, 1).tolist(),
+report = {"char": CHAR, "body_shape": SHAPE, "moved_mm": np.round(np.percentile(moved, [50, 90, 100]) * 1000, 1).tolist(),
           "poke_base_through_outfit": poke}
 (D / f"{CHAR}_transfer.json").write_text(json.dumps(report, indent=1))
 print("TRANSFER", json.dumps(report))
