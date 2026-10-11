@@ -47,7 +47,8 @@ sc.view_settings.view_transform = "Standard"
 sc.render.film_transparent = False
 w = bpy.data.worlds.new("w")
 w.use_nodes = True
-w.node_tree.nodes["Background"].inputs[0].default_value = (0.93, 0.93, 0.93, 1)
+BGV = float(opt("--bg", 0.42))                    # mid grey: light and dark garments both read
+w.node_tree.nodes["Background"].inputs[0].default_value = (BGV, BGV, BGV, 1)
 sc.world = w
 for i, (r, e) in enumerate([((50, 0, 30), 3.0), ((60, 0, 200), 1.5)]):
     L = bpy.data.objects.new(f"l{i}", bpy.data.lights.new(f"l{i}", "SUN"))

@@ -19,7 +19,7 @@ INK = (30, 30, 30)
 F = lambda s: ImageFont.truetype("arialbd.ttf" if s > 34 else "arial.ttf", s)  # noqa: E731
 NAMES = {"outfit_male": ["hat", "bow tie", "shirt + collar", "vest", "jacket", "glove", "breeches", "boots"],
          "outfit_female": ["hat", "collar + brooch", "bodice + bib", "skirt + bustle", "lace cuff", "glove", "boots"]}
-TINTS = {"outfit_male": ["brown jacket / tan vest / tan breeches", "navy / grey / olive", "grey / burgundy / navy"],
+TINTS = {"outfit_male": ["brown jacket / burgundy vest / tan breeches", "navy / grey / olive", "grey / tan / navy"],
          "outfit_female": ["burgundy", "plum", "green"]}
 
 
