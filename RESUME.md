@@ -11,7 +11,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P3 outfits | **In progress — P3.3 next.** P3.1 picks male s2026 / female s7. P3.2 head fit (`align_outfit.py --crown 0.0`) + P3.2b rig-fit (`rig_fit.py`, Pete accepted 2026-10-10: poke-through hands 3 %, torso 5–6 %; leftovers = toes, male tail stub, female upper back → P3.5 masks). Known flaw: female s7 right boot smeared. |
+| P3 outfits | **In progress — P3.4 next.** P3.1 picks male s2026 / female s7. P3.2 head fit + P3.2b rig-fit accepted. **P3.3 done** (Pete: SAM version): garment labels + mid-split pieces (male hat/coat/chest/breeches/gloves/boots, female hat/dress/collar/gloves/boots) in `out/<char>-goose/<char>_garments.npz`. Known flaw: female s7 right boot smeared. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 
 Pete's decisions so far: D1 male/base defines scale · D2 eyes from the reference, identical on all geese ·
@@ -65,6 +65,18 @@ next = **P3.2b rig-fit** (D9): landmarks on each aligned outfit → per-bone fit
 4. `clean_hi.py <candidate> --char outfit_<x>` (height from the base goose — P3.2 aligns scale using head/neck/bill).
 5. P3.2 align each clothed model to the base body (head/neck/bill as rigid anchors); P3.3 garment extraction
    by distance-to-body → per-garment shells → bake from the clothed hi mesh (see ROADMAP P3).
+
+## Outfit chain (P3.2 → P3.3), per outfit_<x>
+
+```
+align_outfit.py --char outfit_x --crown 0.0          # head ICP -> <c>_goose_aligned.glb
+rig_fit.py --char outfit_x                           # per-bone fit -> <c>_rigfit.json, <c>_base_fitted.glb
+garment_explore.py --char outfit_x --k 12            # per-face Lab / region / dist -> <c>_faces.npz
+extract_garments.py --char outfit_x                  # rules (chars/<c>.json "garments") -> <c>_garments.npz (seeds)
+ref_project.py --char outfit_x                       # faces -> prepped reference pixels -> <c>_refproj.npz
+python -I sam_masks.py --char outfit_x               # ComfyUI venv, SAM 2.1 large -> <c>_refvotes.npz
+extract_garments.py --char outfit_x --use-ref        # final labels + pieces -> <c>_garments.npz
+```
 
 ## Base goose rebuild chain (if anything upstream changes)
 
