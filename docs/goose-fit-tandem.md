@@ -223,3 +223,14 @@ Open items:
 - **The male goose as stoker** (also needed for #407): fits with no stretch: legs 0.95, hands and feet 0 mm.
 - **Command (captain clips, when #407 is built):** `ride_fit.py --char outfit_female --seat Captain --bike goosefit26 --max-bar-raise 0 --riding-hem 0.70,0.82,0.92 --bustle 0.35 --side-lean 35 --clips`.
 - **Sheet:** `docs/img/p56_front_seat_skirt.png` (male stoker behind her; before / after).
+
+## 11. Hands on the grips (Pete, 2026-10-11)
+
+- **Problem (Pete):** "the wrists are bent and the hands to bike handlebars are not placed correctly". The grip pose pointed the hand 25° off straight down, whatever the forearm did; the forearms come in nearly level, so every wrist bent ~80° and the hand hung beside the fore-aft grip instead of around it.
+- **Fix:** the hand points forward and `--hand-pitch` below level (default 45°), tip 10° inboard. The fore-aft grip then crosses the palm diagonally, the power-grip line of a real fist. The hand frame is built explicitly: Y along the hand, local X on its rest world side, so the palm stays inward. Wrist bend ~31°.
+- **Male captain (Pete: "lower the forearm a tiny bit, and maybe the wrist"; option B):** `--hand-pitch 35 --elbow-out 0.3`. The elbow is 2.8 cm lower and the wrist 1.5 cm lower; forearm 11° down; wrist bend 30°. `--elbow-out` is the arm IK pole's sideways part (default 0.8).
+- **Fit report:** adds `wrist_bend_*`, `forearm_down_deg_*`, `elbow_z_*`, `wrist_z_*`.
+- **Close-up check:** `scripts/grip_closeup.py <fit.blend> <abs prefix>` renders each grip (outside / top / behind) and prints each wrist's bend.
+- **Re-baked:** captain `--side-lean 35 --hand-pitch 35 --elbow-out 0.3`; stoker `--side-lean 30 --riding-hem 0.70,0.82,0.92` (hand 45°). 0 mm contact in every frame, lean included.
+- **Game:** PR #406, commit 6225e75.
+- **Sheets:** `docs/img/p57_hands_on_grips.png` (before/after) and `docs/img/p57_male_arm_options.png`.

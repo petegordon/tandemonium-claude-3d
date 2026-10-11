@@ -74,7 +74,10 @@ BUSTLE = arg("--bustle", 0.0) if "--bustle" in argv else None
 BUSTLE_BONE = "Cloth_skirt_bustle"
 BUSTLE_RAMP = 0.08     # m behind the waistband's back over which the skirt passes from Hips to the bustle bone
 NCLIP = 24
-HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
+HAND_CURL = 10.0       # deg: hand tip turned inward, under the grip (handshake grip, palm inward)
+ELBOW_OUT = arg("--elbow-out", 0.8)      # arm IK pole (sx * ELBOW_OUT, 0.4, -1): less out = elbow lower, forearm lower
+HAND_PITCH = arg("--hand-pitch", 45.0)   # deg below level, pointing forward: the fore-aft grip crosses the palm
+                       # diagonally (a fist's power-grip line) and the hand follows the forearm (wrist ~25-30 deg)
 PALM_AT = 0.6          # grip crosses the palm this far down the hand (fraction of the hand bone)
 PALM_OFF = 0.03        # m: grip centre this far inboard of the hand bone (palm surface + grip radius)
 CR = "F" if SEAT == "Captain" else "R"
@@ -377,9 +380,10 @@ HAND_REST = {s: bones[f"{s}Hand"].matrix_local.to_3x3() for s in ("Left", "Right
 
 
 def hand_dir(side):
+    """Hand bone direction: forward (-Y) and HAND_PITCH down, tip HAND_CURL inboard."""
     sx = 1 if side == "L" else -1
-    c = math.radians(HAND_CURL)
-    return Vector((-sx * math.sin(c), 0, -math.cos(c)))
+    c, p_ = math.radians(HAND_CURL), math.radians(HAND_PITCH)
+    return Vector((-sx * math.sin(c), -math.cos(c) * math.cos(p_), -math.cos(c) * math.sin(p_)))
 
 
 def wrist_target(side, lift):
@@ -477,14 +481,21 @@ def pose_on_bike(lean, roll=0.0):
         reach_shoulders(lift)
     for s, side, sx in (("Left", "L", 1), ("Right", "R", -1)):
         g, wt = wrist_target(side, lift)
-        rep[f"arm_{side}"] = round(two_bone(f"{s}Arm", f"{s}ForeArm", wt, Vector((sx * 0.8, 0.4, -1.0))), 3)
-        rest = HAND_REST[s]
-        R = rest.col[1].normalized().rotation_difference(hand_dir(side)).to_matrix()   # palm stays inward
+        rep[f"arm_{side}"] = round(two_bone(f"{s}Arm", f"{s}ForeArm", wt, Vector((sx * ELBOW_OUT, 0.4, -1.0))), 3)
+        rest = HAND_REST[s]                              # palm stays inward: local X keeps its rest world side
+        y = hand_dir(side)
+        x = Vector((math.copysign(1.0, rest.col[0].x), 0, 0))
+        x = (x - x.dot(y) * y).normalized()
         hb = pbs[f"{s}Hand"]
-        m = (R @ rest).to_4x4()
+        m = Matrix((x, y, x.cross(y))).transposed().to_4x4()
         m.translation = hb.matrix.translation
         hb.matrix = m
         upd()
+        fa = (gw(f"{s}ForeArm", "tail") - gw(f"{s}ForeArm")).normalized()
+        rep[f"wrist_bend_{side}"] = round(math.degrees(fa.angle(y)), 1)
+        rep[f"forearm_down_deg_{side}"] = round(math.degrees(math.asin(-fa.z)), 1)
+        rep[f"elbow_z_{side}"] = round(gw(f"{s}ForeArm").z, 3)
+        rep[f"wrist_z_{side}"] = round(gw(f"{s}Hand").z, 3)
         rep[f"grip_err_mm_{side}"] = round((gw(f"{s}Hand") + hand_dir(side) * PALM_AT * bones[f"{s}Hand"].length
                                             + Vector((-sx * PALM_OFF, 0, 0)) - g).length * 1000, 1)
     for s, side, sx in (("Left", "L", 1), ("Right", "R", -1)):
