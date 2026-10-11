@@ -788,3 +788,4 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   coarser voxel (18 mm) tried and reverted (the right boot tore); toes stay slightly lumpy, mostly under the skirt.
   No heel (would need the foot lifted). Female visible 19.9k; validator 0/0, three.js ok.
 - **Hat pass (Pete: too shiny, sit lower at the back / curved like the side ref, puffier bows)** -- roughness felt 0.97 / satin 0.72 / feather 0.9; whole hat tilted 7 deg back-down about the brim, brim curves down at the back (droop_back 14 mm), narrower brim; bow loops wider (6 cm) with a 22 mm puff across the ribbon, crown puffs fuller. Female 19.9k; validator 0/0, three.js ok.
+- **Release p3-dressed-geese (2026-10-11)** -- both dressed GLBs, per-character garment zips, cloth chains, release sheet (garments, game-viewer poses, colour samples) embedded on the release page; scripts/release_sheet.py.
