@@ -574,3 +574,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   `chars/outfit_female.json "body_shape": "fitted"` → transfer_garments keeps her clothes in place and checks them against
   the fitted body: poke torso 5.5 %, hands 4 %, boots 6 %, feet 14 % (toes → mask). Pete: SAM labels "fairly accurate";
   idea logged: a three.js page to paint/fix cut lines by hand if needed.
+- **P3.4 shells (male, 8 pieces per Pete)** — `scripts/build_shell.py`: solidify 4 mm (cut pieces are open sheets: voxelising
+  them leaked holes, 198 islands) → voxel 2.5 mm → drop islands < 3 % of the largest (mislabelled fragments) → QEM to budget →
+  push-out to 3 mm over the body minus tail/hands/feet (only pieces that follow the body; gloves/boots/hat/bowtie
+  `--no-push`: pushing gloves out of the mitten hands crumpled the fingers), capped at 30 mm and re-clamped along the
+  normal (snapping to the nearest point jumped sideways, 145 mm) → smart UV → Cycles bake base colour + normal (1024²).
+  Tris: coat 5880, breeches 2450, gloves 2940, boots 1568, waistcoat 882, hat 784, shirt 490, bowtie 196 = 15.2k (+ body
+  12k before P3.5 masks). `scripts/assemble_outfit.py [--green]` renders the set. Reads well; leftovers: base tail through
+  the vent, base chest through the waistcoat V, bake speckle (shirt patches, cream flecks on the waistcoat) → P3.5 masks.
+  Pete idea: female shape as a few symmetric sliders (arm / torso / leg girth, leg length, height) instead of per-bone fit.
