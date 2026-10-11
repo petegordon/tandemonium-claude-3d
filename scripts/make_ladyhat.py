@@ -60,7 +60,7 @@ def ring(ax, z, dz=None):
 
 # ---- brim: top surface out, rim, underside back in (front droops a little)
 bax, bz, cax = np.array(H["brim_ax"]), H["brim_z"], np.array(H["crown_ax"])
-droop = H.get("droop", 0.012) * np.clip(-sy, 0, 1) ** 2      # front dips
+droop = H.get("droop", 0.012) * np.clip(-sy, 0, 1) ** 2 + H.get("droop_back", 0.0) * np.clip(sy, 0, 1) ** 2   # brim curves down
 rows = []
 for u, dzz in ((0.98, 0.0), (0.4, 0.0), (0.85, -0.002), (1.0, -0.007), (1.0, -0.018), (0.85, -0.02), (0.98, -0.017)):
     if u == 0.98 and not rows:
@@ -139,13 +139,15 @@ if BW:
     sideb = np.cross(upb, outb)
     kb = np.array([cx + cax[0] * 1.18 * math.sin(a_), cy - cax[1] * 1.18 * math.cos(a_), (pz0 + pz1) / 2 + BW.get("dz", 0.0)])
     nl, nw = 18, 4
-    for sgn in (1, -1):
+    for sgn, scl, rot in [(1, 1.0, 0.0), (-1, 1.0, 0.0)] + ([(1, 0.7, 0.5), (-1, 0.7, -0.5)] if BW.get("inner") else []):
         Pl_ = np.zeros((nl, nw, 3))
         for i in range(nl):
             s_ = i / (nl - 1) * 2 * math.pi
             # loop: out along +/-side, rising, back to the knot (teardrop)
-            lx = sgn * BW["len"] * (0.5 - 0.5 * math.cos(s_))
-            ly = BW["h"] * math.sin(s_) * (0.6 + 0.4 * math.cos(s_ / 2))
+            lx0 = sgn * BW["len"] * scl * (0.5 - 0.5 * math.cos(s_))
+            ly0 = BW["h"] * scl * math.sin(s_) * (0.6 + 0.4 * math.cos(s_ / 2))
+            lx = lx0 * math.cos(rot) - ly0 * math.sin(rot)
+            ly = lx0 * math.sin(rot) + ly0 * math.cos(rot)
             cen_ = kb + sideb * lx + upb * ly + outb * (0.012 * math.sin(s_ / 2))
             tan_ = sideb * (sgn * BW["len"] * 0.5 * math.sin(s_)) + upb * (BW["h"] * math.cos(s_))
             tan_ /= max(np.linalg.norm(tan_), 1e-6)
@@ -153,7 +155,7 @@ if BW:
             wdir_ /= max(np.linalg.norm(wdir_), 1e-6)
             pinch = 0.35 + 0.65 * math.sin(s_ / 2)        # gathered at the knot
             for j, u in enumerate(np.linspace(-1, 1, nw)):
-                Pl_[i, j] = cen_ + wdir_ * u * BW["w"] * pinch * 0.5 + outb * 0.006 * (1 - u * u) * pinch
+                Pl_[i, j] = cen_ + wdir_ * u * BW["w"] * scl * pinch * 0.5 + outb * BW.get("puff", 0.012) * (1 - u * u) * pinch
         add_grid(Pl_, 1)
     res = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=BW["w"] * 0.45)
     for v in res["verts"]:
@@ -184,6 +186,15 @@ for k, u in enumerate(us):
     grid_f[:, k] = spine + wdir * (np.sign(u) * w_)[:, None] - vn * (F.get("droop", 0.35) * w_ ** 1.5 / max(F["w"], 1e-3) ** 0.5)[:, None] \
         + vn * (0.0015 * (abs(u) < 0.15))
 add_grid(grid_f, 2)
+tilt = math.radians(H.get("tilt", 0.0))
+if tilt:
+    piv = np.array([cx, cy, bz])
+    for v in bm.verts:
+        q = np.array(v.co) - piv
+        y_, z_ = q[1], q[2]
+        q[1] = y_ * math.cos(tilt) - z_ * math.sin(tilt) * -1
+        q[2] = -y_ * math.sin(tilt) + z_ * math.cos(tilt)
+        v.co = Vector(piv + q)
 me = bpy.data.meshes.new("hat_shell")
 bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-6)
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
@@ -192,7 +203,7 @@ bm.free()
 o = bpy.data.objects.new("hat_shell", me)
 bpy.context.scene.collection.objects.link(o)
 COL = H["colors"][next(iter(H["colors"]))]
-for nm, mul, rough in (("felt", 1.0, 0.85), ("satin", 1.12, 0.45), ("feather", 0.9, 0.7)):
+for nm, mul, rough in (("felt", 1.0, 0.97), ("satin", 1.1, 0.72), ("feather", 0.9, 0.9)):
     m = bpy.data.materials.new(f"{CHAR}_hat_{nm}")
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
