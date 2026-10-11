@@ -53,7 +53,7 @@ LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
 # (breeches stay whole under the jacket: under its flared hem you can see up to them)
-LAYER_IGNORE = {"gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie"),
+LAYER_IGNORE = {"boots": ("breeches", "coat"), "gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie"),
                 "coat": ("shirt", "breeches", "bowtie", "waistcoat", "gloves", "boots", "hat")}
 LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)

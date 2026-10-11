@@ -214,6 +214,8 @@ elif KIND == "vest":
 
     ZS_ = np.arange(0.6, 1.5, 0.01)
     YC_ = yc(ZS_)
+    for _ in range(8):                             # a smooth centre line (the side seam follows it)
+        YC_[1:-1] = 0.25 * YC_[:-2] + 0.5 * YC_[1:-1] + 0.25 * YC_[2:]
 
     def ycf(z):
         return np.interp(z, ZS_, YC_)
@@ -259,6 +261,10 @@ elif KIND == "vest":
     R.setdefault("seat_bump", 0.0)
 else:
     PLANES = [((0, Y0, Z_TOP), (0, -RISE, 1), -1, 0), ((0, 0, Z_BOT), (0, 0, 1), 1, 0)]
+if KIND == "boot":
+    # the leg below the boot top (over the breeches' knee band) and the whole foot; the boot's shape comes
+    # from the extracted boots (ease measured to their outer surface, as the breeches)
+    PLANES = [((0, 0, Z_TOP), (0, 0, 1), -1, 0)]
 if KIND == "glove":
     # the hand from the wrist plane (tucked under the shirt cuff by "wrist_offset" < 0) to the fingertips
     PLANES = [(tuple(WRIST[sg][0]), tuple(WRIST[sg][1]), 1, sg) for _, sg in SIDES]
@@ -463,8 +469,39 @@ for v in bm.verts:
     parts.append(comp)
 parts.sort(key=len)
 log("region parts", [len(p_) for p_ in parts[-4:]])
-if KIND == "glove":     # each hand (and its separate finger shells) -- drop only real specks
+if KIND == "boot":
+    bmesh.ops.delete(bm, geom=[v for p in parts[:-2] for v in p], context="VERTS")   # (one per leg)
+elif KIND == "glove":     # each hand (and its separate finger shells) -- drop only real specks
     bmesh.ops.delete(bm, geom=[v for p in parts[:-2] for v in p], context="VERTS")   # (claw shells off)
+    # stray flaps (thumb claw sheet) stick out of the mitten: drop verts far from the hand axis
+    for s_, sg in SIDES:
+        h0, h1 = bone[f"{s_}Hand"]
+        dq = h1 - h0
+        vs_ = [v for v in bm.verts if v.co.x * sg > 0.2]
+        if not vs_:
+            continue
+        Q = np.array([v.co[:] for v in vs_])
+        u_ = np.clip(((Q - h0) @ dq) / (dq @ dq), 0, 1)
+        dd_ = np.linalg.norm(Q - (h0 + u_[:, None] * dq), axis=1)
+        lim = np.percentile(dd_, 50) * R.get("flap_r", 1.7)
+        bmesh.ops.delete(bm, geom=[v for v, d_ in zip(vs_, dd_) if d_ > lim], context="VERTS")
+    seen2, parts2 = set(), []
+    for v in bm.verts:
+        if v in seen2:
+            continue
+        st, comp = [v], []
+        seen2.add(v)
+        while st:
+            x_ = st.pop()
+            comp.append(x_)
+            for e in x_.link_edges:
+                y_ = e.other_vert(x_)
+                if y_ not in seen2:
+                    seen2.add(y_)
+                    st.append(y_)
+        parts2.append(comp)
+    parts2.sort(key=len)
+    bmesh.ops.delete(bm, geom=[v for p in parts2[:-2] for v in p], context="VERTS")
 else:
     bmesh.ops.delete(bm, geom=[v for p in parts[:-1] for v in p], context="VERTS")
 if KIND in ("vest", "coat"):
@@ -623,6 +660,76 @@ for v in reg.data.vertices:
         for gi in np.flatnonzero(Wb[j] > 1e-4):
             vg = reg.vertex_groups.get(gn[gi]) or reg.vertex_groups.new(name=gn[gi])
             vg.add([v.index], float(Wb[j, gi]), "REPLACE")
+if KIND == "boot":
+    # boot = one smooth solid round leg + webbed foot: cap the top, voxel-remesh coarse (toes and claws
+    # merge), relax, open the top again; flat sole; skin weights from the nearest body vertex
+    only_select(reg)
+    bmq = bmesh.new()
+    bmq.from_mesh(reg.data)
+    bnd_e = [e for e in bmq.edges if e.is_boundary]
+    bmesh.ops.holes_fill(bmq, edges=bnd_e, sides=0)
+    bmq.to_mesh(reg.data)
+    bmq.free()
+    reg.data.remesh_voxel_size = R.get("boot_voxel", 0.012)
+    bpy.ops.object.voxel_remesh()
+    me_ = reg.data
+    Pb = np.array([v.co[:] for v in me_.vertices])
+    ed_ = np.array([e.vertices[:] for e in me_.edges])
+    z0 = Pb[:, 2].min()
+    for _ in range(R.get("boot_relax", 25)):
+        Pb = smooth_field(Pb, ed_, 1)
+        Pq = smooth_field(Pb, ed_, 1)
+        Pb = Pb - 0.53 * (Pq - Pb)
+        Pb[:, 2] = np.maximum(Pb[:, 2], z0)
+    # the relax shrank it into the leg: push every vertex out to the body surface (smoothed displacement)
+    for _ in range(4):
+        disp_ = np.zeros_like(Pb)
+        for i_, q_ in enumerate(Pb):
+            loc, nrm_, _, _ = body_noarm.find_nearest(Vector(q_))
+            if loc is None:
+                continue
+            s_ = (Vector(q_) - loc).dot(nrm_)
+            if s_ < 0.002 and q_[2] > R.get("push_above", 0.15):   # (feet are hidden under the boot: no lumps)
+                disp_[i_] = np.array(nrm_) * (0.002 - s_)
+        disp_ = smooth_field(disp_, ed_, 3)
+        Pb = Pb + disp_ * 1.2
+        Pb[:, 2] = np.maximum(Pb[:, 2], z0)
+    me_.vertices.foreach_set("co", Pb.ravel())
+    me_.update()
+    bmq = bmesh.new()
+    bmq.from_mesh(me_)
+    bmesh.ops.bisect_plane(bmq, geom=bmq.verts[:] + bmq.edges[:] + bmq.faces[:], plane_co=(0, 0, Z_TOP - 0.006),
+                           plane_no=(0, 0, 1), clear_outer=True)
+    bmesh.ops.recalc_face_normals(bmq, faces=bmq.faces[:])
+    bmesh.ops.delete(bmq, geom=[f for f in bmq.faces if f.calc_center_median().z > Z_TOP], context="FACES")
+    comps_, seen_ = [], set()
+    for v in bmq.verts:
+        if v in seen_:
+            continue
+        st, c_ = [v], []
+        seen_.add(v)
+        while st:
+            x_ = st.pop()
+            c_.append(x_)
+            for e in x_.link_edges:
+                y_ = e.other_vert(x_)
+                if y_ not in seen_:
+                    seen_.add(y_)
+                    st.append(y_)
+        comps_.append(c_)
+    comps_.sort(key=len)
+    bmesh.ops.delete(bmq, geom=[v for c_ in comps_[:-2] for v in c_], context="VERTS")   # (claw specks)
+    bmesh.ops.delete(bmq, geom=[v for v in bmq.verts if not v.link_faces], context="VERTS")
+    bmq.to_mesh(me_)
+    bmq.free()
+    for g in list(reg.vertex_groups):
+        reg.vertex_groups.remove(g)
+    for v in me_.vertices:
+        j = kd.find(v.co)[1]
+        for gi in np.flatnonzero(Wb[j] > 1e-4):
+            vg = reg.vertex_groups.get(gn[gi]) or reg.vertex_groups.new(name=gn[gi])
+            vg.add([v.index], float(Wb[j, gi]), "REPLACE")
+    log("boot solid", len(me_.vertices), "verts")
 # subdivide once (game mesh precursor), relax the cap
 only_select(reg)
 if R.get("region_sub", 1):
@@ -643,6 +750,18 @@ for e in bm.edges:
 bm.free()
 if R.get("plain_smooth", 0):          # (gloves: the mitten's segment ridges must not print through)
     P = smooth_field(P, ed, R["plain_smooth"], pin=boundary)
+if KIND == "boot" and R.get("foot_smooth", 0):
+    # the webbed toes and claws merge into one boot shape: heavy smoothing on the foot (shaft pinned,
+    # soft blend over the ankle), sole kept on the ground; the ease then reaches out to the boot surface
+    zf = P[:, 2]
+    w_ = np.clip((R.get("foot_top", 0.16) - zf) / 0.06, 0, 1)
+    z0 = zf.min()
+    Pf = P.copy()
+    for _ in range(R["foot_smooth"]):
+        Pf = smooth_field(Pf, ed, 1, pin=w_ <= 0)
+        Pf[:, 2] = np.maximum(Pf[:, 2], z0)
+    P = P * (1 - w_[:, None]) + Pf * w_[:, None]
+    log("boot foot smoothed", int((w_ > 0).sum()), "verts")
 for _ in range(R.get("base_smooth", 10)):
     P = smooth_field(P, ed, 1, pin=boundary)
     Pb = smooth_field(P, ed, 1, pin=boundary)
@@ -714,7 +833,7 @@ bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
-if KIND in ("shirt", "vest", "coat", "glove"):
+if KIND in ("shirt", "vest", "coat", "glove", "boot"):
     pb = None
 for i, (p, n) in enumerate(zip(P, N)):
     if pb is None:
@@ -739,19 +858,34 @@ else:
     ok = ~np.isnan(ease)
     log("ease measured", round(float(ok.mean()), 3), "median mm", round(float(np.nanmedian(ease)) * 1000, 1))
     e_lo, e_hi = R.get("ease_min", 0.008), R.get("ease_max", 0.05)
-    ease = np.clip(np.where(ok, ease, np.nanmedian(ease)), e_lo, e_hi)
+    ease = np.clip(np.where(ok, ease, np.nanmedian(ease) if ok.any() else e_lo), e_lo, e_hi)
     for _ in range(4):                                  # fill unmeasured from measured neighbours
         sm = smooth_field(ease, ed, 10)
         ease = np.where(ok, ease, sm)
     ease = smooth_field(ease, ed, R.get("ease_smooth", 60))
     # tight bands: waistband and knee band
     z = P[:, 2]
-    t_w = np.clip((ztop(P[:, 1]) - z) / (wb * 2.5), 0, 1)
-    t_k = np.clip((z - Z_BOT) / (kb * 3.0), 0, 1)
+    t_w = np.clip((ztop(P[:, 1]) - z) / (wb * 2.5), 0, 1) if KIND == "breeches" else np.ones(len(z))
+    t_k = np.clip((z - Z_BOT) / (kb * 3.0), 0, 1) if KIND == "breeches" else np.ones(len(z))
     band = np.minimum(t_w, t_k) ** 1.5
     ease = R.get("band_ease", 0.007) + (ease - R.get("band_ease", 0.007)) * band
 # seat bump over the capped tail
 ease += R.get("seat_bump", 0.008) * capw
+if KIND == "boot":
+    ease = np.full(len(P), R.get("ease", {}).get("boot", 0.005))
+    # clear the breeches' knee band at the boot top
+    for nm in R.get("over", []):
+        uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+        ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
+        under = np.zeros(len(P))
+        for i, (p_, n_) in enumerate(zip(P, N)):
+            hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.08)
+            if hit[0] is not None:
+                under[i] = max(under[i], hit[3] - 0.01)
+        bpy.data.objects.remove(uo)
+        ease = np.maximum(ease, np.minimum(under, 0.05) + R.get("ease", {}).get("clear", 0.004))
+    ease = smooth_field(ease, ed, R.get("boot_smooth", 30))
+    ease = np.maximum(ease, 0.003)
 # crotch: stay under 40 % of the gap to the other surface along the normal
 
 
@@ -1274,6 +1408,26 @@ if KIND == "coat":
     # soft drape folds on the back skirt and tails
     sk = bk & (zh < V_.get("waist_z", 0.93))
     disp += 0.0018 * np.sin(phit * 9 + 0.6 * np.sin(zh * 20)) * np.clip((V_.get("waist_z", 0.93) - zh) / 0.12, 0, 1) * sk
+if KIND == "boot":
+    tintm = np.ones(len(Ph))
+    # boot top: turned band + stitch; sole: welt groove and darker edge; heel; back seam; toe cap
+    dtop = Z_TOP - zh
+    disp += 0.0012 * np.clip(1 - dtop / 0.018, 0, 1) + groove(np.abs(dtop - 0.018), 0.0009, 0.0011)
+    zs_ = R.get("sole_z", 0.022)
+    disp += groove(np.abs(zh - zs_), 0.0012, 0.0014)
+    tintm = np.where(zh < zs_, 0.55, tintm)
+    for s_, sg in SIDES:
+        h0, _ = bone[f"{s_}Leg"]
+        on = x * sg > 0
+        back = on & (y > h0[1] + 0.01) & (zh > 0.12)
+        disp += np.where(back, groove(np.abs(x - h0[0]), 0.0012, 0.0009), 0.0)
+        f0 = bone[f"{s_}Foot"][0]
+        toe = on & (zh < 0.09) & (y < f0[1] - 0.06)
+        dy = y - (f0[1] - 0.09)
+        disp += np.where(toe, groove(np.abs(dy), 0.0012, 0.0010), 0.0)
+        # ankle creases
+        ank = on & (zh > 0.09) & (zh < 0.16) & (y < h0[1])
+        pass                                       # (ankle creases dropped: they read as rings)
 if KIND == "glove":
     tintm = np.ones(len(Ph))
     def attr(nm):
@@ -1300,12 +1454,12 @@ if KIND == "glove":
         # side seams round the edge of the hand, soft creases over the knuckles and the palm
         disp += np.where(on & (np.abs(bk_) < 0.2), groove(np.abs(bk_) * 0.02, 0.0006, 0.0006), 0.0)
         kn = on & (along > 0.12) & (along < 0.2)
-        disp += np.where(kn, 0.00025 * np.sin(along / 0.009 * 2 * np.pi), 0.0)
+        pass                                       # (knuckle creases dropped: they read as ridges)
         # wrist wrinkles just in from the opening
         wr = on & (dh_ > 0.015) & (dh_ < 0.05)
         disp += np.where(wr, 0.0003 * np.sin(dh_ / 0.011 * 2 * np.pi + 1.3 * np.sin(lat * 60)) * np.clip(1 - (dh_ - 0.015) / 0.035, 0, 1), 0.0)
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
-if KIND in ("vest", "coat"):
+if KIND in ("vest", "coat", "glove", "boot"):
     occ = occ * tintm
 Ph2 = Ph + Nh * disp[:, None]
 hi.data.vertices.foreach_set("co", Ph2.ravel())
@@ -1367,6 +1521,23 @@ if KIND in ("vest", "coat"):
                 newc[v] = v.co * 0.4 + (nb[0].co + nb[1].co) * 0.3
         for v, c in newc.items():
             v.co = c
+    if KIND == "vest":
+        # the shoulder straps end on the neck plane: the offset pushed their edge up into teeth
+        top = [v for v in bmq.verts if v.co.z > Z_NECK - 0.015]
+        for v in top:
+            if v.co.z > Z_NECK:
+                v.co.z = Z_NECK
+        tb = [v for v in bv if v.co.z > Z_NECK - 0.004]
+        for _ in range(6):
+            newc = {}
+            for v in tb:
+                nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+                if len(nb) == 2:
+                    c_ = v.co * 0.4 + (nb[0].co + nb[1].co) * 0.3
+                    c_.z = Z_NECK
+                    newc[v] = c_
+            for v, c_ in newc.items():
+                v.co = c_
     bmq.to_mesh(lo.data)
     bmq.free()
     lo.data.update()

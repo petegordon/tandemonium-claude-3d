@@ -652,9 +652,56 @@
           110
         ]
       },
-      "plain_smooth": 25,
+      "plain_smooth": 70,
       "top_r": 0.033,
       "top_len": 0.1
+    },
+    "boots": {
+      "kind": "boot",
+      "z_top": 0.43,
+      "z_bot": -1.0,
+      "tris": 1600,
+      "cover_margin": 0.01,
+      "region_sub": 0,
+      "base_smooth": 0,
+      "ease_min": 0.004,
+      "ease_max": 0.09,
+      "ease_reach": 0.1,
+      "ease_smooth": 40,
+      "boot_smooth": 4,
+      "seat_fit": false,
+      "over": [
+        "breeches"
+      ],
+      "ease": {
+        "boot": 0.004,
+        "clear": 0.009
+      },
+      "sole_z": 0.022,
+      "mottle": 0.05,
+      "twill": 0.0,
+      "roughness": 0.35,
+      "colors": {
+        "black": [
+          28,
+          26,
+          26
+        ],
+        "brown": [
+          70,
+          44,
+          28
+        ],
+        "oxblood": [
+          72,
+          26,
+          24
+        ]
+      },
+      "foot_top": 0.16,
+      "boot_voxel": 0.014,
+      "boot_relax": 30,
+      "push_above": 0.15
     }
   },
   "accessory_drop": {
