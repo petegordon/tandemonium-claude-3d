@@ -513,6 +513,15 @@ for k in list(designed):
         for v in o.data.vertices:
             if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]:   # torso only (not the hanging sleeves)
                 vk[v.index].add(tk["into"])
+    # underarm: the jacket wraps the armpit, but rays from the shirt there run along the crease and miss it
+    # (the shirt showed through in a T-pose) -> anything of an inner garment in the armpit zone within 6 cm
+    # of the jacket is under it
+    if k in ("shirt", "waistcoat") and "coat" in sbvh:
+        for v in o.data.vertices:
+            c_ = v.co
+            if 0.08 < abs(c_.x) < 0.32 and 0.95 < c_.z < 1.22 and sbvh["coat"].find_nearest(c_)[3] < 0.06:
+                if abs(c_.y - (-0.0)) < 0.09 or True:
+                    vk[v.index].add("coat")
     # erode: a key survives on a vertex only if its neighbours (LAYER_ERODE rings) have it too, so the
     # hidden zone stays under the outer piece instead of reaching to (and past) its jagged edge
     nbr = [[] for _ in o.data.vertices]
