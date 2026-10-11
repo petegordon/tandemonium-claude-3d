@@ -245,6 +245,11 @@
       "boots"
     ]
   },
+  "body_shape": "sliders",
+  "shape": {
+    "leg_length": 1.15
+  },
+  "shells_on_base": true,
   "shell_tris": {
     "hat": 1500
   },

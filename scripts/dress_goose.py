@@ -21,6 +21,10 @@
    vertex groups from the nearest body face (Data Transfer, polygon
    interpolated); loose cloth (LOOSE_D0..D1 off the body) blends leg weights to Hips; weights
    smoothed (WEIGHT_SMOOTH rounds), limited to 4, normalised; armature modifier + parent to the rig.
+3b. "shells_on_base": true (chars json; the male): his shells / designed garments were built on the base body,
+   so masks + skinning run on the base and the slider shape ("shape", e.g. leg_length) is applied last to the
+   finished rig: every skinned mesh moves by its own weights (bodyshape.deform), edit bones take the shape.
+   Then the whole character is lifted so the lowest sole sits on z = 0 (longer legs grow down from the hips).
 4. Exports out/<char>-goose/<char>_dressed.glb + <char>_dressed.blend; writes <char>_dress.json
    (mask stats, tris visible) and renders/<char>_dressed_poses.png (rest + rig_poses.Poser poses,
    front and side).
@@ -89,7 +93,8 @@ W /= np.maximum(W.sum(1, keepdims=True), 1e-9)
 
 # ---- 1. worn shape: rest pose + rest mesh
 T = bodyshape.body_transforms(ROOT, CHAR, rig)
-if T:
+LATE = bool(cfg.get("shells_on_base")) and T is not None
+if T and not LATE:
     tails0 = {b.name: np.array(rig.matrix_world @ b.tail_local) for b in rig.data.bones}
     heads0 = {b.name: np.array(rig.matrix_world @ b.head_local) for b in rig.data.bones}
     Vs = bodyshape.deform(V, W, names, rig, T)
@@ -568,6 +573,58 @@ for k in list(designed):
 (D / f"{CHAR}_cloth_chains.json").write_text(json.dumps(
     {"rule": "chain bone j takes, in armature space, slerp(Hips rotation delta, thigh rotation delta, "
              "follow * drape[j]), root first", "drape": DRAPE, "chains": chains}, indent=1))
+
+# ---- 3b. late body shape (shells built on the base) + floor
+skinned = [o for o in bpy.data.objects if o.type == "MESH" and any(m.type == "ARMATURE" for m in o.modifiers)]
+
+
+def move_rest(fn_mesh, fn_bones):
+    for o in skinned:
+        M = np.array(o.matrix_world)
+        co = np.array([v.co[:] for v in o.data.vertices])
+        Xw = co @ M[:3, :3].T + M[:3, 3]
+        Xn = fn_mesh(o, Xw)
+        o.data.vertices.foreach_set("co", ((Xn - M[:3, 3]) @ np.linalg.inv(M[:3, :3]).T).ravel())
+        o.data.update()
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode="EDIT")
+    inv_ = rig.matrix_world.inverted()
+    snap = {eb.name: (np.array(rig.matrix_world @ eb.head), np.array(rig.matrix_world @ eb.tail))
+            for eb in rig.data.edit_bones}             # (connected joints are shared: read all, then write)
+    new = {n: fn_bones(n, h, t) for n, (h, t) in snap.items()}
+    for eb in rig.data.edit_bones:
+        r = new[eb.name]
+        if r is not None:
+            roll = eb.roll
+            eb.head, eb.tail = inv_ @ Vector(r[0]), inv_ @ Vector(r[1])
+            eb.roll = roll
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
+if LATE:
+    def late_mesh(o, Xw):
+        Wm = np.zeros((len(Xw), len(names)))
+        for v in o.data.vertices:
+            for g in v.groups:
+                nm = o.vertex_groups[g.group].name
+                if nm in names:
+                    Wm[v.index, names.index(nm)] = g.weight
+        Wm /= np.maximum(Wm.sum(1, keepdims=True), 1e-9)
+        return bodyshape.deform(Xw, Wm, names, rig, T)
+
+    def late_bones(n, h, t):
+        if n not in T:
+            return None
+        hn, A = np.array(T[n]["head"]), np.array(T[n]["A"])
+        return hn, hn + A @ (t - h)
+    move_rest(late_mesh, late_bones)
+    print("LATE SHAPE", json.dumps(cfg.get("shape", {})))
+dg = bpy.context.evaluated_depsgraph_get()
+zmin = min(min((o.matrix_world @ v.co).z for v in o.data.vertices) for o in skinned if not o.hide_render)
+if abs(zmin) > 0.002:                                  # soles on the floor
+    lift = np.array([0, 0, -zmin])
+    move_rest(lambda o, Xw: Xw + lift, lambda n, h, t: (h + lift, t + lift))
+    print("FLOOR lift", round(-zmin, 4))
 
 tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells, **layer_parts}.items()}
 visible = tris.get("body", 0) + sum(tris[k] for k in shells)

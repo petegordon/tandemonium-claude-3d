@@ -29,22 +29,24 @@
   <div id="msgs"></div>
 </div>
 <script type="module">
-// Riding test harness (P5): the rigged bike (out/bike/bike_rigged.glb) at bike scale k, geese seated on its
+// Riding test harness (P5): a rigged bike (out/bike/bike_rigged_<bike>.glb) at bike scale k, geese seated on its
 // sockets at their own size (D1). Bike clips: Pedal (time = crank / 2pi), WheelSpin (time = distance / circumference).
 // Goose clips used when present: Pedal_Captain / Pedal_Stoker (time = crank / 2pi; stoker is half a turn on, D15),
 // Lean_L / Lean_R (weights from that rider's lean); otherwise the old one-frame pose_riding clip.
-// URL: ?k=0.627&captain=out/outfit_male-goose/outfit_male_dressed.glb&stoker=<glb>&hipup=0.11
+// URL: ?bike=goosefit24|goosefit26|p41&k=1&captain=<glb>&stoker=<glb or empty>&hipup=0.11
+// (bike=p41 is the game's tandem at true size, out/bike/bike_rigged.glb; it needs k~0.63 for the geese, P4.2)
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const P = new URLSearchParams(location.search);
-const K = +(P.get("k") || 0.627);
+const BIKE = P.get("bike") || "goosefit24";
+const SFX = BIKE === "p41" ? "" : "_" + BIKE;
+const K = +(P.get("k") || (BIKE === "p41" ? 0.627 : 1));
 const HIP_UP = +(P.get("hipup") || 0.11);
 const RIDERS = { Captain: P.has("captain") ? P.get("captain") : "out/outfit_male-goose/outfit_male_dressed.glb",
-                 Stoker: P.get("stoker") || "" };
-const WHEEL_M = 0.7112 * K;
-const HIP_MID = new THREE.Vector3(0, 0.717, -0.025);       // goose rest hip-joint midpoint (glTF axes)
+                 Stoker: P.has("stoker") ? P.get("stoker") : "out/outfit_female-goose/outfit_female_dressed.glb" };
+let WHEEL_M = 0.7112 * K, BIKE_LEN = 2.722 * K;            // replaced from bike_rig<SFX>.json
 const msgs = document.getElementById("msgs");
 const note = (t, warn) => { const d = document.createElement("div"); d.textContent = t; if (warn) d.className = "warn"; msgs.appendChild(d); };
 
@@ -90,25 +92,34 @@ let bike = null; const riders = {};
 function scrub(mixer, clip) { const a = mixer.clipAction(clip); a.play(); a.paused = true; return a; }
 function setTime(action, frac) { if (action) action.time = ((frac % 1) + 1) % 1 * action.getClip().duration; }
 
-loader.load("/out/bike/bike_rigged.glb", (g) => {
+fetch(`/out/bike/bike_rig${SFX}.json`).then(r => r.json()).then(j => {
+  WHEEL_M = j.wheel_m * K; BIKE_LEN = j.length_m * K;
+  note(`bike ${BIKE}: k = ${K} -> ${BIKE_LEN.toFixed(2)} m long, wheel ${(WHEEL_M * 100).toFixed(0)} cm`);
+}).catch(() => {});
+loader.load(`/out/bike/bike_rigged${SFX}.glb`, (g) => {
   g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   kNode.add(g.scene);
   const mixer = new THREE.AnimationMixer(g.scene);
   const clip = n => g.animations.find(c => c.name === n);
   bike = { root: g.scene, mixer, pedal: clip("Pedal") && scrub(mixer, clip("Pedal")),
            wheels: clip("WheelSpin") && scrub(mixer, clip("WheelSpin")) };
-  note(`bike: k = ${K} -> ${(2.722 * K).toFixed(2)} m long, wheel ${(WHEEL_M * 100).toFixed(0)} cm`);
   for (const [seat, url] of Object.entries(RIDERS)) if (url) loadRider(seat, url);
-}, undefined, () => note("missing out/bike/bike_rigged.glb (run scripts/make_bike.py)", true));
+}, undefined, () => note(`missing out/bike/bike_rigged${SFX}.glb (run scripts/make_bike.py)`, true));
 
 function loadRider(seat, url) {
   loader.load("/" + url, (g) => {
     const socket = bike.root.getObjectByName("Seat_" + seat);
     if (!socket) { note("bike has no Seat_" + seat, true); return; }
     g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.name.includes("__")) o.visible = false; } });
+    // hip-joint midpoint from the goose's own skeleton (rest pose; the refit geese stand taller)
+    g.scene.updateMatrixWorld(true);
+    const hl = new THREE.Vector3(), hr = new THREE.Vector3();
+    g.scene.getObjectByName("LeftUpLeg").getWorldPosition(hl);
+    g.scene.getObjectByName("RightUpLeg").getWorldPosition(hr);
+    const hipMid = hl.add(hr).multiplyScalar(0.5);
     // the socket lives inside the k-scaled bike: undo k so the goose keeps its own size (D1)
     g.scene.scale.setScalar(1 / K);
-    g.scene.position.copy(new THREE.Vector3(0, HIP_UP, 0).sub(HIP_MID)).multiplyScalar(1 / K);
+    g.scene.position.copy(new THREE.Vector3(0, HIP_UP, 0).sub(hipMid)).multiplyScalar(1 / K);
     socket.add(g.scene);
     const mixer = new THREE.AnimationMixer(g.scene);
     const clip = n => g.animations.find(c => c.name === n);

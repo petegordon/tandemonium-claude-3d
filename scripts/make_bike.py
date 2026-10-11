@@ -1,12 +1,14 @@
 """P4.1: prepare and rig the game's tandem (D13-D18).
 
   blender -b --factory-startup --python scripts/make_bike.py -- [--wheel-m 0.7112] [--budget 28000] [--no-renders]
+      [--fit out/fit/frame_goosefit_24in.json --tag goosefit24]
 
 Source: ../tandemonium/tandem-3d/tandem_bicycle.glb (read only; CC-BY-4.0 Sameer.Rayeen).
 1. Import, bake every mesh to world space, drop the Sketchfab empties. Mesh object names are kept exactly
    (the game's colour presets and bike-model.js key on them; three.js strips the dots).
 2. Metres (wheel outer diameter = --wheel-m), forward -Y, ground z = 0, centred between the axles.
 3. Stoker crankset turned half a turn in the rest pose (D15: captain theta, stoker theta + pi).
+3b. --fit: goose-fit reshape (goosefit_bike.py, docs/goose-fit-tandem.md); outputs carry --tag.
 4. Pivots + sockets measured from the full-resolution geometry.
 5. Decimate each mesh in place to the --budget (D18); meshes under KEEP_TRIS untouched; deviation reported.
 6. Armature `bike_rig`; every mesh parented to one bone (rigid, stays a plain Mesh in three.js).
@@ -39,7 +41,11 @@ SRC = Path(arg("--src", str(ROOT.parent / "tandemonium" / "tandem-3d" / "tandem_
 OUT = ROOT / "out" / "bike"
 REN = ROOT / "renders"
 TMP = REN / "_tmp"
-WHEEL_M = arg("--wheel-m", 0.7112)           # 28 in wheel, outer tyre diameter
+WHEEL_M = arg("--wheel-m", 0.7112)           # 28 in wheel, outer tyre diameter (of the source, before --fit)
+FIT = arg("--fit", "")
+TAG = arg("--tag", "")
+SFX = f"_{TAG}" if TAG else ""                # bike_rigged<SFX>.glb / bike_rig<SFX>.json / bike_<TAG or p41>_*.png
+RTAG = TAG or "p41"
 BUDGET = arg("--budget", 28000)              # D18: < 30k, with margin
 KEEP_TRIS = 300                              # spokes, tiny bits: never decimated
 TOL_M = 0.004                                # max surface deviation a decimated mesh may have
@@ -144,6 +150,23 @@ for n in GROUPS["Crank_R"]:
 for n in GROUPS["Pedal_RL"] + GROUPS["Pedal_RR"]:
     p = centre([n])
     obj(n).data.transform(Matrix.Translation(R180 @ p - p))
+
+# ---- 3b. goose-fit reshape --------------------------------------------------------------------------
+FIT_INFO = None
+if FIT:
+    sys.path.insert(0, str(Path(__file__).parent))
+    import goosefit_bike  # noqa: E402
+    spec = json.loads((ROOT / FIT).read_text(encoding="utf-8"))
+    FIT_INFO = goosefit_bike.reshape(spec, GROUPS)
+    WHEEL_M = spec["wheel_m"]
+    meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+    for o in meshes:
+        src_tris.setdefault(o.name, tris(o))
+    hub_F = centre(["tyre_rear_low"]); hub_F.x = 0
+    hub_R = centre(["Cylinder.008"]); hub_R.x = 0
+    crank_F = centre(["Gear.001"]); crank_F.x = 0
+    crank_R = centre(["Gear.002"]); crank_R.x = 0
+    print("FIT", json.dumps(FIT_INFO))
 
 # ---- 4. pivots + sockets (full-resolution geometry) ------------------------------------------------
 pedal_c = {g: centre(GROUPS[g]) for g in ("Pedal_FL", "Pedal_FR", "Pedal_RL", "Pedal_RR")}
@@ -370,29 +393,30 @@ report = {
     "clips": {"Pedal": f"1 forward crank turn, {N + 1} keys @ {FPS} fps; clip time = (crankAngle / 2pi) * duration",
               "WheelSpin": "1 wheel turn; clip time = (distance / (pi * wheel_m) mod 1) * duration"},
     "phase": "rest: captain left (+X) pedal up, stoker left pedal down (D15)",
+    "fit": {"spec": FIT, **FIT_INFO} if FIT_INFO else None,
     "decimation": dec_report,
 }
-(OUT / "bike_rig.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+(OUT / f"bike_rig{SFX}.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 print("REPORT", json.dumps({k: report[k] for k in ("scale_m_per_unit", "length_m", "height_m", "tris", "pivots")}))
 
-bpy.ops.wm.save_as_mainfile(filepath=str(OUT / "bike_rigged.blend"), compress=True)
+bpy.ops.wm.save_as_mainfile(filepath=str(OUT / f"bike_rigged{SFX}.blend"), compress=True)
 bpy.ops.object.select_all(action="DESELECT")
 rig.select_set(True)
 for o in meshes:
     o.select_set(True)
-bpy.ops.export_scene.gltf(filepath=str(OUT / "bike_rigged.glb"), export_format="GLB", use_selection=True,
+bpy.ops.export_scene.gltf(filepath=str(OUT / f"bike_rigged{SFX}.glb"), export_format="GLB", use_selection=True,
                           export_animations=True, export_animation_mode="NLA_TRACKS", export_yup=True,
                           export_def_bones=False, export_tangents=True)
 sys.path.insert(0, str(Path(__file__).parent))
 from glb_fix_tangents import main as fix_tangents  # noqa: E402
-fix_tangents(str(OUT / "bike_rigged.glb"))
-print("EXPORT", OUT / "bike_rigged.glb")
+fix_tangents(str(OUT / f"bike_rigged{SFX}.glb"))
+print("EXPORT", OUT / f"bike_rigged{SFX}.glb")
 if not RENDERS:
     sys.exit(0)
 
 # ---- renders ---------------------------------------------------------------------------------------
 after = [shoot(TMP / f"bike_after_{c[0]}.png", *c[1:4], tgt=c[4]) for c in CLOSE]
-sheet([before, after], REN / "bike_p41_decimation.png")
+sheet([before, after], REN / f"bike_{RTAG}_decimation.png")
 
 rig.animation_data.action = bpy.data.actions["Pedal"]
 sc.display.shading.color_type = "OBJECT"         # side colours: L pedal yellow, R navy (D15 phase)
@@ -410,7 +434,7 @@ for pb in rig.pose.bones:                     # clearing the action leaves the l
     pb.rotation_euler = (0, 0, 0)
 sc.frame_set(0)
 
-sheet([cyc[:4], cyc[4:]], REN / "bike_p41_crank_cycle.png")
+sheet([cyc[:4], cyc[4:]], REN / f"bike_{RTAG}_crank_cycle.png")
 for n, (p, par) in sockets.items():
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.02, location=p)
     bpy.context.active_object.color = (1, 0, 1, 1) if n.startswith(("Seat", "Grip")) else (0, 0, 0, 1)
@@ -420,5 +444,5 @@ for p in (hub_F, hub_R, crank_F, crank_R, ring_lo, ring_hi):
 VIEWS = [("side_L", 90, 0, 3.0), ("side_R", -90, 0, 3.0), ("front", 0, 0, 1.6),
          ("top", 90, 89, 3.0), ("q34", 35, 22, 3.0), ("rear_q", 150, 22, 3.0)]
 g1 = [shoot(TMP / f"bike_groups_{v[0]}.png", *v[1:]) for v in VIEWS]
-sheet([g1[:3], g1[3:]], REN / "bike_p41_groups.png")
+sheet([g1[:3], g1[3:]], REN / f"bike_{RTAG}_groups.png")
 print("RENDERS done")

@@ -11,7 +11,13 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P4 bike | **P4.1 built, at Pete's gate** (2026-10-11): `scripts/make_bike.py` -> `out/bike/bike_rigged.glb/.blend/bike_rig.json` (26.2k tris, all 66 mesh names, every preset resolves, `Pedal` + `WheelSpin` clips, socket bones); check `node tools/threejs_check/bike_check.mjs out/bike/bike_rigged.glb renders/bike_p41_threejs.png`. Gate sheets in `docs/img/p41_*.png`. P4.2 fit run (`ride_fit.py`, `fit_sheet.py`, sheet `docs/img/p42_fit.png`): legs fit only at k = 0.627 (18 in wheels) -> bike size is Pete's call (plan section 7). Riding harness: `node tools/ride_harness/serve.mjs` (D20). Then P5 (D13-D21). |
+| P4 bike | **Goose-fit tandem built, at Pete's gate** (2026-10-11).
+- **Why:** the game's tandem doesn't fit the geese at any one scale (P4.2).
+- **What changed:** male legs ×1.15 through the sliders; both geese re-dressed with soles on the floor; frame geometry worked out from the riders (`measure_geese.py`, `frame_fit.py`); the bike reshaped by `make_bike.py --fit ... --tag goosefit24|26` (`goosefit_bike.py`).
+- **Result:** both geese seated with no stretch (`ride_fit.py --bike goosefit24 --max-bar-raise 0`; stoker via `--base`).
+- **Where:** `docs/goose-fit-tandem.md` section 6; sheet `docs/img/goosefit_24_26.png`.
+- **Harness:** `node tools/ride_harness/serve.mjs`, then `?bike=goosefit24`.
+- **Next:** Pete picks 24 or 26 in -> P5.1–P5.3 captain clips -> P5.4 stoker and skirt. |
 | P3 outfits | **Released: `p3-dressed-geese`** (dressed male + female GLBs, garment zips, cloth chains, release sheet docs/img/p3_release_sheet.png). Designed garments: make_garment.py (breeches, shirt, vest, jacket, gloves, boots, bodice), make_skirt.py, make_hat.py, make_ladyhat.py, make_accessory.py, make_cuffs.py; dress_goose.py layers + skins; release_sheet.py. Open: female boot heel, finger gloves, softer plume. Next: P3.6/3.7 or bike. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 

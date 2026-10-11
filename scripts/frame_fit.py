@@ -1,6 +1,6 @@
 """Goose-fit tandem, step 2: frame geometry from the riders (side elevation, metres).
 
-  .venv python scripts/frame_fit.py [--wheel 0.61] [--male-leg 1.0,1.15]
+  .venv python scripts/frame_fit.py [--wheels 0.61,0.66] [--male-leg 1.0] [--tag goosefit]
 
 Inputs: out/fit/geese_measure.json (measure_geese.py), out/bike/bike_rig.json (the current bike, for comparison).
 Frame coordinates: u forward from the captain bottom bracket, z up from the ground.
@@ -11,8 +11,10 @@ Rules (each rider):
 - seat tube angle: knee over the pedal spindle at 3 o'clock (KOPS), clamped to [SEAT_MIN, SEAT_MAX];
 - saddle on the seat-tube line, height so the farthest hip-to-ankle distance over the stroke is LEG_REACH x leg
   (ball of the foot on the pedal, toes TOE_DOWN; hip joint HIP_UP above the saddle top, as ride_fit.py);
-- torso leaned LEAN from vertical; wrist at ARM_REACH x arm, ARM_DROP below horizontal; grip under the
-  hanging hand (handshake grip, as ride_fit.py);
+- torso leaned LEAN, split over Spine / Spine1 / Spine2 about their own joints (as ride_fit.py: the shoulders
+  move forward less than a lean from the hips); wrist at ARM_REACH x arm, ARM_DROP below horizontal, the
+  reach shared with the sideways step from the shoulder out to the grip (GRIP_HALF x wheel scale); grip under
+  the hanging hand (handshake grip, as ride_fit.py);
 - captain: front hub far enough ahead for toe clearance; steer axis HEAD_ANGLE, fork offset FORK_OFFSET;
 - stoker: grips on the captain's seat post, behind the captain's back; stoker BB placed so her reach is met;
 - rear hub CHAINSTAY_CLEAR behind the stoker's tyre edge.
@@ -35,8 +37,9 @@ def arg(name, default):
 ROOT = Path(__file__).resolve().parents[1]
 M = json.loads((ROOT / "out/fit/geese_measure.json").read_text(encoding="utf-8"))
 BIKE = json.loads((ROOT / "out/bike/bike_rig.json").read_text(encoding="utf-8"))
-WHEEL = float(arg("--wheel", "0.61"))            # 24 in; a style choice (BB height does not depend on it)
-MALE_LEG = [float(x) for x in arg("--male-leg", "1.0,1.15").split(",")]
+WHEELS = [float(x) for x in arg("--wheels", "0.61,0.66").split(",")]   # 24 / 26 in: style (BB height is not)
+MALE_LEG = [float(x) for x in arg("--male-leg", "1.0").split(",")]     # the male's legs are x1.15 since the refit
+TAG = arg("--tag", "goosefit")
 CRANK_FRAC = 0.20     # human rule of thumb: 170 mm for ~0.85 m inseam
 BB_CLEAR = 0.10       # bottom pedal clears the ground at ~22 deg bike tilt
 HIP_UP = 0.11
@@ -49,6 +52,8 @@ ARM_REACH = 0.90
 ARM_DROP = 35.0       # deg below horizontal, shoulder to wrist
 HAND_CURL = 25.0
 PALM_AT = 0.6
+PALM_OFF = 0.03       # grip centre inboard of the hand bone (ride_fit.py)
+GRIP_HALF = 0.18      # grip half-width of the game's bars at 28 in; scales with the wheel
 HEAD_ANGLE = 70.0
 FORK_OFFSET = 0.045
 TOE_CLEAR = 0.03
@@ -84,6 +89,11 @@ class Rider:
         self.sole_to_ball = m["ball_z"] - m["sole_z"]
         self.inseam = m["hip_joint_z"] - m["sole_z"] + (leg_scale - 1) * m["thigh"] + (leg_scale - 1) * m["shin"]
         self.torso, self.arm, self.hand = m["torso_hip_to_shoulder"], m["arm"], m["hand"]
+        J = m["joints"]
+        hip0 = np.array([-J["LeftUpLeg"][1], J["LeftUpLeg"][2]])
+        self.spine = [np.array([-J[n][1], J[n][2]]) - hip0 for n in ("Spine", "Spine1", "Spine2")]
+        self.sh_rel = np.array([-J["LeftArm"][1], J["LeftArm"][2]]) - hip0
+        self.sh_x = J["LeftArm"][0]
         self.toe_ahead = m["boot_length"] - abs(a2b[0]) - 0.06
 
     def ankle(self, bb, c, phi):
@@ -112,7 +122,16 @@ class Rider:
         knee = leg_ik(hip, ank, self.l1, self.l2)
         return knee[0] - (bb[0] + c)
 
-    def fit(self, bb, c):
+    def shoulder(self, hip, lean_deg):
+        """Arm joint after the lean, rotated about Spine, Spine1, Spine2 in turn (lean / 3 each), forward = +u."""
+        pts = [hip + q for q in self.spine] + [hip + self.sh_rel]
+        for i in range(3):
+            piv = pts[i]
+            for j in range(i + 1, 4):
+                pts[j] = piv + rot(pts[j] - piv, -lean_deg / 3)
+        return pts[3]
+
+    def fit(self, bb, c, wheel=0.7112):
         lo, hi = SEAT_MIN, SEAT_MAX                     # kops(alpha) increases with alpha (steeper = hip forward)
         if self.kops(bb, c, lo) > 0:
             alpha = lo
@@ -124,10 +143,13 @@ class Rider:
                 lo, hi = (mid, hi) if self.kops(bb, c, mid) < 0 else (lo, mid)
             alpha = (lo + hi) / 2
         saddle, hip = self.seat(bb, c, alpha)
-        lean = math.radians(LEAN[self.key])
-        sh = hip + self.torso * np.array([math.sin(lean), math.cos(lean)])
-        wrist = sh + ARM_REACH * self.arm * np.array([math.cos(math.radians(ARM_DROP)), -math.sin(math.radians(ARM_DROP))])
-        grip = wrist + np.array([0, -PALM_AT * self.hand * math.cos(math.radians(HAND_CURL))])
+        sh = self.shoulder(hip, LEAN[self.key])
+        cu = math.radians(HAND_CURL)
+        wrist_x = GRIP_HALF * wheel / 0.7112 + PALM_OFF + PALM_AT * self.hand * math.sin(cu)
+        dx = wrist_x - self.sh_x
+        r = math.sqrt(max(0.0, (ARM_REACH * self.arm) ** 2 - dx * dx))       # reach left for the side view
+        wrist = sh + r * np.array([math.cos(math.radians(ARM_DROP)), -math.sin(math.radians(ARM_DROP))])
+        grip = wrist + np.array([0, -PALM_AT * self.hand * math.cos(cu)])
         poses = {}
         for name, phi in (("top", 0.0), ("fwd", math.pi / 2), ("bottom", math.pi), ("back", 1.5 * math.pi)):
             ank, pin = self.ankle(bb, c, phi)
@@ -151,14 +173,14 @@ class Rider:
         return g
 
 
-def design(male_leg):
+def design(male_leg, WHEEL):
     cap = Rider("captain", M["outfit_male"], male_leg)
     sto = Rider("stoker", M["outfit_female"])
     c = round(CRANK_FRAC * min(cap.inseam, sto.inseam), 3)
     bbz = c + BB_CLEAR
     R = WHEEL / 2
     bbF = np.array([0.0, bbz])
-    F = cap.fit(bbF, c)
+    F = cap.fit(bbF, c, WHEEL)
     # front hub: toe at 3 o'clock clears the tyre
     toe = F["poses"]["fwd"]["ball"] + np.array([cap.toe_ahead, 0.02])
     dz = toe[1] - R
@@ -173,7 +195,7 @@ def design(male_leg):
     bar_sweep = steer_at_grip[0] - F["grip"][0]                          # >0: grips behind the steer axis
     # stoker: grips behind the captain's back; place her BB so her reach is met
     gS_u = F["hip"][0] - BACK_CLEAR
-    S0 = sto.fit(np.array([0.0, bbz]), c)                                # fit at BB u=0, then shift
+    S0 = sto.fit(np.array([0.0, bbz]), c, WHEEL)                         # fit at BB u=0, then shift
     du = gS_u - S0["grip"][0]
     S = sto.offset_to(S0, du)
     bbR = np.array([du, bbz])
@@ -315,14 +337,22 @@ def panel(rep, geo, title):
 
 
 reps, panels = [], []
-for ml in MALE_LEG:
-    rep, geo = design(ml)
-    reps.append(rep)
-    print("FRAME", json.dumps(rep))
-    title = f"Goose-fit tandem: male legs {'as built' if ml == 1.0 else f'x{ml:.2f}'} ({rep['captain']['leg_m']:.2f} m), " \
-            f"female as built ({rep['stoker']['leg_m']:.2f} m)"
-    panels.append(panel(rep, geo, title))
 out_dir = ROOT / "out" / "fit"
+for ml in MALE_LEG:
+    for wh in WHEELS:
+        rep, geo = design(ml, wh)
+        reps.append(rep)
+        print("FRAME", json.dumps(rep))
+        title = (f"Goose-fit tandem, {rep['wheel_in']:.0f} in wheels: captain leg {rep['captain']['leg_m']:.2f} m, "
+                 f"stoker leg {rep['stoker']['leg_m']:.2f} m")
+        panels.append(panel(rep, geo, title))
+        F, S = geo["F"], geo["S"]
+        pts = {"hub_F": geo["hubF"], "hub_R": geo["hubR"], "bb_F": geo["bbF"], "bb_R": geo["bbR"],
+               "saddle_C": F["saddle"], "saddle_S": S["saddle"], "grip_C": F["grip"], "grip_S": S["grip"],
+               "hip_C": F["hip"], "hip_S": S["hip"]}
+        spec = {"wheel_m": wh, "crank_m": geo["c"], "frame": "u forward from the captain BB, z up (metres)",
+                "points": {k: [round(float(x), 4) for x in v] for k, v in pts.items()}, "report": rep}
+        (out_dir / f"frame_{TAG}_{round(wh / 0.0254)}in.json").write_text(json.dumps(spec, indent=1), encoding="utf-8")
 (out_dir / "frame_fit.json").write_text(json.dumps(reps, indent=1), encoding="utf-8")
 sheet = Image.new("RGB", (W_IMG, H_IMG * len(panels)), "white")
 for i, p in enumerate(panels):

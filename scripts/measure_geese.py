@@ -73,6 +73,7 @@ for ch in CHARS:
         "upper_arm": r(L["LeftArm"]), "forearm": r(L["LeftForeArm"]), "hand": r(L["LeftHand"]),
         "arm": r(L["LeftArm"] + L["LeftForeArm"]),
         "hip_to_head_top": r(body[:, 2].max() - hip_mid[2]),
+        "joints": {n: [r(x) for x in j[n]] for n in ("Spine", "Spine1", "Spine2", "LeftArm", "LeftUpLeg")},
     }
     if bpy.data.objects.get("skirt"):
         sk = verts(["skirt"])

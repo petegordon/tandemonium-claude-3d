@@ -15,6 +15,8 @@ Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left ped
 --stretch auto|<f>: lengthen thigh + shin by f (pose scale along the bone; feet unscaled) so the legs reach at
   a bike scale too big for them ("auto": just enough for LEG_REACH). --standing also renders the goose
   standing, unstretched vs stretched (what permanently longer legs would look like off the bike).
+--bike <tag>: seat on out/bike/bike_rigged_<tag>.blend (make_bike.py --tag, e.g. goosefit24) instead of the P4.1 bike.
+--base <blend>: start from an earlier fit scene (e.g. the captain's), so both geese ride in the renders.
 Writes renders/_tmp/fit_<tag>_<k>_<view>.png, out/bike/fit_<char>_<seat>_<tag>.json.
 """
 import json
@@ -40,13 +42,16 @@ SCALE_ARGS = arg("--scales", "auto,1.0").split(",")
 SCALES = [float(x) for x in SCALE_ARGS if x != "auto"]
 THETA = arg("--theta", 0.0)
 TAG = arg("--tag", "fit")
+BIKE_TAG = arg("--bike", "")
+BIKE_SFX = f"_{BIKE_TAG}" if BIKE_TAG else ""
+BASE = arg("--base", "")
 STRETCH_ARG = arg("--stretch", "1")
 STANDING = "--standing" in argv
 VIEWS = (("side", 90, 0), ("front", 0, 0), ("q34", 40, 15), ("rq34", 215, 20), ("top", 120, 55))
 HIP_UP = 0.11          # hip joints above the saddle top (the crotch is 0.14 below the hip joint)
 LEG_REACH = 0.95       # "auto" scale: hip-to-ankle / (thigh + shin) at the bottom of the stroke
 ARM_REACH = 0.90       # shoulder-to-wrist / (arm + forearm): bars are raised until both wrists reach
-MAX_BAR_RAISE = 0.35   # m; beyond this the bars stay put and the arms report the shortfall
+MAX_BAR_RAISE = arg("--max-bar-raise", 0.35)   # m; beyond this the bars stay put (goose-fit bikes: 0, the design is the fit)
 LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
 HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
@@ -59,13 +64,14 @@ TMP = ROOT / "renders" / "_tmp"
 TMP.mkdir(parents=True, exist_ok=True)
 
 # ---- scene: bike + goose -----------------------------------------------------------------------------
-bpy.ops.wm.open_mainfile(filepath=str(OUT / "bike_rigged.blend"))
+bpy.ops.wm.open_mainfile(filepath=str(ROOT / BASE) if BASE else str(OUT / f"bike_rigged{BIKE_SFX}.blend"))
 with bpy.data.libraries.load(str(ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_dressed.blend")) as (src, dst):
     dst.objects = list(src.objects)
 goose_objs = [o for o in dst.objects if o is not None and o.type in ("MESH", "ARMATURE")]
 for o in goose_objs:
     bpy.context.scene.collection.objects.link(o)
 rig = next(o for o in goose_objs if o.type == "ARMATURE")
+GOBJ = {o.name.split(".")[0]: o for o in goose_objs}   # (a second goose's objects get ".001" names)
 for o in goose_objs:            # skinned meshes must ride with the rig object (an unparented armature-modifier
     if o.type == "MESH" and o.parent is None:      # mesh ignores rig.location: the deform cancels the object move)
         o.parent = rig
@@ -171,8 +177,8 @@ foot_rest = {s: bones[f"{s}ToeBase"].head_local - bones[f"{s}Foot"].head_local f
 
 
 SEAT_PROBE = {}                                       # rest-pose seat region (crotch + buttocks), by vertex index
-for n in ("body", "breeches"):
-    o = bpy.data.objects.get(n)
+for n in ("body", "breeches", "skirt"):
+    o = GOBJ.get(n)
     if o is not None:
         v = np.array([x.co[:] for x in o.data.vertices])
         hz, hy = hip_mid_rest.z, hip_mid_rest.y
@@ -185,16 +191,16 @@ def seat_body_low():
     dg = bpy.context.evaluated_depsgraph_get()
     lows = []
     for n, idx in SEAT_PROBE.items():
-        o = bpy.data.objects[n]
+        o = GOBJ[n]
         me = o.evaluated_get(dg).to_mesh()
         co = np.array([me.vertices[i].co[:] for i in idx])
         o.evaluated_get(dg).to_mesh_clear()
         if len(co):
             lows.append((np.array(o.matrix_world) @ np.c_[co, np.ones(len(co))].T)[2].min())
-    return float(min(lows))
+    return float(min(lows)) if lows else float("nan")
 
 
-BIKE_REP = json.loads((OUT / "bike_rig.json").read_text(encoding="utf-8"))
+BIKE_REP = json.loads((OUT / f"bike_rig{BIKE_SFX}.json").read_text(encoding="utf-8"))
 _sv = Vector(BIKE_REP["pivots"]["steer_hi"]) - Vector(BIKE_REP["pivots"]["steer_lo"])
 BAR_AXIS = {"C": _sv.normalized(), "S": Vector((0, 0, 1))}          # captain: quill along the steer axis
 BAR_PARTS = {"C": ["NurbsPath", "Cylinder.012", "Tee Joint.001", "Cylinder.017"],
@@ -300,8 +306,9 @@ def leg_reach_bottom(k):
     set_crank(0.0)
     place_hips()
     reset()
-    at = ankle_target("Right", "R")[0]
-    return (at - gw("RightUpLeg")).length / (blen("RightUpLeg") + blen("RightLeg"))
+    s_, sd = ("Right", "R") if SEAT == "Captain" else ("Left", "L")    # (theta 0: stoker left pedal down, D15)
+    at = ankle_target(s_, sd)[0]
+    return (at - gw(f"{s_}UpLeg")).length / (blen(f"{s_}UpLeg") + blen(f"{s_}Leg"))
 
 
 def pose_on_bike(lean):
@@ -344,18 +351,23 @@ def pose_on_bike(lean):
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
 sc.view_settings.view_transform = "Standard"
-sc.world = bpy.data.worlds.new("w")
+if sc.world is None or sc.world.name != "w":
+    sc.world = bpy.data.worlds.new("w")
 sc.world.color = (0.93, 0.92, 0.9)
 sc.world.use_nodes = True
 sc.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.85, 0.84, 0.82, 1)
 sc.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.9
-sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
-sun.data.energy = 3.5
-sun.rotation_euler = (math.radians(50), 0, math.radians(35))
-sc.collection.objects.link(sun)
-cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
-cam.data.type = "ORTHO"
-sc.collection.objects.link(cam)
+sun = bpy.data.objects.get("sun")
+if sun is None:
+    sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
+    sun.data.energy = 3.5
+    sun.rotation_euler = (math.radians(50), 0, math.radians(35))
+    sc.collection.objects.link(sun)
+cam = bpy.data.objects.get("cam")
+if cam is None:
+    cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
+    cam.data.type = "ORTHO"
+    sc.collection.objects.link(cam)
 sc.camera = cam
 W, H = 900, 700
 sc.render.resolution_x, sc.render.resolution_y = W, H
@@ -392,14 +404,14 @@ for k in SCALES:
     raise_bars(GR, rep["bar_raise_m"] / k)
     rep["k"] = k
     rep["leg_stretch"] = round(STRETCH["f"], 3)
-    rep["wheel_m"] = round(0.7112 * k, 3)
-    rep["bike_length_m"] = round(2.722 * k, 3)
+    rep["wheel_m"] = round(BIKE_REP["wheel_m"] * k, 3)
+    rep["bike_length_m"] = round(BIKE_REP["length_m"] * k, 3)
     rep["saddle_top_m"] = round(bw("Seat_" + SEAT).z, 3)
     rep["grip_z_m"] = round(wrist_target("L", rep["bar_raise_m"])[0].z, 3)
     report[str(k)] = rep
     print("FIT", k, json.dumps(rep))
     tgt = Vector((0, 0, 0.98))                    # frame ground to hat top (900x700: height = 0.78 span)
-    span = max(2.722 * k + 0.5, 2.7)
+    span = max(BIKE_REP["length_m"] * k + 0.5, 2.7)
     for view, az, el in VIEWS:
         shoot(TMP / f"fit_{TAG}_{k}_{view}.png", az, el, span if view != "front" else 2.7, tgt)
 if STANDING:                                  # off the bike: rest pose, original legs vs the stretch

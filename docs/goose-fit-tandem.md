@@ -87,3 +87,43 @@ Readings:
 2. Re-run `make_bike.py`'s rig, sockets, clips and checks on the result.
 3. Seat both geese with `ride_fit.py`: no stretch, no bar raise. Then renders, plus a ride in the harness.
 4. Styling pass after that.
+
+## 6. Built (2026-10-11, Pete took every recommendation; 24 and 26 in both built to compare)
+
+**Male legs ×1.15**, a permanent change made through the existing body sliders:
+- `chars/outfit_male.json` now has `"body_shape": "sliders"`, `"shape": {"leg_length": 1.15}` and `"shells_on_base": true`.
+- In `dress_goose.py` step 3b, his clothes (built on the base body) are masked and skinned on the base. The slider shape is then applied to the finished rig and every skinned mesh.
+- **Floor fix, both geese:** after shaping, the whole character is lifted so the soles sit on z = 0 (male +9.2 cm, female +9.6 cm).
+- **Result:** both geese have 0.69 m legs and hips at 0.81 m, and stand 1.74 m to the head.
+- **Poses checked:** rest, T, A, riding, neck and honk, in Blender (`renders/outfit_*_dressed_poses.png`) and in the game's three.js (`renders/outfit_*_goosefit_threejs_poses.png`), all `ok`.
+- Released P3 outputs are backed up in `out/_p3_backup/`.
+- **Caution:** if any male piece is rebuilt now, its builder sees the slider body. Remove that piece from the base-built set first, or it gets the leg shape twice.
+
+**Arm model fix in `frame_fit.py`:** the lean now bends through the three spine joints as the rig does, and the reach accounts for the sideways step from shoulder to grip. The captain's grips come out 6.5 cm (24 in) or 10 cm (26 in) behind the steer axis.
+
+**Bike:** `make_bike.py --fit out/fit/frame_goosefit_<24|26>in.json --tag goosefit<24|26>` runs `goosefit_bike.py` before the pivots are measured.
+- **Rigid groups** (similarity transforms): front end, rear wheel, saddles, cranks (162 mm), pedals and the stoker bars.
+- **Captain bars:** slid up the steer axis, then back to the fitted grip.
+- **Frame, top tube, stays and rack:** smooth warp anchored every 4 cm along each old and new tube centreline. The seat tubes run to their measured tops, and the down tube goes through its crossing with the captain's seat tube.
+- **Kept:** all 66 names.
+- **Added:** `goosefit_quill`, `goosefit_stem_ext` and `goosefit_stoker_stem`.
+- **Removed:** the gooseneck stub on the captain's post.
+- **Results:**
+  - 24 in: 27.3k tris, 2.28 m long.
+  - 26 in: 27.6k tris, 2.38 m long.
+  - `bike_check.mjs`: `ok` for both (names, all presets, clips).
+
+**Seated** with `ride_fit.py --bike goosefit<n> --max-bar-raise 0`, the stoker added to the captain's scene with `--base`:
+- no stretch, no bar raise;
+- feet and hands exactly on the contacts;
+- legs reach 0.94–0.95, arms 0.90–0.91.
+
+Sheet: `docs/img/goosefit_24_26.png`.
+
+Harness: `?bike=goosefit24|goosefit26|p41` (default goosefit24, k = 1). Both geese load by default, and the hip height is read from each goose's skeleton.
+
+Open items:
+- **Pete:** choose 24 or 26 in.
+- **P5.4:** check her skirt and bustle over the rear wheel and through the pedal stroke. In the generic riding pose her boots come out of the skirt.
+- The stoker stem is about 0.4 m tall (styling pass).
+- The seat probe can't measure the female (dress); it reports NaN.
