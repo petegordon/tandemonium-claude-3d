@@ -129,6 +129,38 @@ for (az_d, zr, sc) in H.get("rosettes", [[25, 0.0, 1.0], [55, 0.012, 0.85], [80,
         v.co = Vector(c0 + side * q[0] + up * q[1] + out * (q[2] * 0.8 + R0 * 0.35))
     for f in {f for v in res["verts"] for f in v.link_faces}:
         f.material_index = 1
+# ---- satin bow: two flattened ribbon loops and a knot, at the front-left of the crown (refs/v3)
+BW = H.get("bow")
+if BW:
+    a_ = math.radians(BW["az"])
+    outb = np.array([math.sin(a_), -math.cos(a_) * cax[1] / cax[0], 0.0])
+    outb /= np.linalg.norm(outb)
+    upb = np.array([0, 0, 1.0])
+    sideb = np.cross(upb, outb)
+    kb = np.array([cx + cax[0] * 1.18 * math.sin(a_), cy - cax[1] * 1.18 * math.cos(a_), (pz0 + pz1) / 2 + BW.get("dz", 0.0)])
+    nl, nw = 18, 4
+    for sgn in (1, -1):
+        Pl_ = np.zeros((nl, nw, 3))
+        for i in range(nl):
+            s_ = i / (nl - 1) * 2 * math.pi
+            # loop: out along +/-side, rising, back to the knot (teardrop)
+            lx = sgn * BW["len"] * (0.5 - 0.5 * math.cos(s_))
+            ly = BW["h"] * math.sin(s_) * (0.6 + 0.4 * math.cos(s_ / 2))
+            cen_ = kb + sideb * lx + upb * ly + outb * (0.012 * math.sin(s_ / 2))
+            tan_ = sideb * (sgn * BW["len"] * 0.5 * math.sin(s_)) + upb * (BW["h"] * math.cos(s_))
+            tan_ /= max(np.linalg.norm(tan_), 1e-6)
+            wdir_ = np.cross(outb, tan_)                  # ribbon face looks out from the crown
+            wdir_ /= max(np.linalg.norm(wdir_), 1e-6)
+            pinch = 0.35 + 0.65 * math.sin(s_ / 2)        # gathered at the knot
+            for j, u in enumerate(np.linspace(-1, 1, nw)):
+                Pl_[i, j] = cen_ + wdir_ * u * BW["w"] * pinch * 0.5 + outb * 0.006 * (1 - u * u) * pinch
+        add_grid(Pl_, 1)
+    res = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=BW["w"] * 0.45)
+    for v in res["verts"]:
+        q = np.array(v.co)
+        v.co = Vector(kb + sideb * q[0] * 0.9 + upb * q[1] * 1.2 + outb * (q[2] * 0.7 + 0.006))
+    for f in {f for v in res["verts"] for f in v.link_faces}:
+        f.material_index = 1
 # ---- feather: serrated vane along a cubic spine, barbs droop off the rachis
 F = H["feather"]
 P0, P1, P2, P3 = [np.array(p) for p in F["ctrl"]]

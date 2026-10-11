@@ -783,4 +783,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   mitten past the wrist tube (no beak tip). Lace cuffs: scripts/make_cuffs.py builds a flared scalloped cream frill on
   each bodice sleeve-end loop (336 tris). Bodice: puff only on the arm (armw > 0.6), base surface smoothed 35 rounds
   (goose shoulder bumps printed through). Female visible 19.65k; validator 0/0, three.js ok.
+- **Female list pass 2** -- back neckline: bodice neck tucked (1 mm ease, z_neck 1.288) and the standing collar 7 mm out
+  -> no cream fragments. Hat: satin bow (two face-out ribbon loops + knot) at the front among the roses. Boot toes:
+  coarser voxel (18 mm) tried and reverted (the right boot tore); toes stay slightly lumpy, mostly under the skirt.
+  No heel (would need the foot lifted). Female visible 19.9k; validator 0/0, three.js ok.
 

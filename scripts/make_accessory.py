@@ -314,7 +314,7 @@ elif PIECE == "collar":
     Hc = 0.85 * Rs
     n_sc = 14
     parts.append(band("standing", z_base - 0.008, lambda th: z_base + Hc - 0.004 * abs(math.sin(n_sc * th / 2)),
-                      0.004, COL["cream_f"], nz=4))
+                      0.007, COL["cream_f"], nz=4))   # (7 mm: clear of the bodice neck under it)
     # bib: terracotta, 5 scallops along the lower edge, down ~ 1.2 x collar height at the front
     thb = math.radians(68)
     Db = 2.1 * Hc                                    # ref: the bib reaches a third down the bodice
