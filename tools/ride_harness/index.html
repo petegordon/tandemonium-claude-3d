@@ -31,8 +31,11 @@
 <script type="module">
 // Riding test harness (P5): a rigged bike (out/bike/bike_rigged_<bike>.glb) at bike scale k, geese seated on its
 // sockets at their own size (D1). Bike clips: Pedal (time = crank / 2pi), WheelSpin (time = distance / circumference).
-// Goose clips used when present: Pedal_Captain / Pedal_Stoker (time = crank / 2pi; stoker is half a turn on, D15),
-// Lean_L / Lean_R (weights from that rider's lean); otherwise the old one-frame pose_riding clip.
+// Goose clips (<char>_rider.glb, ride_fit.py --clips): Pedal_<seat> on the lower body + cloth chains
+// (time = crank / 2pi, the same crank as the bike; the stoker's half turn is in the bike's geometry, D15);
+// Ride_<seat> / Lean_L_<seat> / Lean_R_<seat> on the upper body, weights 1 - |lean| / lean left / lean right.
+// The exporter samples every bone into every clip, so each clip is filtered to its bone set here.
+// Without them: the old one-frame pose_riding clip.
 // URL: ?bike=goosefit24|goosefit26|p41&k=1&captain=<glb>&stoker=<glb or empty>&hipup=0.11
 // (bike=p41 is the game's tandem at true size, out/bike/bike_rigged.glb; it needs k~0.63 for the geese, P4.2)
 import * as THREE from "three";
@@ -40,12 +43,21 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const P = new URLSearchParams(location.search);
-const BIKE = P.get("bike") || "goosefit24";
+const BIKE = P.get("bike") || "goosefit26";
 const SFX = BIKE === "p41" ? "" : "_" + BIKE;
 const K = +(P.get("k") || (BIKE === "p41" ? 0.627 : 1));
 const HIP_UP = +(P.get("hipup") || 0.11);
-const RIDERS = { Captain: P.has("captain") ? P.get("captain") : "out/outfit_male-goose/outfit_male_dressed.glb",
-                 Stoker: P.has("stoker") ? P.get("stoker") : "out/outfit_female-goose/outfit_female_dressed.glb" };
+const RIDERS = { Captain: P.has("captain") ? P.get("captain") : "out/outfit_male-goose/outfit_male_rider.glb",
+                 Stoker: P.has("stoker") ? P.get("stoker") : "out/outfit_female-goose/outfit_female_rider.glb" };
+const UPPER = new Set(["Spine", "Spine1", "Spine2", "Neck", "Neck1", "Neck2", "Neck3", "Head", "LeftShoulder", "LeftArm",
+  "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand"]);
+const LOWER_RE = /^(Left|Right)(UpLeg|Leg|Foot|ToeBase)$|^Cloth_/;
+function only(clip, keep) {
+  if (!clip) return null;
+  const c = clip.clone();
+  c.tracks = c.tracks.filter(t => keep(t.name.split(".")[0]));
+  return c;
+}
 let WHEEL_M = 0.7112 * K, BIKE_LEN = 2.722 * K;            // replaced from bike_rig<SFX>.json
 const msgs = document.getElementById("msgs");
 const note = (t, warn) => { const d = document.createElement("div"); d.textContent = t; if (warn) d.className = "warn"; msgs.appendChild(d); };
@@ -123,9 +135,12 @@ function loadRider(seat, url) {
     socket.add(g.scene);
     const mixer = new THREE.AnimationMixer(g.scene);
     const clip = n => g.animations.find(c => c.name === n);
-    const r = { mixer, pedal: clip("Pedal_" + seat) && scrub(mixer, clip("Pedal_" + seat)), leanL: null, leanR: null };
-    if (clip("Lean_L")) { r.leanL = mixer.clipAction(clip("Lean_L")); r.leanL.play(); }
-    if (clip("Lean_R")) { r.leanR = mixer.clipAction(clip("Lean_R")); r.leanR.play(); }
+    const pedal = only(clip("Pedal_" + seat), n => LOWER_RE.test(n));
+    const r = { mixer, pedal: pedal && scrub(mixer, pedal), ride: null, leanL: null, leanR: null };
+    for (const [key, name] of [["ride", "Ride_"], ["leanL", "Lean_L_"], ["leanR", "Lean_R_"]]) {
+      const c = only(clip(name + seat), n => UPPER.has(n));
+      if (c) { r[key] = scrub(mixer, c); }
+    }
     if (!r.pedal && clip("pose_riding")) { scrub(mixer, clip("pose_riding")); note(`${seat}: no Pedal_${seat} clip yet -> static pose_riding`); }
     riders[seat] = r;
     note(`${seat}: ${url.split("/").pop()}`);
@@ -134,6 +149,7 @@ function loadRider(seat, url) {
 
 // ---- input
 const keys = new Set();
+window.__harness = { state, keys };                  // (headless tests set the crank / lean through this)
 addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   if (e.repeat) return;
@@ -188,7 +204,8 @@ renderer.setAnimationLoop(() => {
   for (const [seat, r] of Object.entries(riders)) {
     setTime(r.pedal, state.crank / (2 * Math.PI));
     const l = state.lean[seat];
-    if (r.leanL) r.leanL.setEffectiveWeight(Math.max(0, -l));
+    if (r.ride) r.ride.setEffectiveWeight(1 - Math.abs(l));
+    if (r.leanL) r.leanL.setEffectiveWeight(Math.max(0, -l));       // l < 0: lean to the rider's left (Q / U)
     if (r.leanR) r.leanR.setEffectiveWeight(Math.max(0, l));
     r.mixer.update(0);
   }

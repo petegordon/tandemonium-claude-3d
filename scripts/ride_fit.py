@@ -17,6 +17,12 @@ Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left ped
   standing, unstretched vs stretched (what permanently longer legs would look like off the bike).
 --bike <tag>: seat on out/bike/bike_rigged_<tag>.blend (make_bike.py --tag, e.g. goosefit24) instead of the P4.1 bike.
 --base <blend>: start from an earlier fit scene (e.g. the captain's), so both geese ride in the renders.
+--clips (P5.1-P5.4; one scale): bake the riding clips by the same IK and export out/<char>-goose/<char>_rider.glb
+  (the dressed goose + its old clips + these; armature space, so the game places the goose by its hips on the socket):
+  Pedal_<seat>    24 frames = one crank turn (time = crank angle / 2pi, the bike's Pedal clip); legs, feet, cloth chains
+  Ride_<seat>     upper body seated, hands on the grips (2 keys)
+  Lean_L_<seat> / Lean_R_<seat>   torso rolled SIDE_LEAN to the rider's left / right, head level, hands re-gripped
+  Players blend Ride / Lean by lean input on the upper-body bones and play Pedal on the lower body.
 Writes renders/_tmp/fit_<tag>_<k>_<view>.png, out/bike/fit_<char>_<seat>_<tag>.json.
 """
 import json
@@ -54,6 +60,9 @@ ARM_REACH = 0.90       # shoulder-to-wrist / (arm + forearm): bars are raised un
 MAX_BAR_RAISE = arg("--max-bar-raise", 0.35)   # m; beyond this the bars stay put (goose-fit bikes: 0, the design is the fit)
 LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
+SIDE_LEAN = 20.0       # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
+CLIPS = "--clips" in argv
+NCLIP = 24
 HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
 PALM_AT = 0.6          # grip crosses the palm this far down the hand (fraction of the hand bone)
 PALM_OFF = 0.03        # m: grip centre this far inboard of the hand bone (palm surface + grip radius)
@@ -268,13 +277,25 @@ def wrist_target(side, lift):
     return g, g - hand_dir(side) * (PALM_AT * L) + Vector((sx * PALM_OFF, 0, 0))
 
 
-def set_torso(phi):
+def roll_world(b, deg):
+    """Rotate a pose bone about the world forward axis (+ = top to the rider's left, +X) through its head."""
+    pb = pbs[b]
+    h = pb.matrix.translation.copy()
+    pb.matrix = Matrix.Translation(h) @ Matrix.Rotation(math.radians(deg), 4, "Y") @ Matrix.Translation(-h) @ pb.matrix
+    upd()
+
+
+def set_torso(phi, roll=0.0):
     reset()
     for b in ("Spine", "Spine1", "Spine2"):
         pbs[b].rotation_euler.x = math.radians(phi / 3)
     for b, f in (("Neck", 0.4), ("Neck1", 0.3)):
         pbs[b].rotation_euler.x = -math.radians(phi * f)
     upd()
+    if roll:
+        for b in ("Spine", "Spine1", "Spine2"):
+            roll_world(b, roll / 3)
+        roll_world("Neck", -roll * 0.35)
     pb = pbs["Head"]                                   # head upright: rest world orientation
     m = head_rest_rot.to_4x4()
     m.translation = pb.matrix.translation
@@ -311,10 +332,10 @@ def leg_reach_bottom(k):
     return (at - gw(f"{s_}UpLeg")).length / (blen(f"{s_}UpLeg") + blen(f"{s_}Leg"))
 
 
-def pose_on_bike(lean):
+def pose_on_bike(lean, roll=0.0):
     rep = {"lean_deg": lean}
     place_hips()
-    set_torso(lean)
+    set_torso(lean, roll)
     lift = 0.0
     while arm_reach(lift) > ARM_REACH and lift < MAX_BAR_RAISE:
         lift += 0.005
@@ -432,6 +453,92 @@ if STANDING:                                  # off the bike: rest pose, origina
         for view, az, el in (("side", 90, 0), ("front", 0, 0)):
             shoot(TMP / f"stand_{TAG}_{f:.2f}_{view}.png", az, el, 2.7, Vector((0, 0, 1.0)))
         report[f"stand_{f:.2f}"] = {"stretch": round(f, 3), "head_top_z_m": round(rep_h, 3)}
+# ---- P5 clips ----------------------------------------------------------------------------------------
+UPPER = ("Spine", "Spine1", "Spine2", "Neck", "Neck1", "Neck2", "Neck3", "Head", "LeftShoulder", "LeftArm",
+         "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand")
+LOWER = tuple(f"{s_}{b}" for s_ in ("Left", "Right") for b in ("UpLeg", "Leg", "Foot", "ToeBase")) + \
+    tuple(b for c in chains["chains"] for b in c["bones"])
+
+
+def bake(name, frames, bset):
+    """frames: list of callables posing the goose; keys bset (Euler, continuous) at 0..len-1 -> NLA track."""
+    act = bpy.data.actions.new(name)
+    rig.animation_data_create()
+    rig.animation_data.action = act
+    prev = {}
+    for f, pose in enumerate(frames):
+        pose()
+        for b in bset:
+            pb = pbs[b]
+            mb = pb.matrix_basis
+            e = mb.to_euler("XYZ", prev[b]) if b in prev else mb.to_euler("XYZ")
+            prev[b] = e
+            pb.rotation_euler = e
+            pb.location = mb.to_translation()
+            pb.keyframe_insert("rotation_euler", frame=f, group=b)
+            pb.keyframe_insert("location", frame=f, group=b)
+    act.use_fake_user = True
+    rig.animation_data.action = None
+    tr = rig.animation_data.nla_tracks.new()
+    tr.name = name
+    st = tr.strips.new(name, 0, act)
+    st.extrapolation = "NOTHING"
+    tr.mute = True
+    return act
+
+
+if CLIPS:
+    assert len(SCALES) == 1, "--clips: one bike scale"
+    k = SCALES[0]
+    bike.scale = (k, k, k)
+    sc.render.fps = 24
+    sc.frame_start = 0
+    clip_rep = {}
+
+    def pedal_frame(f):
+        def go():
+            set_crank(2 * math.pi * f / NCLIP)
+            r = pose_on_bike(LEAN)
+            clip_rep[f] = max(r["foot_err_mm_L"], r["foot_err_mm_R"], r["grip_err_mm_L"], r["grip_err_mm_R"])
+        return go
+
+    bake(f"Pedal_{SEAT}", [pedal_frame(f) for f in range(NCLIP + 1)], LOWER)
+
+    def still(roll):
+        def go():
+            set_crank(0.0)
+            r = pose_on_bike(LEAN, roll)
+            clip_rep[f"roll{roll}"] = max(r["grip_err_mm_L"], r["grip_err_mm_R"])
+        return go
+
+    bake(f"Ride_{SEAT}", [still(0.0)] * 2, UPPER)
+    bake(f"Lean_L_{SEAT}", [still(SIDE_LEAN)] * 2, UPPER)
+    bake(f"Lean_R_{SEAT}", [still(-SIDE_LEAN)] * 2, UPPER)
+    report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN}
+    print("CLIPS", json.dumps(report["clips"]))
+    # export the goose alone: rig back at the origin, rest pose, all pieces (layered ones too)
+    sc.frame_end = NCLIP
+    rig.location = (0, 0, 0)
+    reset()
+    hidden = [o for o in goose_objs if o.hide_viewport]
+    for o in hidden:
+        o.hide_viewport = False
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in goose_objs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = rig
+    out_glb = ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_rider.glb"
+    bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
+                              export_tangents=True, export_animations=True, export_animation_mode="NLA_TRACKS",
+                              export_yup=True)
+    sys.path.insert(0, str(Path(__file__).parent))
+    from glb_fix_tangents import main as fix_tangents  # noqa: E402
+    fix_tangents(str(out_glb))
+    for o in hidden:
+        o.hide_viewport = True
+    set_crank(0.0)                            # back on the bike for the saved scene (--base for the next rider)
+    pose_on_bike(LEAN)
+    print("RIDER", out_glb)
 (OUT / f"fit_{CHAR}_{SEAT}_{TAG}.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / f"fit_{CHAR}_{SEAT}_{TAG}.blend"), compress=True)
 print("DONE")

@@ -11,7 +11,12 @@ progress log: `PLAN.md`. This file = the exact restart state.
 | P0 reference intake | **Done.** v3 sheets in `refs/v3/` (Pete, Codex image_gen; consistent arms in every view). v2 superseded (it caused an extra hand per side). |
 | P1 base goose | **Done.** Release `base-goose-p1`. Seed 7, symmetric, Instant Meshes quads, mitten hands (D8), shared eye asset in carved sockets, split beak + hinge + mouth + movable serrated tongue. |
 | P2 standard rig | **Done.** Release `base-goose-p2-rigged` (rigged GLB + `base_goose.blend`). 35 bones, hip joint 14 cm above crotch, clips idle / blink / look_around / honk + one-frame `pose_*` clips; verified in the game's three.js r161. |
-| P4 bike | **Goose-fit tandem built, at Pete's gate** (2026-10-11).
+| P4 bike / P5 riding | **Goose-fit tandem (26 in, D22) + riding clips, at Pete's gate** (2026-10-11).
+- **Bike:** `make_bike.py --fit out/fit/frame_goosefit_26in.json --tag goosefit26`.
+- **Clips:** `ride_fit.py --bike goosefit26 --max-bar-raise 0 --clips` (captain first, then the stoker with `--base` the captain's scene) writes `out/<char>-goose/<char>_rider.glb` with `Pedal_/Ride_/Lean_L_/Lean_R_<seat>`.
+- **Where:** `docs/goose-fit-tandem.md` sections 6–7; sheets `docs/img/p5_*.png`.
+- **Harness:** `node tools/ride_harness/serve.mjs`, then open `/` (goosefit26 + both riders).
+- **Next:** Pete answers the skirt question (P5.4), then P5.5 delivery and game integration on a branch. |
 - **Why:** the game's tandem doesn't fit the geese at any one scale (P4.2).
 - **What changed:** male legs ×1.15 through the sliders; both geese re-dressed with soles on the floor; frame geometry worked out from the riders (`measure_geese.py`, `frame_fit.py`); the bike reshaped by `make_bike.py --fit ... --tag goosefit24|26` (`goosefit_bike.py`).
 - **Result:** both geese seated with no stretch (`ride_fit.py --bike goosefit24 --max-bar-raise 0`; stoker via `--base`).

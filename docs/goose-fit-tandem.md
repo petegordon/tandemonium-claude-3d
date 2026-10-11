@@ -127,3 +127,33 @@ Open items:
 - **P5.4:** check her skirt and bustle over the rear wheel and through the pedal stroke. In the generic riding pose her boots come out of the skirt.
 - The stoker stem is about 0.4 m tall (styling pass).
 - The seat probe can't measure the female (dress); it reports NaN.
+
+## 7. P5.1–P5.4 riding clips (2026-10-11)
+
+**D22 (Pete):** either wheel size is fine, so we use **26 in** (`bike_rigged_goosefit26.glb`; closer to the assembly sheet).
+
+**How the clips are made:** `ride_fit.py --clips` bakes them with the same IK contact model as the fit and exports `out/<char>-goose/<char>_rider.glb`. That file holds the dressed goose, its old clips (idle, blink, honk and the poses) and these:
+
+| clip | length | drives | content |
+|---|---|---|---|
+| `Pedal_<seat>` | 25 keys, 1.0 s | legs, feet, cloth chains | one crank turn, time = crank angle / 2π (same convention as the bike's `Pedal` clip; the stoker's half turn is in the bike's geometry, D15) |
+| `Ride_<seat>` | static | upper body | seated, hands on the grips (handshake grip), head level |
+| `Lean_L_<seat>` / `Lean_R_<seat>` | static | upper body | torso rolled 20° (a third each on Spine / Spine1 / Spine2, neck gives back 35%), head level, hands re-gripped |
+
+- **Contacts:** feet and hands are 0 mm off the pedals and grips in every frame.
+- **Exporter quirk:** the glTF exporter samples every bone into every clip, so players filter each clip to its bones:
+  - Pedal: `(Left|Right)(UpLeg|Leg|Foot|ToeBase)` plus `Cloth_*`;
+  - Ride / Lean: Spine…Head and shoulders, arms, hands.
+- **Weights:** Ride = 1 − |lean|; Lean_L = max(0, −lean); Lean_R = max(0, lean). The harness does this (`?bike=goosefit26` is now the default, loading `*_rider.glb`).
+
+**Checks:**
+- **three.js harness:** `tools/ride_harness/shots.mjs` takes a crank cycle and lean shots with no errors.
+- **Blender sheets:** `scripts/p5_sheet.py` writes `docs/img/p5_pedal_cycle.png` (left and right side, 8 crank angles) and `docs/img/p5_lean.png`.
+
+**Open (P5.4 skirt):**
+- The bustle skirt is long (hem 23 cm above the soles, 62 cm wide). Seated, it drapes over the rear wheel and down the frame and hides her legs; only the boots show below the hem. It follows the thighs (D12 chains), so nothing tears, but it overlaps the rear wheel.
+- **Options:**
+  - (a) a riding hem: shorten or lift the skirt only while riding (chain bones raised in `Ride_Stoker`);
+  - (b) a step-through rear frame (period ladies' tandem; styling stage);
+  - (c) a skirt guard over the rear wheel;
+  - (d) accept it.
