@@ -511,3 +511,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   **Pete picked male s2026** (clean bowler, bow tie, boots; tiny cufflink blob) and **female s7** (best 3-tier bustle,
   cream cheeks; right boot smeared to a point — fix at garment stage, or borrow s123's boots). `clean_hi.py --height 1.65`
   (provisional = base height; P3.2 sets real scale) → `out/outfit_{male,female}-goose/outfit_*_goose_hi.glb` (IoU unchanged).
+- **P3.2 first pass (2026-10-10)** — `scripts/align_outfit.py`: trimmed similarity ICP, base bill/face/neck anchors
+  (z > 0.80 H, up to the bill-tip height: `--crown 0.0`; 0.05 let the hat brim in and skewed the fit) → outfit nearest
+  surface. Outputs `out/<char>-goose/<char>_goose_aligned.glb`, `<char>_align.json`, `renders/<char>_align_{overlay,dist,head}.png`.
+  **Male:** scale 1.032, rot < 0.5°, anchor residual median 1.5 mm / p90 3.7 mm, boot soles 7.5 mm below the floor → one
+  similarity fits head AND feet. **Female:** head fits (bill 2.1 / 5.1 mm) at scale 1.104, but her feet land 8.5 cm below
+  the floor and her torso/arms are slimmer than the base → her clothed body has a smaller head-to-body ratio; one rigid
+  transform can't fit head and body. Both: the generator "paints" clothes tight on the body (male: 36 % of outfit
+  surface within 5 mm of the base) and the base body pokes out (thighs, tail through the jacket back, webbed feet past
+  the boots) → pure distance-to-body extraction (P3.3) will not separate garments; needs texture/region segmentation.
