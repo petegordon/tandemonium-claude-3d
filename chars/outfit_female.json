@@ -217,7 +217,7 @@
       "z_bot": 0.86,
       "back_rise": 0.0,
       "rise_y0": -0.1,
-      "tris": 3600,
+      "tris": 3300,
       "cuff": 0.04,
       "wrist_offset": 0.0,
       "cover_margin": 0.012,
@@ -231,7 +231,8 @@
         "hem": 0.02,
         "puff": 0.06,
         "puff_at": 0.25,
-        "puff_w": 0.22
+        "puff_w": 0.22,
+        "puff_armw": 0.6
       },
       "mottle": 0.16,
       "twill": 0.07,
@@ -277,7 +278,8 @@
       "hem_zone": 0.1,
       "lo_edge_iter": 0,
       "edge_relax": 25,
-      "edge_rings": 4
+      "edge_rings": 4,
+      "base_smooth": 35
     },
     "skirt": {
       "kind": "skirt",
@@ -441,7 +443,7 @@
       "region_sub": 1,
       "base_smooth": 24,
       "ease": {
-        "hand": 0.0025,
+        "hand": 0.006,
         "cuff": 0.002
       },
       "mottle": 0.06,
@@ -465,9 +467,15 @@
           176
         ]
       },
-      "plain_smooth": 70,
+      "plain_smooth": 90,
       "top_r": 0.033,
-      "top_len": 0.1
+      "top_len": 0.1,
+      "round": 0.6,
+      "round_scale": [
+        1.0,
+        1.05,
+        1.25
+      ]
     },
     "boots": {
       "kind": "boot",
@@ -525,16 +533,16 @@
       -0.045
     ],
     "brim_ax": [
-      0.14,
-      0.162
+      0.15,
+      0.17
     ],
-    "brim_z": 1.565,
-    "droop": 0.012,
+    "brim_z": 1.635,
+    "droop": 0.006,
     "crown_ax": [
       0.082,
       0.098
     ],
-    "crown_top": 1.672,
+    "crown_top": 1.722,
     "puffs": {
       "n": 6,
       "amp": 0.017,
@@ -563,34 +571,34 @@
         [
           0.05,
           -0.1,
-          1.63
+          1.7
         ],
         [
           0.13,
           -0.03,
-          1.78
+          1.85
         ],
         [
           0.24,
           0.13,
-          1.82
+          1.8900000000000001
         ],
         [
           0.31,
           0.29,
-          1.75
+          1.82
         ]
       ],
-      "w": 0.05,
+      "w": 0.055,
       "n": 84,
-      "serrations": 36,
+      "serrations": 40,
       "droop": 0.6,
       "vane_normal": [
         1.0,
         0.0,
         0.35
       ],
-      "serr_depth": 0.5
+      "serr_depth": 0.4
     },
     "colors": {
       "burgundy": [
@@ -613,5 +621,11 @@
     "puff_rows": 6,
     "rose_h": 0.03,
     "rose_r": 0.05
+  },
+  "cuff_design": {
+    "na": 28,
+    "nu": 4,
+    "length": 0.02,
+    "flare": 1.3
   }
 }

@@ -62,7 +62,7 @@ def ring(ax, z, dz=None):
 bax, bz, cax = np.array(H["brim_ax"]), H["brim_z"], np.array(H["crown_ax"])
 droop = H.get("droop", 0.012) * np.clip(-sy, 0, 1) ** 2      # front dips
 rows = []
-for u, dzz in ((0.98, 0.0), (0.4, 0.0), (0.85, -0.001), (1.0, -0.004), (1.0, -0.012), (0.85, -0.014), (0.98, -0.012)):
+for u, dzz in ((0.98, 0.0), (0.4, 0.0), (0.85, -0.002), (1.0, -0.007), (1.0, -0.018), (0.85, -0.02), (0.98, -0.017)):
     if u == 0.98 and not rows:
         a_ = cax * 0.98
     elif u == 0.98:
@@ -116,7 +116,7 @@ for (az_d, zr, sc) in H.get("rosettes", [[25, 0.0, 1.0], [55, 0.012, 0.85], [80,
         for a_i, a_u in enumerate(np.linspace(0, 1, 4)):
             for b_i, b_u in enumerate(np.linspace(-1, 1, 3)):
                 rr_ = rad + size * a_u
-                P_[a_i, b_i] = c0 + d_ * rr_ + tq * (b_u * size * 0.55 * math.sin(math.pi * (0.25 + 0.75 * a_u))) \
+                P_[a_i, b_i] = c0 + d_ * rr_ + tq * (b_u * size * 0.55 * math.sin(math.pi * (0.3 + 0.55 * a_u))) \
                     + out * (lift + cup * a_u ** 2 - cup * 0.5 * abs(b_u) * a_u)
         add_grid(P_, 1)
     for k_ in range(5):

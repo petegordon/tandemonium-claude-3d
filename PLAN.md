@@ -778,4 +778,9 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   Boots = boot recipe, ankle height (top 0.2, under the skirt), lace-up front (eyelet grooves + crossed laces), brown;
   sole tint now relative to the lowest point (shaped bodies stand lower). Ruffles: uneven gathered folds. Female
   visible 19.5k (under 20k), male 19.2k; validator 0/0 both, three.js ok both. scripts/garment_sheet.py for her pieces.
+- **Female list pass (Pete: hat far too low / deep over the eyes)** -- eyes are at 1.595 m: hat raised 7 cm (brim 1.635,
+  front droop 6 mm), thicker / wider brim, lower crown, round-tipped rose petals, finer plume. Gloves: ellipsoid-rounded
+  mitten past the wrist tube (no beak tip). Lace cuffs: scripts/make_cuffs.py builds a flared scalloped cream frill on
+  each bodice sleeve-end loop (336 tris). Bodice: puff only on the arm (armw > 0.6), base surface smoothed 35 rounds
+  (goose shoulder bumps printed through). Female visible 19.65k; validator 0/0, three.js ok.
 

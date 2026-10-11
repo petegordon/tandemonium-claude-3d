@@ -882,7 +882,7 @@ if KIND == "shirt":
             a0_, a1_ = bone[f"{s_}Arm"][0], bone[f"{s_}ForeArm"][0]
             dq = a1_ - a0_
             u_ = ((P - a0_) @ dq) / (dq @ dq)
-            on_ = (P[:, 0] * sg > 0.05) & (armw > 0.3)
+            on_ = (P[:, 0] * sg > 0.05) & (armw > E.get("puff_armw", 0.3))
             ease += np.where(on_, E["puff"] * np.exp(-((u_ - E.get("puff_at", 0.3)) / E.get("puff_w", 0.28)) ** 2), 0.0)
     cuff = R.get("cuff", 0.045)
     ease = np.where(dwr < cuff + 0.01, np.minimum(ease, E.get("cuff", 0.005)) + 0.0 * dwr, ease)
@@ -1057,6 +1057,23 @@ if KIND in ("shirt", "coat") and R.get("armpit_relax", 30):
     dn_ = np.sum((Pm - P) * N, 1)
     Pm = Pm + N * np.maximum(req_ - dn_, 0)[:, None]
     log("armpit relaxed", int(bandp.sum()), "verts")
+if KIND == "glove" and R.get("round", 0):
+    # rounder mitten: blend each hand toward an ellipsoid fitted to it (PCA axes, 95th-percentile radii),
+    # only past the wrist tube so the cuff stays put
+    for s_, sg in SIDES:
+        co_, dd_ = WRIST[sg]
+        on = (Pm[:, 0] * sg > 0.25) & (-dwr > R.get("top_len", 0.06) * 0.7)
+        if on.sum() < 20:
+            continue
+        Q = Pm[on]
+        c0 = Q.mean(0)
+        U_, S_, VT = np.linalg.svd(Q - c0, full_matrices=False)
+        loc = (Q - c0) @ VT.T
+        rad3 = np.percentile(np.abs(loc), 97, axis=0) * np.array(R.get("round_scale", [1.0, 1.0, 1.15]))
+        dirs = loc / np.maximum(np.linalg.norm(loc / rad3, axis=1, keepdims=True), 1e-9)
+        w_ = R["round"] * np.clip((-dwr[on] - R.get("top_len", 0.06) * 0.7) / 0.03, 0, 1)
+        Pm[on] = Pm[on] * (1 - w_[:, None]) + (c0 + dirs @ VT) * w_[:, None]
+        log("glove rounded", s_, "radii mm", np.round(rad3 * 1000).tolist())
 if KIND == "glove":
     # the top of the glove tucks under the shirt cuff: within "top_len" of the opening the radius about
     # the wrist axis (through the opening ring's centroid) is held to "top_r", blending back below it
