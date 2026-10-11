@@ -533,3 +533,10 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   thighs/hips 40→26 % (tail stub), feet 31→18 % (webbed toes); boot offset ≈0 (sanity). Female: boots 77 mm lower, 4–5 cm
   back → legs ×1.17–1.19; torso 33→6 %, hands 29→3 %, feet 41→14 %. Bugs fixed on the way: child head of unconnected
   bones must be the parent-transformed rest head (not the parent's tail).
+- **P3.3 garment extraction (D10)** — `scripts/garment_explore.py` (per-face albedo → Lab k-means palette; body region =
+  dominant bone of the nearest rig-fitted base vertex; `<char>_faces.npz`) + `scripts/extract_garments.py` (colour family
+  cream / black / red / brown / tan / dark × region rules in `chars/<char>.json` "garments", with z / y / L / distance-to-body
+  gates; 2 rounds of area-weighted majority smoothing). Male: hat 2.3 %, coat 42.5 %, waistcoat 4.3 %, shirt 1.4 %, bowtie
+  0.5 %, gloves 4.8 %, breeches 21.6 %, boots 14.6 %, body 7.8 %, unlabelled 0.1 %. Coat vs breeches needed height bands +
+  stand-off distance (coat tails stand off the body; shadowed breeches read coat-brown). Female (region does the work, the
+  whole dress is one red): hat 4.8, bodice 6.3, sleeves 10.4, skirt+bustle 67.5, collar 0.4, gloves 1.7, boots 4.2, body 4.8 %.

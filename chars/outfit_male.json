@@ -16,5 +16,171 @@
   "height_m": null,
   "yaw_steps": 0,
   "fixes": [],
-  "notes": "Clothed male outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m. Sheet: refs/v3 (2x2, arms fixed so all views agree)."
+  "notes": "Clothed male outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m. Sheet: refs/v3 (2x2, arms fixed so all views agree).",
+  "garments": [
+    {
+      "name": "hat",
+      "region": [
+        "head"
+      ],
+      "z_min": 1.6
+    },
+    {
+      "name": "body",
+      "region": [
+        "head"
+      ]
+    },
+    {
+      "name": "shirt",
+      "family": [
+        "cream"
+      ],
+      "region": [
+        "neck",
+        "torso",
+        "upper_arm",
+        "forearm",
+        "hand"
+      ],
+      "z_max": 1.4
+    },
+    {
+      "name": "shirt",
+      "family": [
+        "tan"
+      ],
+      "region": [
+        "forearm",
+        "hand"
+      ],
+      "L_min": 45
+    },
+    {
+      "name": "bowtie",
+      "family": [
+        "black",
+        "dark"
+      ],
+      "region": [
+        "neck",
+        "torso"
+      ],
+      "z_min": 1.27,
+      "z_max": 1.36,
+      "y_max": -0.02,
+      "dist_min": 0.008
+    },
+    {
+      "name": "body",
+      "region": [
+        "neck"
+      ]
+    },
+    {
+      "name": "gloves",
+      "family": [
+        "black",
+        "dark"
+      ],
+      "region": [
+        "hand",
+        "forearm"
+      ]
+    },
+    {
+      "name": "boots",
+      "family": [
+        "black",
+        "dark"
+      ],
+      "region": [
+        "shin",
+        "foot"
+      ]
+    },
+    {
+      "name": "coat",
+      "family": [
+        "brown",
+        "dark",
+        "black"
+      ],
+      "region": [
+        "torso",
+        "upper_arm",
+        "forearm",
+        "hand"
+      ]
+    },
+    {
+      "name": "coat",
+      "family": [
+        "brown",
+        "dark",
+        "black"
+      ],
+      "region": [
+        "hips",
+        "thigh"
+      ],
+      "z_min": 0.66
+    },
+    {
+      "name": "coat",
+      "family": [
+        "brown",
+        "dark",
+        "black"
+      ],
+      "region": [
+        "hips",
+        "thigh"
+      ],
+      "z_min": 0.6,
+      "dist_min": 0.015
+    },
+    {
+      "name": "coat",
+      "family": [
+        "tan",
+        "dark",
+        "cream"
+      ],
+      "region": [
+        "upper_arm",
+        "forearm"
+      ]
+    },
+    {
+      "name": "waistcoat",
+      "family": [
+        "tan"
+      ],
+      "region": [
+        "torso"
+      ]
+    },
+    {
+      "name": "breeches",
+      "family": [
+        "tan",
+        "brown",
+        "dark"
+      ],
+      "region": [
+        "hips",
+        "thigh",
+        "shin"
+      ]
+    },
+    {
+      "name": "breeches",
+      "region": [
+        "hips",
+        "thigh",
+        "shin"
+      ]
+    }
+  ]
 }

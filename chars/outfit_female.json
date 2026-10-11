@@ -16,5 +16,84 @@
   "height_m": null,
   "yaw_steps": 0,
   "fixes": [],
-  "notes": "Clothed female outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m. Sheet: refs/v3 (2x2, arms fixed so all views agree)."
+  "notes": "Clothed female outfit over the shared base goose (P3.1). Scale comes from alignment to the base body (P3.2), not from height_m. Sheet: refs/v3 (2x2, arms fixed so all views agree).",
+  "garments": [
+    {
+      "name": "hat",
+      "region": [
+        "head"
+      ],
+      "z_min": 1.6
+    },
+    {
+      "name": "body",
+      "region": [
+        "head"
+      ]
+    },
+    {
+      "name": "collar",
+      "family": [
+        "cream",
+        "tan"
+      ],
+      "region": [
+        "neck",
+        "torso"
+      ],
+      "z_max": 1.4,
+      "L_min": 45
+    },
+    {
+      "name": "body",
+      "region": [
+        "neck"
+      ]
+    },
+    {
+      "name": "gloves",
+      "family": [
+        "black",
+        "dark"
+      ],
+      "region": [
+        "hand",
+        "forearm"
+      ]
+    },
+    {
+      "name": "boots",
+      "family": [
+        "black",
+        "dark"
+      ],
+      "region": [
+        "shin",
+        "foot"
+      ]
+    },
+    {
+      "name": "bodice",
+      "region": [
+        "torso"
+      ]
+    },
+    {
+      "name": "sleeves",
+      "region": [
+        "upper_arm",
+        "forearm",
+        "hand"
+      ]
+    },
+    {
+      "name": "skirt",
+      "region": [
+        "hips",
+        "thigh",
+        "shin",
+        "foot"
+      ]
+    }
+  ]
 }
