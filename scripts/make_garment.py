@@ -871,6 +871,12 @@ if KIND == "coat":
         sc_ = np.where(zone & (rr2 < rmin), rmin / np.maximum(rr2, 1e-6), 1.0)
         Pm[:, 0] = rel_[:, 0] * sc_
         Pm[:, 1] = yc_ + rel_[:, 1] * sc_
+    # straight hem: the edge stays exactly on the hem line (the hang / relax / offset moved it up and down)
+    hem_b = boundary & (np.abs(P[:, 2] - hem_z(P[:, 0], P[:, 1], P[:, 2])) < 0.006)
+    Pm[hem_b, 2] = hem_z(Pm[hem_b, 0], Pm[hem_b, 1], Pm[hem_b, 2])
+    for _ in range(4):                            # ease the row above onto it
+        Pm = np.where(zone[:, None] & ~hem_b[:, None], smooth_field(Pm, ed, 2, pin=hem_b | ~zone), Pm)
+    log("coat hem verts pinned", int(hem_b.sum()))
     log("coat hang verts", int(hang.sum()), "max push mm", round(float(np.max((target - rr_) * hang)) * 1000, 1))
 if KIND == "shirt":
     # cuffs are round tubes around the wrist, not shrink-wrapped over the hand: inside the cuff band each
@@ -1265,7 +1271,7 @@ if KIND in ("vest", "coat"):
     for v in bv:
         r0 = resid(np.array(v.co))
         kinds[v] = min(r0, key=lambda kk: abs(r0[kk]))
-        if abs(r0[kinds[v]]) > 0.03:              # an edge made by a plane (wrists): leave it
+        if abs(r0[kinds[v]]) > (0.06 if kinds[v] == "hem" else 0.03):   # an edge made by a plane (wrists): leave it
             kinds[v] = "plane"
     for it in range(R.get("lo_edge_iter", 12)):
         for v in bv:

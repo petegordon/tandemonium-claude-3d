@@ -728,4 +728,8 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   7 cm in from the jacket's edges (looking under the flared hem showed the body's cut edge); default brown darkened
   (74,50,35). A turned-in 6 mm rim for thickness was tried and dropped (ragged edges). Chains back to 4.
   Validator 0/0, three.js ok, male visible 19.2k.
+- **Jacket hem (Pete: black tag at the back, straight hem)** — the "tag" was the breeches' layer-hidden zone ending in a
+  ragged line, visible under the flared hem: breeches now stay whole under the jacket (LAYER_IGNORE). Hem: boundary
+  verts on the hem line are pinned back to it after the hang / relax / offset steps (the row above eased onto it), and
+  the game-mesh re-snap accepts hem verts up to 6 cm off. Straight hem all round. Validator 0/0, three.js ok, 19.7k.
 
