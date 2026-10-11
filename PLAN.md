@@ -754,4 +754,13 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   (LAYER_NEAR 4 cm); an extra armpit weight smoothing was tried and dropped (it tore the jacket). Boots below the knee
   (top 0.355, breeches end 0.32 inside them), roughness 0.6, top 20 cm eased into a round tube over the breeches cuff.
   Open: small shirt patch under the arm in the full T-pose. Validator 0/0, three.js ok, 19.4k.
+- **Female outfit started (Pete: skirt above the shoe, single bustle drape, painted feather barbs)** -- bodice =
+  make_garment kind shirt on her slider body (leg-of-mutton puff ease, ~2.6 cm button step with dark buttons, princess
+  seams, guide = extracted dress); the modelled bib + round collar now join the bodice (bodice@bib). Skirt =
+  scripts/make_skirt.py: lofted ring grid round the body axis (body radius held non-shrinking downward + clearance,
+  bulked to the extracted dress silhouette smoothed, single bustle swelling at the back, front apron with a curved hem
+  rising to the hips + catenary swags, two flounce tiers with gathered ruffles, hem 0.13 m), reusing make_garment's body
+  setup and bake / export via exec; 4.7k tris; LOOSE_PIECES skirt -> 6 cloth chains: in the game viewer the riding
+  skirt drapes over the knees. Old extracted dress shells moved to shells/_old. Female visible 20.5k (over by 0.5k;
+  hat / boots / gloves still the old extracted shells). Validator 0/0, three.js ok.
 

@@ -56,13 +56,13 @@ LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
 # (breeches stay whole under the jacket: under its flared hem you can see up to them)
-LAYER_IGNORE = {"boots": ("breeches", "coat"), "gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie"),
+LAYER_IGNORE = {"bodice": ("skirt", "collar", "gloves"), "skirt": ("boots",), "boots": ("breeches", "coat", "skirt"), "gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie"),
                 "coat": ("shirt", "breeches", "bowtie", "waistcoat", "gloves", "boots", "hat")}
 LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
 LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
-LOOSE_PIECES = {"coat", "dress"}
+LOOSE_PIECES = {"coat", "dress", "skirt"}
 CHAIN_AZ = {"FL": 30, "FR": -30, "SL": 90, "SR": -90, "BL": 150, "BR": -150}   # 0 = front, + = character left
 FOLLOW = {"F": 0.7, "S": 0.35, "B": 0.0}
 DRAPE = [1.0, 0.45, 0.15]   # share of the follow per chain bone (root, mid, tip): fabric bends at the knee   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)

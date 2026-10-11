@@ -826,7 +826,7 @@ if KIND in ("shirt", "coat", "glove"):
         dwr = np.where(on, np.minimum(dwr, -((P - co) @ dd)), dwr)
     dneck = Z_NECK - P[:, 2]
     dhem = P[:, 2] - ztop(P[:, 1]) + (Z_TOP - Z_BOT)   # height above the (tilted) hem
-piece = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
+piece = next(o for o in load(D / "pieces" / f"{R.get('guide', PIECE)}.glb") if o.type == "MESH")
 only_select(piece)
 bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -848,6 +848,13 @@ if KIND == "shirt":
     E = R.get("ease", {})
     ease = E.get("torso", 0.007) + (E.get("sleeve", 0.011) - E.get("torso", 0.007)) * np.clip(armw, 0, 1)
     ease += E.get("blouse", 0.006) * np.exp(-((dwr - 0.085) / 0.045) ** 2) * (dwr < 1)
+    if E.get("puff"):           # leg-of-mutton: a puff over the upper arm, fitted from the elbow down
+        for s_, sg in SIDES:
+            a0_, a1_ = bone[f"{s_}Arm"][0], bone[f"{s_}ForeArm"][0]
+            dq = a1_ - a0_
+            u_ = ((P - a0_) @ dq) / (dq @ dq)
+            on_ = (P[:, 0] * sg > 0.05) & (armw > 0.3)
+            ease += np.where(on_, E["puff"] * np.exp(-((u_ - E.get("puff_at", 0.3)) / E.get("puff_w", 0.28)) ** 2), 0.0)
     cuff = R.get("cuff", 0.045)
     ease = np.where(dwr < cuff + 0.01, np.minimum(ease, E.get("cuff", 0.005)) + 0.0 * dwr, ease)
     ease = ease * np.clip(dneck / 0.04, 0, 1) + E.get("neck", 0.003) * (1 - np.clip(dneck / 0.04, 0, 1))
@@ -1232,9 +1239,16 @@ elif KIND == "shirt":
     plk = front & (zh < Z_NECK - 0.004)
     disp += np.where(plk & (np.abs(x) < 0.0125), 0.0008, 0.0)
     disp += groove(np.where(plk, np.abs(np.abs(x) - 0.0125), 9.0), 0.0011, 0.0008)
+    tintm = np.ones(len(Ph))
     for zb_ in np.arange(Z_NECK - 0.03, float(ztop(-0.1)) - (Z_TOP - Z_BOT) + 0.05, -R.get("button_step", 0.065)):
         dbt = np.sqrt(x ** 2 + (zh - zb_) ** 2)
         disp += np.where(plk, 0.0017 * np.exp(-(dbt / 0.0036) ** 2) - 0.0005 * np.exp(-((dbt - 0.0045) / 0.0012) ** 2), 0.0)
+        if R.get("button_tint"):
+            tintm = np.where(plk & (dbt < 0.0042), R["button_tint"], tintm)
+    if R.get("princess"):          # princess seams: front and back panels curving over the bust / blades
+        for sx in (1, -1):
+            xs = sx * (0.045 + 0.03 * np.clip((zh - 1.0) / 0.2, 0, 1))
+            disp += np.where(torso & (zh > ztop(y) - (Z_TOP - Z_BOT)), groove(np.abs(x - xs), 0.0013, 0.0009), 0.0)
     # side seams of the torso, armhole seam, sleeve underseams
     yc = 0.0
     phit = np.arctan2(x, -(y - yc))
@@ -1497,7 +1511,7 @@ if KIND == "glove":
         wr = on & (dh_ > 0.015) & (dh_ < 0.05)
         disp += np.where(wr, 0.0003 * np.sin(dh_ / 0.011 * 2 * np.pi + 1.3 * np.sin(lat * 60)) * np.clip(1 - (dh_ - 0.015) / 0.035, 0, 1), 0.0)
 occ = np.clip(1 + disp / 0.0012 * 0.22, 0.65, 1.08)                  # grooves read darker
-if KIND in ("vest", "coat", "glove", "boot"):
+if KIND in ("vest", "coat", "glove", "boot") or (KIND == "shirt" and R.get("button_tint")):
     occ = occ * tintm
 Ph2 = Ph + Nh * disp[:, None]
 hi.data.vertices.foreach_set("co", Ph2.ravel())

@@ -187,14 +187,12 @@
   },
   "accessory_over": {
     "collar": [
-      "dress"
+      "bodice"
     ]
   },
   "accessory_clear": {
     "collar": {
-      "pieces": [
-        "dress"
-      ],
+      "pieces": [],
       "parts": [
         "bib",
         "roll",
@@ -204,10 +202,120 @@
   },
   "accessory_split": {
     "collar": {
-      "dress@bib": [
+      "bodice@bib": [
         "bib",
         "roll"
       ]
+    }
+  },
+  "garment_design": {
+    "bodice": {
+      "kind": "shirt",
+      "guide": "dress",
+      "z_neck": 1.282,
+      "z_top": 0.95,
+      "z_bot": 0.95,
+      "back_rise": 0.0,
+      "rise_y0": -0.1,
+      "tris": 3600,
+      "cuff": 0.04,
+      "wrist_offset": 0.0,
+      "cover_margin": 0.012,
+      "button_step": 0.026,
+      "ease": {
+        "torso": 0.006,
+        "sleeve": 0.008,
+        "blouse": 0.0,
+        "cuff": 0.005,
+        "neck": 0.003,
+        "hem": 0.006,
+        "puff": 0.06,
+        "puff_at": 0.25,
+        "puff_w": 0.22
+      },
+      "mottle": 0.16,
+      "twill": 0.07,
+      "roughness": 0.85,
+      "colors": {
+        "burgundy": [
+          118,
+          40,
+          44
+        ],
+        "plum": [
+          80,
+          44,
+          70
+        ],
+        "green": [
+          44,
+          72,
+          56
+        ]
+      },
+      "button_tint": 0.5,
+      "princess": true
+    },
+    "skirt": {
+      "kind": "skirt",
+      "guide": "dress",
+      "z_top": 0.985,
+      "z_hem": 0.13,
+      "na": 64,
+      "nz": 38,
+      "hi_up": 6,
+      "clear": 0.014,
+      "guide_smooth": 14,
+      "guide_scale": 0.97,
+      "waist_clear": 0.006,
+      "waist_blend": 0.16,
+      "cover_margin": 0.015,
+      "bustle": {
+        "z": 0.83,
+        "dz": 0.11,
+        "daz": 55,
+        "r": 0.06,
+        "fold": 0.0025,
+        "n": 22
+      },
+      "flounce": {
+        "h": 0.075,
+        "out": 0.022,
+        "ruffle": 0.003,
+        "n": 150
+      },
+      "apron": {
+        "z_front": 0.45,
+        "z_side": 0.72,
+        "az": 85,
+        "out": 0.008,
+        "swag": 0.09,
+        "swag_amp": 0.0018
+      },
+      "tris": 4500,
+      "tex": 1024,
+      "mottle": 0.16,
+      "twill": 0.07,
+      "roughness": 0.85,
+      "weight_smooth": 12,
+      "colors": {
+        "burgundy": [
+          118,
+          40,
+          44
+        ],
+        "plum": [
+          80,
+          44,
+          70
+        ],
+        "green": [
+          44,
+          72,
+          56
+        ]
+      },
+      "z_bot": 0.13
     }
   }
 }
