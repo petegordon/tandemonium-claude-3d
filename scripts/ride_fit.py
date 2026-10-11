@@ -12,6 +12,9 @@ Per bike scale k (bike_rig object scale; the goose is never scaled, D1):
   elbows bent; neck counter-rotates and the head keeps its rest orientation (upright, looking ahead);
 - arms: two-bone IK to a wrist point just behind each grip, elbows out and down; hands aimed forward.
 Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left pedal up).
+--stretch auto|<f>: lengthen thigh + shin by f (pose scale along the bone; feet unscaled) so the legs reach at
+  a bike scale too big for them ("auto": just enough for LEG_REACH). --standing also renders the goose
+  standing, unstretched vs stretched (what permanently longer legs would look like off the bike).
 Writes renders/_tmp/fit_<tag>_<k>_<view>.png, out/bike/fit_<char>_<seat>_<tag>.json.
 """
 import json
@@ -37,13 +40,18 @@ SCALE_ARGS = arg("--scales", "auto,1.0").split(",")
 SCALES = [float(x) for x in SCALE_ARGS if x != "auto"]
 THETA = arg("--theta", 0.0)
 TAG = arg("--tag", "fit")
+STRETCH_ARG = arg("--stretch", "1")
+STANDING = "--standing" in argv
+VIEWS = (("side", 90, 0), ("front", 0, 0), ("q34", 40, 15), ("rq34", 215, 20), ("top", 120, 55))
 HIP_UP = 0.11          # hip joints above the saddle top (the crotch is 0.14 below the hip joint)
 LEG_REACH = 0.95       # "auto" scale: hip-to-ankle / (thigh + shin) at the bottom of the stroke
 ARM_REACH = 0.90       # shoulder-to-wrist / (arm + forearm): bars are raised until both wrists reach
 MAX_BAR_RAISE = 0.35   # m; beyond this the bars stay put and the arms report the shortfall
 LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
-WRIST_BACK = 0.07      # wrist this far behind / above the grip centre
+HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
+PALM_AT = 0.6          # grip crosses the palm this far down the hand (fraction of the hand bone)
+PALM_OFF = 0.03        # m: grip centre this far inboard of the hand bone (palm surface + grip radius)
 CR = "F" if SEAT == "Captain" else "R"
 GR = "C" if SEAT == "Captain" else "S"
 OUT = ROOT / "out" / "bike"
@@ -58,6 +66,10 @@ goose_objs = [o for o in dst.objects if o is not None and o.type in ("MESH", "AR
 for o in goose_objs:
     bpy.context.scene.collection.objects.link(o)
 rig = next(o for o in goose_objs if o.type == "ARMATURE")
+for o in goose_objs:            # skinned meshes must ride with the rig object (an unparented armature-modifier
+    if o.type == "MESH" and o.parent is None:      # mesh ignores rig.location: the deform cancels the object move)
+        o.parent = rig
+        o.matrix_parent_inverse = rig.matrix_world.inverted()
 for o in goose_objs:                                   # all pieces worn: layered sub-meshes hidden (as the game)
     if o.type == "MESH" and "__" in o.name:
         o.hide_render = o.hide_viewport = True
@@ -68,6 +80,14 @@ pbs = rig.pose.bones
 bones = rig.data.bones
 for pb in pbs:
     pb.rotation_mode = "XYZ"
+STRETCH = {"f": 1.0}
+for s_ in ("Left", "Right"):                          # stretch the leg bones without scaling the children
+    for b in (f"{s_}Leg", f"{s_}Foot"):
+        bones[b].inherit_scale = "NONE"
+
+
+def blen(b):
+    return bones[b].length * (STRETCH["f"] if b.endswith("UpLeg") or b.endswith("Leg") else 1.0)
 
 
 def upd():
@@ -100,7 +120,7 @@ def aim(name, direction):
 def two_bone(b1, b2, target, pole):
     """Analytic IK: b1 head fixed, b2 tail -> target (clamped), bend toward pole. Returns reach ratio."""
     A = gw(b1)
-    l1, l2 = bones[b1].length, bones[b2].length
+    l1, l2 = blen(b1), blen(b2)
     d_vec = target - A
     d = d_vec.length
     reach = d / (l1 + l2)
@@ -118,7 +138,8 @@ def apply_follow():
     """D12 cloth-chain rule (same as dress_goose.py / the game)."""
     hq = (pbs["Hips"].matrix @ bones["Hips"].matrix_local.inverted()).to_quaternion()
     for c in chains["chains"]:
-        tq = (pbs[c["thigh"]].matrix @ bones[c["thigh"]].matrix_local.inverted()).to_quaternion()
+        tq = (pbs[c["thigh"]].matrix.to_3x3().normalized() @
+              bones[c["thigh"]].matrix_local.to_3x3().inverted()).to_quaternion()
         for j, bn in enumerate(c["bones"]):
             q = hq.slerp(tq, c["follow"] * DRAPE[j])
             pb = pbs[bn]
@@ -130,6 +151,9 @@ def apply_follow():
 def reset():
     for pb in pbs:
         pb.matrix_basis = Matrix.Identity(4)
+    for s_ in ("Left", "Right"):
+        for b in (f"{s_}UpLeg", f"{s_}Leg"):
+            pbs[b].scale = (1.0, STRETCH["f"], 1.0)
     upd()
 
 
@@ -220,9 +244,22 @@ def raise_bars(gr, d_bike):
     upd()
 
 
+HAND_REST = {s: bones[f"{s}Hand"].matrix_local.to_3x3() for s in ("Left", "Right")}
+
+
+def hand_dir(side):
+    sx = 1 if side == "L" else -1
+    c = math.radians(HAND_CURL)
+    return Vector((-sx * math.sin(c), 0, -math.cos(c)))
+
+
 def wrist_target(side, lift):
+    """Hands: the swept-back grips run fore-aft, the mitt-hands' palms face inward -> handshake grip: hand hangs
+    down over the grip with the grip across the palm, wrist above and outboard of it."""
+    sx = 1 if side == "L" else -1
     g = bw(f"Grip_{GR}_{side}") + BAR_AXIS[GR] * lift
-    return g, g + Vector((0, WRIST_BACK, WRIST_BACK * 0.4))
+    L = bones[("Left" if side == "L" else "Right") + "Hand"].length
+    return g, g - hand_dir(side) * (PALM_AT * L) + Vector((sx * PALM_OFF, 0, 0))
 
 
 def set_torso(phi):
@@ -264,7 +301,7 @@ def leg_reach_bottom(k):
     place_hips()
     reset()
     at = ankle_target("Right", "R")[0]
-    return (at - gw("RightUpLeg")).length / (bones["RightUpLeg"].length + bones["RightLeg"].length)
+    return (at - gw("RightUpLeg")).length / (blen("RightUpLeg") + blen("RightLeg"))
 
 
 def pose_on_bike(lean):
@@ -278,7 +315,15 @@ def pose_on_bike(lean):
     for s, side, sx in (("Left", "L", 1), ("Right", "R", -1)):
         g, wt = wrist_target(side, lift)
         rep[f"arm_{side}"] = round(two_bone(f"{s}Arm", f"{s}ForeArm", wt, Vector((sx * 0.8, 0.4, -1.0))), 3)
-        aim(f"{s}Hand", (g + Vector((0, -0.06, -0.02))) - gw(f"{s}Hand"))
+        rest = HAND_REST[s]
+        R = rest.col[1].normalized().rotation_difference(hand_dir(side)).to_matrix()   # palm stays inward
+        hb = pbs[f"{s}Hand"]
+        m = (R @ rest).to_4x4()
+        m.translation = hb.matrix.translation
+        hb.matrix = m
+        upd()
+        rep[f"grip_err_mm_{side}"] = round((gw(f"{s}Hand") + hand_dir(side) * PALM_AT * bones[f"{s}Hand"].length
+                                            + Vector((-sx * PALM_OFF, 0, 0)) - g).length * 1000, 1)
     for s, side, sx in (("Left", "L", 1), ("Right", "R", -1)):
         at, Rt, ball = ankle_target(s, side)
         rep[f"leg_{side}"] = round(two_bone(f"{s}UpLeg", f"{s}Leg", at, Vector((sx * 0.15, -1.0, 0.1))), 3)
@@ -335,22 +380,46 @@ if "auto" in SCALE_ARGS:                       # bisect k: bottom-of-stroke leg 
     SCALES = [round(mid, 3) if a == "auto" else float(a) for a in SCALE_ARGS]
     print("AUTO k", SCALES)
 for k in SCALES:
+    if STRETCH_ARG == "auto":
+        STRETCH["f"] = 1.0
+        STRETCH["f"] = max(1.0, leg_reach_bottom(k) / LEG_REACH)
+    else:
+        STRETCH["f"] = float(STRETCH_ARG)
     bike.scale = (k, k, k)
     set_crank(THETA)
     raise_bars(GR, 0.0)
     rep = pose_on_bike(LEAN)
     raise_bars(GR, rep["bar_raise_m"] / k)
     rep["k"] = k
+    rep["leg_stretch"] = round(STRETCH["f"], 3)
     rep["wheel_m"] = round(0.7112 * k, 3)
     rep["bike_length_m"] = round(2.722 * k, 3)
     rep["saddle_top_m"] = round(bw("Seat_" + SEAT).z, 3)
     rep["grip_z_m"] = round(wrist_target("L", rep["bar_raise_m"])[0].z, 3)
     report[str(k)] = rep
     print("FIT", k, json.dumps(rep))
-    tgt = Vector((0, 0, 0.8))
-    span = max(2.722 * k + 0.5, 2.0)
-    for view, az, el in (("side", 90, 0), ("front", 0, 0), ("q34", 40, 15)):
-        shoot(TMP / f"fit_{TAG}_{k}_{view}.png", az, el, span if view != "front" else 1.9, tgt)
+    tgt = Vector((0, 0, 0.98))                    # frame ground to hat top (900x700: height = 0.78 span)
+    span = max(2.722 * k + 0.5, 2.7)
+    for view, az, el in VIEWS:
+        shoot(TMP / f"fit_{TAG}_{k}_{view}.png", az, el, span if view != "front" else 2.7, tgt)
+if STANDING:                                  # off the bike: rest pose, original legs vs the stretch
+    f_ride = STRETCH["f"]
+    for o in sc.objects:
+        if o.type in ("MESH", "ARMATURE") and o not in goose_objs and o.name != "riser_C":
+            o.hide_render = True
+    for o in [x for x in sc.objects if x.name.startswith("riser_")]:
+        o.hide_render = True
+    for f in (1.0, f_ride):
+        STRETCH["f"] = f
+        rig.location = (0, 0, 0)
+        reset()
+        rig.location.z = bones["RightToeBase"].head_local.z - gw("RightToeBase").z
+        upd()
+        rep_h = gw("Head", "tail").z
+        print("STAND", f, "head tail z", round(rep_h, 3))
+        for view, az, el in (("side", 90, 0), ("front", 0, 0)):
+            shoot(TMP / f"stand_{TAG}_{f:.2f}_{view}.png", az, el, 2.7, Vector((0, 0, 1.0)))
+        report[f"stand_{f:.2f}"] = {"stretch": round(f, 3), "head_top_z_m": round(rep_h, 3)}
 (OUT / f"fit_{CHAR}_{SEAT}_{TAG}.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / f"fit_{CHAR}_{SEAT}_{TAG}.blend"), compress=True)
 print("DONE")
