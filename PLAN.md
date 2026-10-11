@@ -738,4 +738,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   cuff; details: rolled opening + stitch, three points on the back, side seams, light knuckle / wrist creases;
   leather finish (roughness 0.45), black / brown / grey. dress_goose: gloves stay whole under the cuffs. Vest offset
   vectors smoothed like the jacket. scripts/garment_sheet.py: each garment on its own, front / side / back.
+- **Sheet clean-up + boots + hat** -- vest strap tops flattened onto the neck plane after the offset (no teeth), centre
+  line smoothed (clean front / linen seam); gloves: knuckle creases dropped, flaps trimmed. make_garment kind "boot":
+  leg below 0.43 m (over the breeches knee band) + foot, capped and voxel-remeshed at 14 mm (toes / claws merge), Taubin
+  relaxed with a flat sole, pushed out of the shin only, top re-cut on a plane, claw specks dropped; weights from the
+  nearest body vertex; details: top band, sole welt (darker sole), back seam, toe cap; leather. make_hat.py: modelled
+  bowler (lathe on ellipses fitted to the extracted hat, sides curl up, dome crown, black band, brass buckles; felt
+  recolourable). dress_goose: NO_MASK hat (head stays whole -- the hidden forehead showed as a dark gap).
+  garment_sheet.py now covers all 8 pieces. Male dressed visible 19.7k; validator 0/0, three.js ok.
 

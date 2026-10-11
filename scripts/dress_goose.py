@@ -49,6 +49,7 @@ D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
 FOLLOW_OUTER = {"shirt": ("waistcoat",), "waistcoat": ("coat",)}   # inner garment takes the outer one's weights where covered
 LAYER_NEAR = 0.0      # designed outer pieces: proximity layer test (off: it hid the shirt V)
+NO_MASK = {"hat"}
 LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
@@ -187,7 +188,7 @@ for k, meta_ in designed.items():
         zt = cv["z_top"] + cv["rise"] * (V[:, 1] - cv["y0"]) - cv["margin"]
         for i in np.flatnonzero((V[:, 2] < zt) & (V[:, 2] > cv["z_bot"]) & ~armv):
             hid_by[i].add(k)
-ray_shells = {k: b for k, b in sbvh.items() if k not in designed}
+ray_shells = {k: b for k, b in sbvh.items() if k not in designed and k not in NO_MASK}   # (NO_MASK: the head stays whole under the hat)
 for i, (p, n) in enumerate(zip(V, NRM)):
     best = None
     for k, b in ray_shells.items():
