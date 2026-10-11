@@ -524,3 +524,12 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   13 mm, p90 26), thighs/hips 71 % (13 / 59, max 122 = tail through jacket back), hands 58 % (9 / 18), boots 62 % (8 / 16),
   feet 60 % (11 / 45). Female feet/shins median 28–44 mm (feet 8.5 cm low). Base body ≈ 1–1.5 cm thicker than the
   generator's under-clothes body. Pete: **rig-fit + per-bone girth scale, then P3.4 shell offset + P3.5 body masks.**
+- **P3.2b rig-fit (D9)** — `scripts/rig_fit.py`: inequality ICP per bone on the skinned base game mesh. Correspondence
+  along vertex normals (nearest-point snapped to the wrong wall of the ~5 mm double-walled shells); covered points stay
+  put (the hidden body under loose cloth is unknown), points poking out / within 2 mm move 2 mm inside; fit = linear LSQ
+  → rotation (≤15°) × length × girth (≤1, ≥0.55); kept only if it beats identity. Torso girth-only (head fit holds), Tail
+  fitted (tucks), boot landmark (near-black albedo: sole + ankle shaft) re-aims/stretches the legs. Poke metric: no outfit
+  within 0.3 m along the outward normal (head/neck control 4 %). Male after: hands 22→3 %, boots 11→3 %, torso 14→5 %,
+  thighs/hips 40→26 % (tail stub), feet 31→18 % (webbed toes); boot offset ≈0 (sanity). Female: boots 77 mm lower, 4–5 cm
+  back → legs ×1.17–1.19; torso 33→6 %, hands 29→3 %, feet 41→14 %. Bugs fixed on the way: child head of unconnected
+  bones must be the parent-transformed rest head (not the parent's tail).
