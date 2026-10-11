@@ -721,4 +721,11 @@ New char ids: `base` (unclothed shared goose), `outfit_male`, `outfit_female` (c
   cuff band + 3 sleeve buttons, elbow folds, skirt drape. Vest linen darkened (88,76,64). dress_goose: loose-cloth
   chains for designed coats, waistcoat follows the coat's skinning, coat ignores the inner layers. Male visible 19.1k;
   validator 0/0, three.js ok. Open: back neck edge a bit ragged, small flecks on the back, riding back tails.
+- **Jacket polish (Pete: jagged lapel notches, too tight at waist/hips, thin)** — lapel outline smooth (notch removed
+  from the cut; the gorge is a seam detail); ease 24 mm torso + 10 mm round the waist + up to 26 mm flare over the
+  hips, collar 12 mm; clearance over the inner layers at full depth on the torso (the 3 cm cap is for sleeves only —
+  it let the vest strap show through); offset vectors smoothed (12 rounds) so open edges no longer spike; body hidden
+  7 cm in from the jacket's edges (looking under the flared hem showed the body's cut edge); default brown darkened
+  (74,50,35). A turned-in 6 mm rim for thickness was tried and dropped (ragged edges). Chains back to 4.
+  Validator 0/0, three.js ok, male visible 19.2k.
 

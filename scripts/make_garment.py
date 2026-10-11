@@ -779,6 +779,10 @@ if KIND == "coat":
     lap = (P[:, 2] > V_["z_break"]) & (dv < V_.get("lapel_w", 0.05))
     ease += np.where(lap, E.get("lapel", 0.006) * np.clip(1 - dv / V_.get("lapel_w", 0.05), 0.3, 1), 0.0)
     ease += E.get("collar", 0.006) * np.clip(1 - (Z_NECK - P[:, 2]) / 0.05, 0, 1)
+    tor_ = np.clip(1 - armw / 0.3, 0, 1)
+    zw_ = V_.get("waist_z", 0.93)
+    ease += tor_ * (E.get("waist", 0.008) * np.exp(-((P[:, 2] - zw_) / 0.08) ** 2)
+                    + E.get("skirt", 0.022) * np.clip((zw_ + 0.04 - P[:, 2]) / 0.2, 0, 1))
     ease = smooth_field(ease, ed, 4)
     under = np.zeros(len(P))
     for nm in R.get("over", []):
@@ -789,7 +793,8 @@ if KIND == "coat":
             if hit[0] is not None:
                 under[i] = max(under[i], hit[3] - 0.01)
         bpy.data.objects.remove(uo)
-    need = np.minimum(under, E.get("under_max", 0.045)) + E.get("clear", 0.006)
+    # (the cap is for the sleeves: rays from the armpit hit the shirt sleeve; the torso takes the full depth)
+    need = np.where(armw > 0.3, np.minimum(under, E.get("under_max", 0.045)), np.minimum(under, 0.08)) + E.get("clear", 0.006)
     ease = np.maximum(ease, need)
     ease = smooth_field(ease, ed, 6)
     ease = np.maximum(ease, need)
@@ -820,6 +825,14 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
+if KIND in ("coat",) and R.get("offset_smooth", 0):
+    # the offset direction tilts at open edges (one-sided normals) and spikes the edge: smooth the
+    # offset vectors, then restore at least the required depth along the normal
+    Dv = N * ease[:, None]
+    Dv = smooth_field(Dv, ed, R["offset_smooth"])
+    dn_ = np.sum(Dv * N, 1)
+    Dv = Dv + N * np.maximum(need - dn_, 0)[:, None]
+    Pm = P + Dv
 if KIND == "coat":
     # the back skirt and tails hang: below "hang_top" the horizontal radius about the body axis never
     # shrinks going down (the cloth falls straight over the seat and the tail instead of following them in)
@@ -1439,6 +1452,43 @@ if KIND == "vest":
         c_ = np.array(f_.center)
         f_.material_index = 1 if (c_[1] > ycf(c_[2])) else 0
     log("lining faces", sum(1 for f_ in lo.data.polygons if f_.material_index == 1))
+
+if R.get("thickness", 0):
+    # the rim faces reuse the UVs of the edge they come from (the edge colour), so no bake is needed
+    bmq = bmesh.new()
+    bmq.from_mesh(lo.data)
+    uvl = bmq.loops.layers.uv.active
+    bedges = [e for e in bmq.edges if e.is_boundary]
+    vuv = {}
+    for e in bedges:
+        for v in e.verts:
+            if v not in vuv:
+                lp_ = next(l_ for l_ in v.link_loops)
+                vuv[v] = lp_[uvl].uv.copy()
+    vn = {v: v.normal.copy() for e in bedges for v in e.verts}
+    ext = bmesh.ops.extrude_edge_only(bmq, edges=bedges)
+    nv = [g for g in ext["geom"] if isinstance(g, bmesh.types.BMVert)]
+    src_of = {}
+    for g in ext["geom"]:
+        if isinstance(g, bmesh.types.BMEdge):
+            pass
+    # map each new vert to its source by position
+    for v in nv:
+        src = min(vn, key=lambda s_: (s_.co - v.co).length_squared)
+        src_of[v] = src
+        v.co = v.co - vn[src] * R["thickness"]
+    for f in bmq.faces:
+        if any(v in src_of for v in f.verts):
+            for l_ in f.loops:
+                s_ = src_of.get(l_.vert, l_.vert)
+                if s_ in vuv:
+                    l_[uvl].uv = vuv[s_]
+    bmesh.ops.recalc_face_normals(bmq, faces=[f for f in bmq.faces if any(v in src_of for v in f.verts)])
+    bmq.to_mesh(lo.data)
+    bmq.free()
+    lo.data.update()
+    log("rim", len(nv), "verts, thickness mm", R["thickness"] * 1000)
+    tris = sum(len(p_.vertices) - 2 for p_ in lo.data.polygons)
 
 # ---- 5. export + report
 OUT.mkdir(exist_ok=True)

@@ -516,7 +516,7 @@
       "z_top": 0.9,
       "z_bot": 0.8,
       "tris": 6000,
-      "cover_margin": 0.03,
+      "cover_margin": 0.07,
       "pre_cuts": 2,
       "region_sub": 0,
       "edge_iter": 0,
@@ -551,19 +551,7 @@
             0.03
           ],
           [
-            1.18,
-            0.07
-          ],
-          [
-            1.185,
-            0.1
-          ],
-          [
-            1.205,
-            0.1
-          ],
-          [
-            1.21,
+            1.19,
             0.075
           ],
           [
@@ -588,15 +576,18 @@
         "cuff_band": 0.065
       },
       "ease": {
-        "torso": 0.02,
+        "torso": 0.024,
         "sleeve": 0.016,
         "lapel": 0.006,
-        "collar": 0.006,
+        "collar": 0.012,
         "clear": 0.006,
-        "under_max": 0.03
+        "under_max": 0.03,
+        "waist": 0.01,
+        "skirt": 0.026
       },
       "over": [
         "shirt",
+        "shirt@collar",
         "waistcoat",
         "breeches"
       ],
@@ -605,23 +596,25 @@
       "roughness": 0.85,
       "colors": {
         "brown": [
-          96,
-          66,
-          46
+          74,
+          50,
+          35
         ],
         "navy": [
-          42,
-          50,
-          72
+          38,
+          46,
+          68
         ],
         "grey": [
-          84,
-          84,
-          88
+          80,
+          80,
+          84
         ]
       },
       "seat_fit": true,
-      "under_max": 0.03
+      "under_max": 0.03,
+      "thickness": 0,
+      "offset_smooth": 12
     }
   },
   "accessory_drop": {
