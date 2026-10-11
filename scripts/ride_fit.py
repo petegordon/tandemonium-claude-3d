@@ -35,7 +35,7 @@ from pathlib import Path
 
 import bpy
 import numpy as np
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 
@@ -63,7 +63,7 @@ ARM_REACH = 0.90       # shoulder-to-wrist / (arm + forearm): bars are raised un
 MAX_BAR_RAISE = arg("--max-bar-raise", 0.35)   # m; beyond this the bars stay put (goose-fit bikes: 0, the design is the fit)
 LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
-SIDE_LEAN = 20.0       # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
+SIDE_LEAN = arg("--side-lean", 35.0)   # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
 CLIPS = "--clips" in argv
 HEM = [float(x) for x in arg("--riding-hem", "").split(",")] if "--riding-hem" in argv else None
 NCLIP = 24
@@ -359,6 +359,25 @@ def leg_reach_bottom(k):
     return (at - gw(f"{s_}UpLeg")).length / (blen(f"{s_}UpLeg") + blen(f"{s_}Leg"))
 
 
+SHOULDER_REACH = 0.97   # a rolled torso pulls the far shoulder from its grip: the clavicle reaches until the arm can
+
+
+def reach_shoulders(lift):
+    """Turn each Shoulder (clavicle) bone toward its wrist target, 2 deg at a time, until the arm reaches."""
+    for s_, side in (("Left", "L"), ("Right", "R")):
+        L = bones[f"{s_}Arm"].length + bones[f"{s_}ForeArm"].length
+        for _ in range(25):
+            wt = wrist_target(side, lift)[1]
+            if (wt - gw(f"{s_}Arm")).length / L <= SHOULDER_REACH:
+                break
+            pb = pbs[f"{s_}Shoulder"]
+            h = pb.matrix.translation.copy()
+            q = (gw(f"{s_}Arm") - h).rotation_difference(wt - h)
+            step = Quaternion().slerp(q, min(1.0, math.radians(2) / max(q.angle, 1e-6)))
+            pb.matrix = Matrix.Translation(h) @ step.to_matrix().to_4x4() @ Matrix.Translation(-h) @ pb.matrix
+            upd()
+
+
 def pose_on_bike(lean, roll=0.0):
     rep = {"lean_deg": lean}
     place_hips()
@@ -367,6 +386,8 @@ def pose_on_bike(lean, roll=0.0):
     while arm_reach(lift) > ARM_REACH and lift < MAX_BAR_RAISE:
         lift += 0.005
     rep["bar_raise_m"] = round(lift, 3)
+    if roll:
+        reach_shoulders(lift)
     for s, side, sx in (("Left", "L", 1), ("Right", "R", -1)):
         g, wt = wrist_target(side, lift)
         rep[f"arm_{side}"] = round(two_bone(f"{s}Arm", f"{s}ForeArm", wt, Vector((sx * 0.8, 0.4, -1.0))), 3)

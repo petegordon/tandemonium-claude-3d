@@ -197,3 +197,15 @@ Open items:
   - `npm test`: 416/416, 5 of them new;
   - `npm run smoke:geese`: PASS (loads, sockets, crank-driven legs, captain right and stoker left at once, versus clone);
   - `smoke:ride`: unchanged.
+
+## 9. After Pete's first playtest of PR #406 (2026-10-11)
+
+- **Feet off the pedals** (Pete's phone screenshot), fixed. The bike's `Pedal` and `WheelSpin` clips each carry every bone. Played together on one mixer they averaged, so the cranks turned half as far as the geese's legs (worst about 25 cm at half a turn).
+  - **Rule:** cut every clip to its own bones, the bike's included (`Pedal` -> `Crank_*` / `Pedal_*`, `WheelSpin` -> `Wheel_*`).
+  - **Where:** game `goose-rider-clips.js` and the harness.
+  - **Checks:** `tools/ride_harness/feet.mjs` and the game's `smoke:geese` measure it, now within 3 mm.
+- **Bigger lean (Pete):** `ride_fit.py --side-lean`, captain 35°, stoker 30°.
+  - **Arms:** `reach_shoulders` turns the far clavicle toward its grip in 2° steps, so both hands stay on (0 mm).
+  - **Limit:** above 30° the stoker's far hand can't stay on her grip.
+- **"Show Solo" option** (game, off by default): a solo ride shows only the captain goose.
+- **Issue tandemonium#407:** choose which goose (male / female) rides each seat.

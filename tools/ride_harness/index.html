@@ -113,8 +113,10 @@ loader.load(`/out/bike/bike_rigged${SFX}.glb`, (g) => {
   kNode.add(g.scene);
   const mixer = new THREE.AnimationMixer(g.scene);
   const clip = n => g.animations.find(c => c.name === n);
-  bike = { root: g.scene, mixer, pedal: clip("Pedal") && scrub(mixer, clip("Pedal")),
-           wheels: clip("WheelSpin") && scrub(mixer, clip("WheelSpin")) };
+  // each bike clip cut to its own bones: both carry every bone, and two full-skeleton actions on one
+  // mixer average out (the cranks turned half as far as the geese's legs)
+  bike = { root: g.scene, mixer, pedal: clip("Pedal") && scrub(mixer, only(clip("Pedal"), n => /^(Crank|Pedal)_/.test(n))),
+           wheels: clip("WheelSpin") && scrub(mixer, only(clip("WheelSpin"), n => /^Wheel_/.test(n))) };
   for (const [seat, url] of Object.entries(RIDERS)) if (url) loadRider(seat, url);
 }, undefined, () => note(`missing out/bike/bike_rigged${SFX}.glb (run scripts/make_bike.py)`, true));
 
@@ -149,7 +151,7 @@ function loadRider(seat, url) {
 
 // ---- input
 const keys = new Set();
-window.__harness = { state, keys };                  // (headless tests set the crank / lean through this)
+window.__harness = { state, keys, riders, get bike() { return bike; } };   // (headless tests: crank / lean / measurements)
 addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   if (e.repeat) return;
