@@ -157,3 +157,11 @@ Open items:
   - (b) a step-through rear frame (period ladies' tandem; styling stage);
   - (c) a skirt guard over the rear wheel;
   - (d) accept it.
+
+**P5.4 skirt, option A done (Pete):** `--riding-hem 0.70,0.82,0.92`.
+- **How:** while riding, each skirt chain root is scaled toward the waist by sector (back / side / front). The scale is keyed in `Pedal_Stoker` with the chains, so players must apply its scale tracks too; the harness does.
+- **Effect:** skirt vertices inside the rear wheel's disc fall from 67 to 21 in every frame. The 21 left are where the bustle sits on the top of the tyre, under the mudguard.
+- **Visual:** her boots and lower legs show as she pedals.
+- **Off the bike:** unchanged.
+- **Option B** (step-through rear frame) is planned for the styling pass. It moves her bar stem.
+- **Before/after:** `docs/img/p54_riding_hem.png`.

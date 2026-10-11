@@ -23,6 +23,9 @@ Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left ped
   Ride_<seat>     upper body seated, hands on the grips (2 keys)
   Lean_L_<seat> / Lean_R_<seat>   torso rolled SIDE_LEAN to the rider's left / right, head level, hands re-gripped
   Players blend Ride / Lean by lean input on the upper-body bones and play Pedal on the lower body.
+--riding-hem B,S,F (P5.4, the stoker's skirt): each skirt / dress chain root is scaled toward the waist by its
+  sector (back, side, front) while riding -- the hem rises and draws in, off the rear wheel; keyed (scale) in
+  Pedal_<seat> with the chains. Reports skirt vertices inside the rear wheel's disc per frame.
 Writes renders/_tmp/fit_<tag>_<k>_<view>.png, out/bike/fit_<char>_<seat>_<tag>.json.
 """
 import json
@@ -62,6 +65,7 @@ LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
 SIDE_LEAN = 20.0       # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
 CLIPS = "--clips" in argv
+HEM = [float(x) for x in arg("--riding-hem", "").split(",")] if "--riding-hem" in argv else None
 NCLIP = 24
 HAND_CURL = 25.0       # deg: hand hangs down over the grip, tip curled inward under it (handshake grip)
 PALM_AT = 0.6          # grip crosses the palm this far down the hand (fraction of the hand bone)
@@ -161,6 +165,29 @@ def apply_follow():
             head = pb.matrix.to_translation()
             pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ bones[bn].matrix_local.to_3x3().to_4x4()
             upd()
+    if HEM:
+        for c in chains["chains"]:
+            if c["piece"] in ("skirt", "dress"):
+                f = HEM["BSF".index(c["tag"][0])]
+                pbs[c["bones"][0]].scale = (f, f, f)
+        upd()
+
+
+def skirt_in_wheel():
+    """Skirt / dress vertices inside the rear wheel's disc (|x| < 4 cm, within the tyre radius of the hub)."""
+    o = GOBJ.get("skirt") or GOBJ.get("dress")
+    if o is None:
+        return None
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = o.evaluated_get(dg).to_mesh()
+    M = np.array(o.matrix_world)
+    V = np.array([v.co[:] for v in me.vertices])
+    o.evaluated_get(dg).to_mesh_clear()
+    V = V @ M[:3, :3].T + M[:3, 3]
+    hub = bw("Wheel_R")
+    R = BIKE_REP["wheel_m"] / 2 * bike.scale[0]
+    d = np.hypot(V[:, 1] - hub.y, V[:, 2] - hub.z)
+    return int(((np.abs(V[:, 0]) < 0.04) & (d < R)).sum())
 
 
 def reset():
@@ -477,6 +504,8 @@ def bake(name, frames, bset):
             pb.location = mb.to_translation()
             pb.keyframe_insert("rotation_euler", frame=f, group=b)
             pb.keyframe_insert("location", frame=f, group=b)
+            if b.startswith("Cloth_"):
+                pb.keyframe_insert("scale", frame=f, group=b)
     act.use_fake_user = True
     rig.animation_data.action = None
     tr = rig.animation_data.nla_tracks.new()
@@ -493,13 +522,14 @@ if CLIPS:
     bike.scale = (k, k, k)
     sc.render.fps = 24
     sc.frame_start = 0
-    clip_rep = {}
+    clip_rep, skirt_rep = {}, {}
 
     def pedal_frame(f):
         def go():
             set_crank(2 * math.pi * f / NCLIP)
             r = pose_on_bike(LEAN)
             clip_rep[f] = max(r["foot_err_mm_L"], r["foot_err_mm_R"], r["grip_err_mm_L"], r["grip_err_mm_R"])
+            skirt_rep[f] = skirt_in_wheel()
         return go
 
     bake(f"Pedal_{SEAT}", [pedal_frame(f) for f in range(NCLIP + 1)], LOWER)
@@ -514,7 +544,8 @@ if CLIPS:
     bake(f"Ride_{SEAT}", [still(0.0)] * 2, UPPER)
     bake(f"Lean_L_{SEAT}", [still(SIDE_LEAN)] * 2, UPPER)
     bake(f"Lean_R_{SEAT}", [still(-SIDE_LEAN)] * 2, UPPER)
-    report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN}
+    report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN,
+                       "riding_hem": HEM, "skirt_verts_in_rear_wheel": [skirt_rep[f] for f in range(NCLIP + 1)]}
     print("CLIPS", json.dumps(report["clips"]))
     # export the goose alone: rig back at the origin, rest pose, all pieces (layered ones too)
     sc.frame_end = NCLIP
