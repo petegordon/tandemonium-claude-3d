@@ -1,0 +1,314 @@
+{
+ "sheet": "sheet.png",
+ "size": [
+  1426,
+  1103
+ ],
+ "panel_y": [
+  104,
+  643
+ ],
+ "grey": [
+  150,
+  150,
+  150
+ ],
+ "garments": {
+  "hat": {
+   "col": [
+    3,
+    168
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     3,
+     159,
+     168,
+     314
+    ],
+    "size": [
+     165,
+     155
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     3,
+     444,
+     168,
+     607
+    ],
+    "size": [
+     165,
+     163
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "bow_tie": {
+   "col": [
+    174,
+    336
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     174,
+     194,
+     336,
+     302
+    ],
+    "size": [
+     162,
+     108
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     174,
+     488,
+     336,
+     603
+    ],
+    "size": [
+     162,
+     115
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "shirt": {
+   "col": [
+    342,
+    521
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     342,
+     131,
+     521,
+     341
+    ],
+    "size": [
+     179,
+     210
+    ],
+    "touches_column_edge": true
+   },
+   "left": {
+    "box": [
+     364,
+     367,
+     505,
+     643
+    ],
+    "size": [
+     141,
+     276
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "vest": {
+   "col": [
+    527,
+    705
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     528,
+     118,
+     705,
+     365
+    ],
+    "size": [
+     177,
+     247
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     527,
+     365,
+     705,
+     643
+    ],
+    "size": [
+     178,
+     278
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "jacket": {
+   "col": [
+    711,
+    899
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     711,
+     104,
+     899,
+     365
+    ],
+    "size": [
+     188,
+     261
+    ],
+    "touches_column_edge": true
+   },
+   "left": {
+    "box": [
+     731,
+     365,
+     893,
+     643
+    ],
+    "size": [
+     162,
+     278
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "glove": {
+   "col": [
+    905,
+    1058
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     915,
+     120,
+     1058,
+     370
+    ],
+    "size": [
+     143,
+     250
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     915,
+     384,
+     1054,
+     643
+    ],
+    "size": [
+     139,
+     259
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "breeches": {
+   "col": [
+    1064,
+    1241
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     1064,
+     104,
+     1241,
+     366
+    ],
+    "size": [
+     177,
+     262
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     1077,
+     366,
+     1230,
+     643
+    ],
+    "size": [
+     153,
+     277
+    ],
+    "touches_column_edge": false
+   }
+  },
+  "boots": {
+   "col": [
+    1247,
+    1422
+   ],
+   "grey": [
+    150,
+    150,
+    150
+   ],
+   "front": {
+    "box": [
+     1247,
+     116,
+     1422,
+     363
+    ],
+    "size": [
+     175,
+     247
+    ],
+    "touches_column_edge": false
+   },
+   "left": {
+    "box": [
+     1247,
+     391,
+     1421,
+     643
+    ],
+    "size": [
+     174,
+     252
+    ],
+    "touches_column_edge": false
+   }
+  }
+ }
+}

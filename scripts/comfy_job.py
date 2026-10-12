@@ -13,6 +13,9 @@ Usage (run with the ComfyUI-claude venv python):
   python scripts/comfy_job.py pixal-mv --char male --seed 42 [--upsample 1024]
   python scripts/comfy_job.py single --char male --view front --model trellis|pixal
   python scripts/comfy_job.py hunyuan-mv --char male --seed 42
+Garment sets: --char <set>/<garment> (e.g. outfit_male_victorian/hat) reads refs/<set>/<garment>/ and writes
+out/<set>/<garment>/; views without a *_raw.png (a sheet with front + side only) are skipped; --right none
+skips the mirrored right view (one-sided pieces: a plume, a single glove).
 """
 import argparse
 import json
@@ -266,6 +269,14 @@ def g_hunyuan_mv(views, a):
 
 
 # ---------------------------------------------------------------- commands
+def safe(char):
+    return char.replace("/", "_")
+
+
+def out_dir(char):
+    return ROOT / "out" / (char if "/" in char else f"{char}-goose")
+
+
 VIEW_FILES = {"front": "front", "left": "left", "back": "rear"}
 
 
@@ -273,17 +284,20 @@ def cmd_prep(a):
     src = ROOT / "refs" / a.char
     names = {}
     for view, stem in VIEW_FILES.items():
-        names[view] = upload(src / f"{stem}_raw.png", f"{a.char}_{view}_raw.png")
+        if (src / f"{stem}_raw.png").exists():
+            names[view] = upload(src / f"{stem}_raw.png", f"{safe(a.char)}_{view}_raw.png")
     # Right view: mirrored left profile (forces symmetry; default) or the sheet's drawn right
     # profile (--right drawn) for asymmetric costumes (female plume / bustle).
-    if a.right == "drawn" and (src / "right_drawn_raw.png").exists():
-        names["right"] = upload(src / "right_drawn_raw.png", f"{a.char}_right_raw.png")
+    if a.right == "none":
+        pass
+    elif a.right == "drawn" and (src / "right_drawn_raw.png").exists():
+        names["right"] = upload(src / "right_drawn_raw.png", f"{safe(a.char)}_right_raw.png")
     else:
         mirrored = src / "right_mirrored_raw.png"
         ImageOps.mirror(Image.open(src / "left_raw.png")).save(mirrored)
-        names["right"] = upload(mirrored, f"{a.char}_right_raw.png")
+        names["right"] = upload(mirrored, f"{safe(a.char)}_right_raw.png")
     preflight(3.0)
-    outs, dt, peak = run(g_prep(names, f"claude3d_{a.char}_prep"))
+    outs, dt, peak = run(g_prep(names, f"claude3d_{safe(a.char)}_prep"))
     files = collect(outs, src / "prepped")
     for f in files:  # strip ComfyUI counters: front_black_00001_.png -> front_black.png
         f.rename(f.with_name(f.name.split("_000")[0] + ".png"))
@@ -294,7 +308,7 @@ def _gen(a, graph, kind):
     preflight(a.min_free)
     t = time.strftime("%Y%m%d_%H%M%S")
     outs, dt, peak = run(graph)
-    dest = ROOT / "out" / f"{a.char}-goose" / f"{kind}_s{a.seed}_{t}"
+    dest = out_dir(a.char) / f"{kind}_s{a.seed}_{t}"
     files = collect(outs, dest)
     entry = {"kind": kind, "seed": a.seed, "time": t, "secs": round(dt), "peak_gb": round(peak, 1),
              "args": {k: v for k, v in vars(a).items() if k not in ("func",)},
@@ -306,23 +320,23 @@ def _gen(a, graph, kind):
 
 def _prepped(a, bg):
     d = ROOT / "refs" / a.char / "prepped"
-    return {v: upload(d / f"{v}_{bg}.png", f"{a.char}_{v}_{bg}.png")
-            for v in ("front", "left", "back", "right") if v in a.views}
+    return {v: upload(d / f"{v}_{bg}.png", f"{safe(a.char)}_{v}_{bg}.png")
+            for v in ("front", "left", "back", "right") if v in a.views and (d / f"{v}_{bg}.png").exists()}
 
 
 def cmd_pixal_mv(a):
-    a.prefix = f"claude3d_{a.char}_pixalmv_s{a.seed}_{time.strftime('%H%M%S')}"
+    a.prefix = f"claude3d_{safe(a.char)}_pixalmv_s{a.seed}_{time.strftime('%H%M%S')}"
     _gen(a, g_pixal_mv(_prepped(a, "black"), a), "pixalmv")
 
 
 def cmd_single(a):
-    a.prefix = f"claude3d_{a.char}_{a.model}_{a.view}_s{a.seed}_{time.strftime('%H%M%S')}"
+    a.prefix = f"claude3d_{safe(a.char)}_{a.model}_{a.view}_s{a.seed}_{time.strftime('%H%M%S')}"
     name = upload(ROOT / "refs" / a.char / "prepped" / f"{a.view}_black.png")
     _gen(a, g_single(name, a), f"{a.model}_{a.view}")
 
 
 def cmd_hunyuan_mv(a):
-    a.prefix = f"claude3d_{a.char}_hymv_s{a.seed}_{time.strftime('%H%M%S')}"
+    a.prefix = f"claude3d_{safe(a.char)}_hymv_s{a.seed}_{time.strftime('%H%M%S')}"
     _gen(a, g_hunyuan_mv(_prepped(a, "white"), a), "hymv")
 
 
@@ -334,7 +348,7 @@ def main():
     common.add_argument("--seed", type=int, default=42)
     common.add_argument("--min-free", type=float, default=MIN_FREE_GB)
     common.add_argument("--views", default="front,left,back,right")
-    common.add_argument("--right", default="mirror", choices=["mirror", "drawn"])
+    common.add_argument("--right", default="mirror", choices=["mirror", "drawn", "none"])
     common.add_argument("--fov", type=float, default=20.0)
     common.add_argument("--upsample", type=int, default=1024, help="0 = skip, 1024, 1536")
     common.add_argument("--steps-struct", type=int, default=12)

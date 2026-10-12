@@ -143,7 +143,8 @@ def main():
     tmp = OUT.parent / "_tmp"
     tmp.mkdir(parents=True, exist_ok=True)
     # Find model yaw that best matches the front silhouette (and side for disambiguation).
-    refs = {v: norm_mask(ref_mask(v)) for v in ("front", "left", "back", "right")}
+    refs = {v: norm_mask(ref_mask(v)) for v in ("front", "left", "back", "right")
+            if (REF / f"{v}_black.png").exists()}          # garment sheets: front + side (+ mirrored right) only
     best = None
     for k in range(4):
         ob.rotation_euler = (0, 0, math.radians(90 * k))
