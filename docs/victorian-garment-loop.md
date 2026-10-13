@@ -59,7 +59,7 @@ jacket); beauty renders front / side / rear / 3-4 on the naked base goose for ea
   in: `tuck.push_in` moves shirt vertices with the breeches just behind them inside the breeches (clean waistline
   instead of a sawtooth of hidden faces); tuck line z_top 0.968, rise 0.67, margin 0.03.
 
-Outfits: `--tag full --variant jacket`, `--tag nojacket --without coat`, `--tag shirtonly --without coat,waistcoat`.
+Outfits: `--tag full --variant jacket`, `--tag nojacket --variant vest --without coat`, `--tag shirtonly --without coat,waistcoat`.
 
 ## Round 4 (2026-10-13): reviewer's round-3 defects
 - **Jacket hem** was sawtoothed by the late body shape: a tail vertex weighted mostly to its cloth chain kept a
@@ -93,3 +93,29 @@ Outfits: `--tag full --variant jacket`, `--tag nojacket --without coat`, `--tag 
   `breeches.trim_top`), shirt tuck line matches; the shirt rebuilt denser (7000 tris) -- its big triangles spanned the
   band and cut through it; the tuck push skips vertices already inside the outer garment and eases its depth in from
   the rim (`push_ramp`, `push_reach`, `push_above`).
+
+## Round 6 (2026-10-13): reviewer's round-5 defects
+- **Breeches**: gold buttons on the FRONT only (2 x 3 by the fall) + the outer knee pair (Pete); recorded in
+  `garment_design.breeches.buttons`.
+- **Jacket** (whole chain in `scripts/build_victorian_coat.sh <tag>`):
+  - standing **collar** at the back with gold piping (`add_collar.py`: from the coat's neckline boundary);
+  - **cuffs**: modelled turn-back bands at the sleeve ends wrapped in the drawing's cuff brocade (`add_coat_cuffs.py`,
+    `cuff_texture.png` = mirrored crop of the drawn cuff), gold piping on top, burgundy rim; they clear the glove
+    gauntlets (`--over gloves`); the drawn cuff is kept out of the projection (`project_bake.py --tile-near`: spheres
+    where no view projects and the fabric tile fills -- also used for the plain sleeves and the hip sides);
+  - **lapels** painted at texel resolution (`project_bake.py --lapel z0,z1,w,w_top,front_y,scale,texture`): the
+    drawn lapel brocade, tiled, inside a width field from the open front edge, a gold edge line, a plain-cloth halo
+    outside it (the drawing's lapel had landed on the shoulder); a mesh cut (`add_lapels.py`) was too jagged at this
+    density -- kept as a tool, not used;
+  - gold **flecks** (`--speck-gold`): an opening of the gold mask keeps real trim, the specks become cloth;
+  - **wool**: weave tile 3 cm (was 6: read as quilting), normal-map mottle 0.05 (was 0.2), normals flattened > 12 deg;
+    slimmer ease (torso / sleeve 0.016), tails z_back 0.40, relaxed clear of shirt AND vest (`--over shirt,waistcoat`).
+- **Gloves**: the gauntlet cuff goes over the shirt cuff (`make_glove_cuff.py --over shirt,variants/jacket/shirt`),
+  reaching toward the hand (`--below 0.05`), warm cream, gold button low on it (`--button-at`).
+- **Shirt** pin-tucks bolder (r 3.8 mm, 14 mm apart).
+- **Seated pose**: front skirt chains follow the thighs fully, sides 0.85 (`FOLLOW`, `DRAPE_BY` in dress_goose.py).
+  STILL OPEN: the breeches' thigh-back swells through the coat's side-back panel and the tails stay vertical when
+  seated -- needs its own round (tails resting on the saddle, back chains following, or a pose-aware layer mask).
+- **Shirt variants**: `shells/variants/jacket/` (slim sleeves, under the coat) and `shells/variants/vest/` (pin-tucks
+  only where the vest leaves the shirt visible: `add_pleats.py --clear-of waistcoat` -- they poked through the vest).
+  Outfits: `--tag full --variant jacket`, `--tag nojacket --variant vest --without coat`, `--tag shirtonly --without coat,waistcoat`.

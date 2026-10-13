@@ -40,6 +40,11 @@ TEX = opt("--tex", 2048)
 TAG = opt("--tag", "v1")
 POWER = opt("--power", 2.0)
 SIDE_W = opt("--side-weight", 0.5)
+LAPEL = opt("--lapel", "")   # "z0,z1,w,w_top,front_y,scale,texture": lapel facings painted in the texture -- texels
+                             # within w (at z0) .. w_top (at z1) of the open front edge take the tiled brocade texture,
+                             # planar (x, z) / scale, with a gold edge line; smooth at texel resolution (no mesh cut)
+TILE_NEAR = [tuple(float(t) for t in q.split(",")) for q in opt("--tile-near", "").split(";") if q]   # x,y,z,r spheres:
+                                 # no view projects there (the fabric tile fills it) -- a drawn ornament now modelled
 CLOTH_TILE = opt("--cloth-tile", 0)  # > 0: plain cloth farther than this many texels from any gold (trim, embroidery,
                                      # lapel facing) takes the fabric tile in the median cloth colour -- clean cloth, the
                                      # drawing kept only around its ornament
@@ -102,6 +107,8 @@ for view in VIEWS:
         hit = OCC.ray_cast(o, Vector(B), 5.0)
         vis[i] = 0.0 if hit[0] is not None else 1.0
     w = facing * vis * (SIDE_W if view in ("left", "right") else 1.0)   # the side references are the weakest
+    for cx_, cy_, cz_, cr_ in TILE_NEAR:
+        w[np.linalg.norm(P - np.array([cx_, cy_, cz_]), axis=1) < cr_] = 0.0
     cover_stats[view] = round(float((w > 0.05).mean()), 3)
     rel = P - TGT
     x = W0 / 2 + rel @ R * PPM
@@ -111,6 +118,51 @@ for view in VIEWS:
     lay.data.foreach_set("uv", uv[loops_v].ravel())
     att = me.color_attributes.new(f"w_{view}", "FLOAT_COLOR", "POINT")
     att.data.foreach_set("color", np.repeat(w[:, None], 4, 1).ravel())
+if LAPEL:
+    lz0, lz1, lw, lwt, lfy, lsc = (float(t) for t in LAPEL.split(",")[:6])
+    # open front edge by position (the glTF stays split along UV seams: a seam edge has a twin at the same place)
+    ek = {}
+    for e_ in me.edges:
+        k_ = frozenset(tuple(np.round(P[i], 5)) for i in e_.vertices)
+        ek[k_] = ek.get(k_, 0) + 1
+    fc = {}
+    for pg in me.polygons:
+        for lk in pg.edge_keys:
+            k_ = frozenset(tuple(np.round(P[i], 5)) for i in lk)
+            fc[k_] = fc.get(k_, 0) + 1
+    edge_pts = []
+    for k_, n_ in fc.items():
+        if n_ != 1 or len(k_) != 2:
+            continue
+        a_, b_ = (np.array(q) for q in k_)
+        for t_ in np.linspace(0, 1, 6):
+            q = a_ * (1 - t_) + b_ * t_
+            if lz0 - 0.02 <= q[2] <= lz1 + 0.02 and q[1] < lfy:
+                edge_pts.append(q)
+    from mathutils.kdtree import KDTree as _KD
+    kd_ = _KD(len(edge_pts))
+    for i_, q in enumerate(edge_pts):
+        kd_.insert(q, i_)
+    kd_.balance()
+    lf = np.ones(len(P))
+    for i_, q in enumerate(P):
+        if lz0 - 0.01 <= q[2] <= lz1 + 0.01 and q[1] < lfy:
+            t_ = np.clip((q[2] - lz0) / max(lz1 - lz0, 1e-6), 0, 1)
+            lf[i_] = kd_.find(q)[2] - (lw + (lwt - lw) * t_)
+        else:
+            lf[i_] = 0.05
+    enc = np.stack([np.clip(0.5 + lf / 0.1, 0, 1), np.clip((P[:, 0] + 1) / 2, 0, 1), np.clip(P[:, 2] / 2, 0, 1),
+                    np.ones(len(P))], 1)
+    att = me.color_attributes.new("lapf", "FLOAT_COLOR", "POINT")
+    att.data.foreach_set("color", enc.ravel())
+    print("LAPEL edge points", len(edge_pts), "verts inside", int((lf < 0).sum()), flush=True)
+if TILE_NEAR:           # the --tile-near zones as a vertex mask, baked to texels below (soft: 1 inside, 0 at 1.3 r)
+    tn = np.zeros(len(P))
+    for cx_, cy_, cz_, cr_ in TILE_NEAR:
+        d_ = np.linalg.norm(P - np.array([cx_, cy_, cz_]), axis=1)
+        tn = np.maximum(tn, np.clip((1.3 * cr_ - d_) / (0.3 * cr_), 0, 1))
+    att = me.color_attributes.new("tn", "FLOAT_COLOR", "POINT")
+    att.data.foreach_set("color", np.repeat(tn[:, None], 4, 1).ravel())
 me.uv_layers.active = me.uv_layers[base_uv]
 for i, l in enumerate(me.uv_layers):
     l.active_render = (l.name == base_uv)
@@ -198,7 +250,19 @@ if FAB:                                              # fabric layer: the tile bo
     nt.links.new(mp.outputs[0], ftx.inputs[0])
 white = nt.nodes.new("ShaderNodeRGB")                # island pass: 1 wherever a UV face is
 white.outputs[0].default_value = (1, 1, 1, 1)
-for pas, fac in (("color", 0.0), ("weight", 1.0), ("island", None)) + ((("fabric", None),) if FAB else ()):
+lap_node = None
+if LAPEL:
+    lap_node = nt.nodes.new("ShaderNodeVertexColor")
+    lap_node.layer_name = "lapf"
+tn_node = None
+if TILE_NEAR:
+    tn_node = nt.nodes.new("ShaderNodeVertexColor")
+    tn_node.layer_name = "tn"
+for pas, fac in (("color", 0.0), ("weight", 1.0), ("island", None)) + ((("fabric", None),) if FAB else ()) +         ((("force", None),) if TILE_NEAR else ()) + ((("lapel", None),) if LAPEL else ()):
+    if pas == "lapel":
+        nt.links.new(lap_node.outputs["Color"], em.inputs["Color"])
+    if pas == "force":
+        nt.links.new(tn_node.outputs["Color"], em.inputs["Color"])
     if pas == "island":
         nt.links.new(white.outputs[0], em.inputs["Color"])
     if pas == "fabric":
@@ -343,6 +407,24 @@ if FLATTEN > 0:
         for _ in range(2):                       # grow the ornament by CLOTH_TILE texels (box max), soft edge
             near = (boxm(near, np.ones_like(near, bool))[0][..., 0] > 0.02).astype(float) if False else near
         from math import ceil
+
+        def grow(m, it):
+            for _ in range(it):
+                m = m | np.roll(m, 1, 0) | np.roll(m, -1, 0) | np.roll(m, 1, 1) | np.roll(m, -1, 1)
+            return m
+
+        def shrink(m, it):
+            for _ in range(it):
+                m = m & np.roll(m, 1, 0) & np.roll(m, -1, 0) & np.roll(m, 1, 1) & np.roll(m, -1, 1)
+            return m
+        # gold flecks (the drawing's noise, specks of embroidery smeared onto plain cloth) are smaller than SPECK_GOLD
+        # texels across: an opening removes them; real trim / embroidery survives and keeps its full extent
+        sg_ = opt("--speck-gold", 3)
+        real = grow(grow(shrink(gold, sg_), sg_), 2) & gold
+        flecks = gold & ~grow(real, 2)
+        cloth = cloth | flecks
+        gold = real
+        print("GOLD flecks texels", int(flecks.sum()), flush=True)
         g_ = gold.copy()
         step = max(1, CLOTH_TILE // 4)
         for _ in range(4):
@@ -358,6 +440,45 @@ if FLATTEN > 0:
         w_t = cloth * (1 - keep_)
         fill = fill * (1 - w_t[..., None]) + tile_c * w_t[..., None]
         print("CLOTH TILE texels", int((w_t > 0.5).sum()), flush=True)
+if TILE_NEAR and FAB:
+    # the zones take the fabric tile in the cloth's median colour outright (the clone / push-pull fill had copied
+    # neighbouring gold into them)
+    force = res["force"][..., 0]
+    try:
+        tgt_ = target
+    except NameError:
+        tgt_ = np.median(fill[island], 0)
+    tile_f = np.clip(fab * (tgt_ / np.maximum(fab[island].mean(0), 1e-3)), 0, 1)
+    fill = fill * (1 - force[..., None]) + tile_f * force[..., None]
+    print("TILE NEAR texels", int((force > 0.5).sum()), flush=True)
+if LAPEL:
+    lf_t = (res["lapel"][..., 0] - 0.5) * 0.1                 # field (m) per texel, linear across faces: smooth
+    xs_ = res["lapel"][..., 1] * 2 - 1
+    zs_ = res["lapel"][..., 2] * 2
+    ltex = bpy.data.images.load(str(ROOT / LAPEL.split(",")[6]))
+    lw_, lh_ = ltex.size
+    lpx = np.array(ltex.pixels[:]).reshape(lh_, lw_, 4)[..., :3]
+    lpx = np.where(lpx <= 0.04045, lpx / 12.92, ((lpx + 0.055) / 1.055) ** 2.4)     # sRGB file -> linear
+    lsc_ = float(LAPEL.split(",")[5])
+    ui = ((xs_ / lsc_) % 1.0 * lw_).astype(int) % lw_
+    vi = ((zs_ / lsc_) % 1.0 * lh_).astype(int) % lh_
+    brocade = lpx[vi, ui]
+    # the drawing's own lapel, projected onto cloth beyond the modelled one, left gold strokes on the chest and
+    # shoulder: a band outside the lapel is plain cloth (the fabric tile in the cloth's median colour)
+    halo = island & (lf_t > 0.0028) & (lf_t < 0.045)
+    if FAB:
+        try:
+            tgt_h = target
+        except NameError:
+            tgt_h = np.median(fill[island], 0)
+        tile_h = np.clip(fab * (tgt_h / np.maximum(fab[island].mean(0), 1e-3)), 0, 1)
+        fill = np.where(halo[..., None], tile_h, fill)
+    inside = island & (lf_t < 0)
+    edge = island & (np.abs(lf_t) < 0.0028)
+    gold_c = np.array([0.55, 0.30, 0.06])
+    fill = np.where(inside[..., None], brocade, fill)
+    fill = np.where(edge[..., None], gold_c, fill)
+    print("LAPEL texels", int(inside.sum()), "edge", int(edge.sum()), flush=True)
 # pad the islands: the texels outside them were black, and texture filtering / mipmaps bled that black into the
 # cloth along every UV seam (dark marks on the jacket's shoulders); push-pull carries the island colours outward
 # near-black specks inside the cloth (shadow pixels of the drawing, unseen texels): holes, refilled from around

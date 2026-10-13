@@ -79,7 +79,8 @@ LOOSE_D0, LOOSE_D1 = 0.015, 0.035
 WEIGHT_SMOOTH = 6
 LOOSE_PIECES = {"coat", "dress", "skirt"}
 CHAIN_AZ = {"FL": 30, "FR": -30, "SL": 90, "SR": -90, "BL": 150, "BR": -150}   # 0 = front, + = character left
-FOLLOW = {"F": 0.7, "S": 0.35, "B": 0.0}
+FOLLOW = {"F": 1.0, "S": 0.85, "B": 0.0}   # front panels lie on the thighs (seated: at 0.7 the thigh came through)
+DRAPE_BY = {"F": [1.0, 0.9, 0.75], "S": [1.0, 0.8, 0.6]}   # per chain kind; default DRAPE
 DRAPE = [1.0, 0.45, 0.15]   # share of the follow per chain bone (root, mid, tip): fabric bends at the knee   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)
 FORCE = {"gloves": ("Hand",), "boots": ("Foot", "ToeBase"), "coat": ("Tail",), "breeches": ("Tail",), "dress": ("Tail", "UpLeg", "Leg")}   # long skirt hangs > MASK_D off the legs
 RES_W, RES_H = 420, 560
@@ -415,7 +416,7 @@ for k, (Wv, X, tl) in skin.items():
             bones.append(eb.name)
         side = "Left" if a0 > 0 else "Right"
         chains.append({"piece": k, "tag": tag, "az": a0, "bones": bones, "z": [float(z_top), float(z_bot)],
-                       "thigh": f"{side}UpLeg", "follow": FOLLOW[tag[0]]})
+                       "thigh": f"{side}UpLeg", "follow": FOLLOW[tag[0]], "drape": DRAPE_BY.get(tag[0], DRAPE)})
 bpy.ops.object.mode_set(mode="OBJECT")
 cnames = [b for c in chains for b in c["bones"]]
 allnames = names + cnames
@@ -734,7 +735,7 @@ if POSES_ON:
         for c in chains:
             tq = (pbs[c["thigh"]].matrix @ rig.data.bones[c["thigh"]].matrix_local.inverted()).to_quaternion()
             for j, bn in enumerate(c["bones"]):           # less follow down the chain: the hem drapes
-                q = hq.slerp(tq, c["follow"] * DRAPE[j])
+                q = hq.slerp(tq, c["follow"] * c.get("drape", DRAPE)[j])
                 pb = pbs[bn]
                 rest = rig.data.bones[bn].matrix_local
                 head = pb.matrix.to_translation()

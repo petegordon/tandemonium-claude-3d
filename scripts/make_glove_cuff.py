@@ -32,7 +32,9 @@ D = ROOT / "out" / f"{CHAR}-goose"
 GLB = D / opt("--glb", "shells/gloves.glb")
 HT, BELOW, EASE, FLARE = opt("--height", 0.03), opt("--below", 0.006), opt("--ease", 0.004), opt("--flare", 0.004)
 BR = opt("--button-r", 0.0065)       # brass button radius
-BFRONT = opt("--button-front", 0.0)  # 0: on the outer side; 1: halfway round to the front
+BFRONT = opt("--button-front", 0.0)
+BAT = opt("--button-at", 0.5)          # height on the cuff (0 bottom .. 1 top): low stays clear of a coat cuff
+CREAM = [float(x) for x in opt("--cream", "0.62,0.50,0.33").split(",")]   # linear RGB  # 0: on the outer side; 1: halfway round to the front
 JS = json.loads((ROOT / "refs" / "key_views" / "joints.json").read_text(encoding="utf-8"))
 J = {k: np.array(v["head"]) for k, v in JS.items()}
 NA, NR = 48, 7
@@ -51,6 +53,14 @@ with bpy.data.libraries.load(str(ROOT / "out" / "base-goose" / "base_goose.blend
     dst.objects = ["base_goose_game"]
 body = dst.objects[0]
 BB = BVHTree.FromPolygons([v.co.copy() for v in body.data.vertices], [tuple(p.vertices) for p in body.data.polygons])
+# --over shirt[,..]: the cuff goes over these shells' sleeve ends too (the drawing: glove gauntlet over the shirt cuff)
+OVERS = []
+for nm in [x for x in opt("--over", "").split(",") if x]:
+    seen = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(D / "shells" / f"{nm}.glb"))
+    for o_ in [o_ for o_ in bpy.data.objects if o_ not in seen and o_.type == "MESH"]:
+        Mo = o_.matrix_world
+        OVERS.append(BVHTree.FromPolygons([Mo @ v.co for v in o_.data.vertices], [tuple(p.vertices) for p in o_.data.polygons]))
 
 bm = bmesh.new()
 buttons = []
@@ -73,6 +83,10 @@ for side, sx in (("Left", 1), ("Right", -1)):
             if h[0] is None:
                 h = BB.ray_cast(o, Vector(-d), 0.12)      # above the glove: the forearm
             r = (0.12 - h[3]) if h[0] is not None else 0.03
+            for ob_ in OVERS:                              # outside the layers beneath too
+                ho = ob_.ray_cast(o, Vector(-d), 0.12)
+                if ho[0] is not None and (0.12 - ho[3]) < 0.08:
+                    r = max(r, 0.12 - ho[3])
             r += EASE + FLARE * (k / (NR - 1)) ** 2
             ring.append(bm.verts.new(tuple(c + d * r)))
         rings.append(ring)
@@ -83,9 +97,14 @@ for side, sx in (("Left", 1), ("Right", -1)):
     out_dir = np.array([sx * 1.0, -BFRONT, 0])          # outer side, turned toward the front (ref)
     out_dir = out_dir - up * (up @ out_dir)
     out_dir /= np.linalg.norm(out_dir)
-    c = w + up * (HT / 2 - BELOW / 2)
+    c = w + up * (-BELOW + (HT + BELOW) * BAT)        # --button-at: 0 = cuff bottom, 1 = top
     h = GB.ray_cast(Vector(c + out_dir * 0.12), Vector(-out_dir), 0.12)
-    r = (0.12 - h[3] if h[0] is not None else 0.03) + EASE + 0.004
+    r = (0.12 - h[3] if h[0] is not None else 0.03)
+    for ob_ in OVERS:
+        ho = ob_.ray_cast(Vector(c + out_dir * 0.12), Vector(-out_dir), 0.12)
+        if ho[0] is not None and (0.12 - ho[3]) < 0.08:
+            r = max(r, 0.12 - ho[3])
+    r += EASE + 0.004 + FLARE * BAT ** 2
     buttons.append((c + out_dir * r, out_dir))
 me = bpy.data.meshes.new("cuffs")
 bm.to_mesh(me)
@@ -105,7 +124,7 @@ cm = bpy.data.materials.new("gloves_cuff_cream")
 cm.use_nodes = True
 nt = cm.node_tree
 bs = nt.nodes["Principled BSDF"]
-bs.inputs["Base Color"].default_value = (0.62, 0.50, 0.33, 1)     # cream (linear; the old value rendered white)
+bs.inputs["Base Color"].default_value = (*CREAM, 1)     # cream (linear; the old value rendered white)
 bs.inputs["Roughness"].default_value = 0.75
 wv = nt.nodes.new("ShaderNodeTexWave")
 wv.inputs["Scale"].default_value = 400.0

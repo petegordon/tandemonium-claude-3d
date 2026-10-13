@@ -41,38 +41,64 @@ bpy.ops.import_scene.gltf(filepath=str(GLB))
 gar = next(o for o in bpy.data.objects if o.type == "MESH")
 M = gar.matrix_world
 GB = BVHTree.FromPolygons([M @ v.co for v in gar.data.vertices], [tuple(p.vertices) for p in gar.data.polygons])
+# --clear-of waistcoat[,..]: no tuck where one of these shells lies in front of the shirt (the tucks poked through
+# the vest beside its V): the pleat runs are split there
+CLEAR = []
+for nm in [x for x in opt("--clear-of", "").split(",") if x]:
+    seen = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(D / "shells" / f"{nm}.glb"))
+    for o_ in [o_ for o_ in bpy.data.objects if o_ not in seen and o_.type == "MESH"]:
+        Mo = o_.matrix_world
+        CLEAR.append(BVHTree.FromPolygons([Mo @ v.co for v in o_.data.vertices], [tuple(q.vertices) for q in o_.data.polygons]))
+        bpy.data.objects.remove(o_)
 bm = bmesh.new()
+
+
+def build_pleat(pts, nrms):
+    rings = []
+    N = len(pts)
+    for i, (p, n) in enumerate(zip(pts, nrms)):
+        t = pts[min(i + 1, N - 1)] - pts[max(i - 1, 0)]
+        t /= np.linalg.norm(t) + 1e-12
+        u = np.cross(t, n)
+        u /= np.linalg.norm(u) + 1e-12
+        taper = min(1.0, i / 3, (N - 1 - i) / 3) * 0.85 + 0.15
+        r = RAD * taper
+        c = p + n * (r * 0.6 - 0.0004)
+        ring = []
+        for k in range(NSEG + 1):                      # half-tube: from one side, over the top, to the other
+            a = math.pi * k / NSEG
+            ring.append(bm.verts.new(c + r * (math.cos(a) * u + math.sin(a) * n)))
+        rings.append(ring)
+    for i in range(len(rings) - 1):
+        for k in range(NSEG):
+            bm.faces.new((rings[i][k], rings[i][k + 1], rings[i + 1][k + 1], rings[i + 1][k]))
+    return 1
+
+
 n_pleats = 0
 for sx in (1, -1):
     for x in XS:
-        pts, nrms = [], []
+        runs, pts, nrms = [], [], []
         for z in np.arange(Z0, Z1 + 1e-6, 0.005):
             hit = GB.ray_cast(Vector((sx * x, -0.5, z)), Vector((0, 1, 0)), 1.0)
-            if hit[0] is None or hit[1].y > -0.2:          # missed, or a face not toward the front
-                continue
-            pts.append(np.array(hit[0][:]))
-            nrms.append(np.array(hit[1][:]))
-        if len(pts) < 6:
-            continue
-        rings = []
-        N = len(pts)
-        for i, (p, n) in enumerate(zip(pts, nrms)):
-            t = pts[min(i + 1, N - 1)] - pts[max(i - 1, 0)]
-            t /= np.linalg.norm(t) + 1e-12
-            u = np.cross(t, n)
-            u /= np.linalg.norm(u) + 1e-12
-            taper = min(1.0, i / 3, (N - 1 - i) / 3) * 0.85 + 0.15
-            r = RAD * taper
-            c = p + n * (r * 0.6 - 0.0004)
-            ring = []
-            for k in range(NSEG + 1):                      # half-tube: from one side, over the top, to the other
-                a = math.pi * k / NSEG
-                ring.append(bm.verts.new(c + r * (math.cos(a) * u + math.sin(a) * n)))
-            rings.append(ring)
-        for i in range(len(rings) - 1):
-            for k in range(NSEG):
-                bm.faces.new((rings[i][k], rings[i][k + 1], rings[i + 1][k + 1], rings[i + 1][k]))
-        n_pleats += 1
+            ok = hit[0] is not None and hit[1].y < -0.2      # hit, on a face toward the front
+            if ok:
+                for cb in CLEAR:
+                    hc = cb.ray_cast(Vector((sx * x, -0.5, z)), Vector((0, 1, 0)), 1.0)
+                    if hc[0] is not None and hc[0].y < hit[0].y + 0.012:
+                        ok = False
+            if ok:
+                pts.append(np.array(hit[0][:]))
+                nrms.append(np.array(hit[1][:]))
+            elif pts:
+                runs.append((pts, nrms))
+                pts, nrms = [], []
+        if pts:
+            runs.append((pts, nrms))
+        for pts, nrms in runs:
+            if len(pts) >= 6:
+                n_pleats += build_pleat(pts, nrms)
 me = bpy.data.meshes.new("pleats")
 bm.to_mesh(me)
 bm.free()

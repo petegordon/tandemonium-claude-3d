@@ -48,6 +48,35 @@
     "z": 0.936,
     "rise": 0.13,
     "y0": -0.15
+   },
+   "buttons": {
+    "note": "Pete 2026-10-13: gold buttons on the FRONT only (2x3 by the fall) + outer knee pair; none on the back",
+    "front": [
+     [
+      0.1,
+      -0.15,
+      0.915
+     ],
+     [
+      0.11,
+      -0.15,
+      0.888
+     ],
+     [
+      0.12,
+      -0.15,
+      0.861
+     ]
+    ],
+    "knee": [
+     [
+      0.142,
+      -0.064,
+      0.542
+     ]
+    ],
+    "mirror": true,
+    "r": 0.0095
    }
   },
   "shirt": {
@@ -198,10 +227,10 @@
    "edge_iter": 0,
    "edge_relax": 0,
    "lo_edge_iter": 6,
-   "wrist_offset": -0.03,
+   "wrist_offset": 0.02,
    "outline": {
     "z_front": 0.64,
-    "z_back": 0.45,
+    "z_back": 0.4,
     "z_break": 0.99,
     "z_notch": 1.19,
     "lapel_w": 0.05,
@@ -257,8 +286,8 @@
     }
    },
    "ease": {
-    "torso": 0.024,
-    "sleeve": 0.022,
+    "torso": 0.016,
+    "sleeve": 0.016,
     "lapel": 0.006,
     "collar": 0.012,
     "clear": 0.007,
@@ -271,7 +300,7 @@
     "waistcoat",
     "breeches"
    ],
-   "mottle": 0.2,
+   "mottle": 0.05,
    "twill": 0.08,
    "roughness": 0.85,
    "colors": {

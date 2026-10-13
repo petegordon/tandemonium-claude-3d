@@ -25,6 +25,10 @@ ap.add_argument("--min-px", type=int, default=12)
 ap.add_argument("--max-px", type=int, default=260)
 ap.add_argument("--grow", type=int, default=3)
 ap.add_argument("--preview", default="")
+ap.add_argument("--plain-zone", default="", help="xmin,xmax,zmin,zmax (m, |x| mirrored): every gold pixel in it "
+                "becomes the image's median cloth colour (a drawn ornament now modelled, e.g. the cuffs)")
+ap.add_argument("--plain-views", default="front,rear")
+ap.add_argument("--plain-all", action="store_true", help="in --plain-zone every garment pixel becomes plain cloth, not just gold")
 ap.add_argument("--zone", default="", help="xmin,xmax,zmin,zmax (m, |x| mirrored): the button panel on the body; inside "
                 "it every compact brass blob goes (no isolation test: double-breasted rows sit close together); outside "
                 "it nothing is erased")
@@ -35,11 +39,12 @@ import json
 CAM = json.loads((RD / "cameras.json").read_text(encoding="utf-8"))
 
 
-def zone_mask(view, shape):
+def zone_mask(view, shape, spec=None):
     """Image pixels of the --zone box (both sides) seen from this view."""
-    if not a.zone:
+    spec = a.zone if spec is None else spec
+    if not spec:
         return np.ones(shape, bool)
-    x0, x1, z0, z1 = (float(t) for t in a.zone.split(","))
+    x0, x1, z0, z1 = (float(t) for t in spec.split(","))
     c = CAM["views"][view]
     R, U = np.array(c["right"]), np.array(c["up"])
     T, ppm = np.array(CAM["target"]), CAM["px_per_m"]
@@ -125,6 +130,15 @@ for view in a.views.split(","):
             sy = np.clip(ys - dy, 0, im.shape[0] - 1)
             src = im[sy, xs, :3]
             out[ys, xs, :3] = mean + (src - src.mean(0)) * 0.6
+        if a.plain_zone and view in a.plain_views.split(","):
+            pz = zone_mask(view, im.shape[:2], a.plain_zone)
+            r_, g_, b_, al_ = (im[..., i] for i in range(4))
+            gold_ = (al_ > 0.5) & (r_ > 0.3) & (g_ > 0.38 * r_) & (b_ < 0.75 * g_)
+            cloth_ = (al_ > 0.5) & (r_ > 1.6 * g_) & ~gold_
+            med = np.median(im[cloth_][:, :3], 0)
+            hit_ = pz & (al_ > 0.5) if a.plain_all else ndimage.binary_dilation(gold_ & pz, iterations=2) & pz & (al_ > 0.5)
+            out[hit_, :3] = med
+            print("PLAIN", view, suf, int(hit_.sum()), "px")
         Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8)).save(f)
         if suf == "_garment" and a.preview:
             vis = im[..., :3].copy()
