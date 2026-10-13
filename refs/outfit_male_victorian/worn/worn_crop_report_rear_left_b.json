@@ -1,0 +1,299 @@
+{
+ "sheet": "sheet_rear_right.png",
+ "views": [
+  "rear",
+  "left_b"
+ ],
+ "rows": [
+  [
+   44,
+   507
+  ],
+  [
+   550,
+   1024
+  ]
+ ],
+ "garments": {
+  "hat": {
+   "panel": [
+    3,
+    44,
+    381,
+    507
+   ],
+   "split": 211,
+   "rear": {
+    "box": [
+     3,
+     76,
+     211,
+     507
+    ],
+    "size": [
+     208,
+     431
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     211,
+     76,
+     381,
+     507
+    ],
+    "size": [
+     170,
+     431
+    ],
+    "touches_split": true
+   }
+  },
+  "bow_tie": {
+   "panel": [
+    387,
+    44,
+    765,
+    507
+   ],
+   "split": 590,
+   "rear": {
+    "box": [
+     387,
+     76,
+     590,
+     507
+    ],
+    "size": [
+     203,
+     431
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     590,
+     76,
+     765,
+     507
+    ],
+    "size": [
+     175,
+     431
+    ],
+    "touches_split": true
+   }
+  },
+  "shirt": {
+   "panel": [
+    771,
+    44,
+    1149,
+    507
+   ],
+   "split": 975,
+   "rear": {
+    "box": [
+     771,
+     76,
+     975,
+     507
+    ],
+    "size": [
+     204,
+     431
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     975,
+     76,
+     1149,
+     507
+    ],
+    "size": [
+     174,
+     431
+    ],
+    "touches_split": true
+   }
+  },
+  "vest": {
+   "panel": [
+    1155,
+    44,
+    1533,
+    507
+   ],
+   "split": 1359,
+   "rear": {
+    "box": [
+     1155,
+     76,
+     1359,
+     507
+    ],
+    "size": [
+     204,
+     431
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     1359,
+     76,
+     1533,
+     507
+    ],
+    "size": [
+     174,
+     431
+    ],
+    "touches_split": true
+   }
+  },
+  "jacket": {
+   "panel": [
+    3,
+    550,
+    381,
+    1024
+   ],
+   "split": 212,
+   "rear": {
+    "box": [
+     3,
+     583,
+     212,
+     1024
+    ],
+    "size": [
+     209,
+     441
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     212,
+     583,
+     381,
+     1024
+    ],
+    "size": [
+     169,
+     441
+    ],
+    "touches_split": true
+   }
+  },
+  "glove": {
+   "panel": [
+    387,
+    550,
+    765,
+    1024
+   ],
+   "split": 590,
+   "rear": {
+    "box": [
+     387,
+     583,
+     590,
+     1024
+    ],
+    "size": [
+     203,
+     441
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     590,
+     583,
+     765,
+     1024
+    ],
+    "size": [
+     175,
+     441
+    ],
+    "touches_split": true
+   }
+  },
+  "breeches": {
+   "panel": [
+    771,
+    550,
+    1149,
+    1024
+   ],
+   "split": 973,
+   "rear": {
+    "box": [
+     771,
+     583,
+     973,
+     1024
+    ],
+    "size": [
+     202,
+     441
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     973,
+     583,
+     1149,
+     1024
+    ],
+    "size": [
+     176,
+     441
+    ],
+    "touches_split": true
+   }
+  },
+  "boots": {
+   "panel": [
+    1155,
+    550,
+    1533,
+    1024
+   ],
+   "split": 1358,
+   "rear": {
+    "box": [
+     1155,
+     583,
+     1358,
+     1024
+    ],
+    "size": [
+     203,
+     441
+    ],
+    "touches_split": true
+   },
+   "left_b": {
+    "box": [
+     1358,
+     583,
+     1533,
+     1024
+    ],
+    "size": [
+     175,
+     441
+    ],
+    "touches_split": true
+   }
+  }
+ }
+}
