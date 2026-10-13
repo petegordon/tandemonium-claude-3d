@@ -550,12 +550,17 @@ for k in list(designed):
         bo_ = sbvh[tk["into"]]
         moved_ = 0
         for v in o.data.vertices:
-            line_ = tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]
-            if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < line_ + tk["push_in"]:
+            rim_ = tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"])          # the outer garment's top edge
+            if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < rim_ + tk.get("push_above", 0.004):
                 n_ = v.normal
-                hit = bo_.ray_cast(v.co + n_ * 0.0005, -n_, 0.03)
+                if bo_.ray_cast(v.co + n_ * 0.0005, n_, 0.04)[0] is not None:
+                    continue      # already inside the outer garment: its inward ray would hit the far wall (slivers)
+                hit = bo_.ray_cast(v.co + n_ * 0.0005, -n_, tk.get("push_reach", 0.08))
                 if hit[0] is not None and hit[1].dot(n_) > 0.3:
-                    v.co = hit[0] - hit[1] * tk.get("push_depth", 0.004)
+                    # depth eases in from the rim: the shirt meets the band along its straight top line instead of
+                    # cutting through it between pushed and unpushed vertices (a sawtooth waist)
+                    ramp = min(max((rim_ - v.co.z) / tk.get("push_ramp", 0.02), 0.0), 1.0)
+                    v.co = hit[0] - hit[1] * (0.0008 + tk.get("push_depth", 0.004) * ramp)
                     moved_ += 1
         o.data.update()
         print("TUCK IN", k, moved_, "verts inside", tk["into"])

@@ -356,7 +356,7 @@ if PIECE == "bowtie":
     Rs = neck_r(math.pi / 2, ZB + 0.01)
     Hc = AD.get("collar_h_scale", 0.95) * Rs         # ref: high shirt collar ~ half the neck width
     z_lo, z_hi = ZB - 0.012, ZB + 0.85 * Hc          # tucked under the coat collar at the base
-    Z0 = z_lo + 0.33 * Hc                            # bow centre in the collar's lower half (ref)
+    Z0 = z_lo + AD.get("bow_z_frac", 0.33) * Hc      # bow centre in the collar's lower half (ref)
     R = neck_r(0.0, Z0)
     gap = math.radians(4)
     gap = math.radians(AD.get("collar_gap_deg", 4))
@@ -404,6 +404,28 @@ if PIECE == "bowtie":
     kpath = [c0 + np.array([x, -0.003, 0]) for x in np.linspace(-k, k, 4)]
     if not TEX:
         parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=0.55))
+    if AD.get("collar_studs"):
+        # gold studs on the collar front, one each side of the opening above the bow (ref: shirt + worn shirt)
+        sr = AD.get("stud_r", 0.0055)
+        for s in (1, -1):
+            th = math.radians(AD.get("stud_deg", 16)) * s
+            z = z_hi - AD.get("stud_down", 0.3) * Hc
+            c = np.array([0, axis_y(z), z]) + dirv(th) * (neck_r(th, z) + AD.get("collar_off", 0.004) + 0.002 + sr * 0.4)
+            vs, fs = [], []
+            nu, nv = 12, 7
+            n_ = dirv(th)
+            u_ = np.cross(n_, [0, 0, 1.0]); u_ /= np.linalg.norm(u_)
+            w_ = np.cross(u_, n_)
+            for i in range(nv + 1):
+                ph = math.pi / 2 * i / nv
+                for k in range(nu):
+                    a_ = 2 * math.pi * k / nu
+                    vs.append(c + sr * math.cos(ph) * (math.cos(a_) * u_ + math.sin(a_) * w_) + n_ * sr * 0.6 * math.sin(ph))
+            for i in range(nv):
+                for k in range(nu):
+                    fs.append((i * nu + k, i * nu + (k + 1) % nu, (i + 1) * nu + (k + 1) % nu, (i + 1) * nu + k))
+            parts.append(mesh_obj(f"stud_{'L' if s > 0 else 'R'}", vs, fs, srgb(AD.get("stud_color", [196, 146, 62])),
+                                  rough=0.3, metal=1.0))
     info.update({"neck_r_front_side_mm": [round(R * 1000, 1), round(Rs * 1000, 1)], "collar_h_mm": round(Hc * 1000, 1),
                  "bow_w_h_mm": [round(Wb * 1000, 1), round(Hb * 1000, 1)]})
 elif PIECE == "collar":

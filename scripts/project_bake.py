@@ -40,6 +40,11 @@ TEX = opt("--tex", 2048)
 TAG = opt("--tag", "v1")
 POWER = opt("--power", 2.0)
 SIDE_W = opt("--side-weight", 0.5)
+CLOTH_TILE = opt("--cloth-tile", 0)  # > 0: plain cloth farther than this many texels from any gold (trim, embroidery,
+                                     # lapel facing) takes the fabric tile in the median cloth colour -- clean cloth, the
+                                     # drawing kept only around its ornament
+FLATTEN = opt("--flatten", 0.0)  # 0-1: even out the cloth's broad light / dark blotches (painted shading, the drawing's
+                                 # wear) toward its median colour; fine weave and the gold trim / embroidery are kept
 LIFT = opt("--lift", 0.0)       # > 0: broad areas darker than LIFT x the cloth's median turn to the (median-shaded)
                                 # fabric tile -- shadows painted into the drawing (arm shadow on the flank, shoulder blades)
 MATS = [m for m in opt("--mats", "").split(",") if m]      # only these materials (name substrings) take the albedo
@@ -305,6 +310,54 @@ if FAB:
         fab_med = np.clip(fab * (mcol / np.maximum(fmean, 1e-3)), 0, 1)
         fill = fill * (1 - dark[..., None]) + fab_med * dark[..., None]
         print("LIFT texels", int((dark > 0.5).sum()), "median lum", round(float(med), 3), flush=True)
+if FLATTEN > 0:
+    # cloth = texels near the cloth's own hue (not gold trim, not dark embroidery outlines); its broad colour
+    # (a cloth-only blurred average over ~1/40 of the atlas) is divided out and replaced by the median cloth colour
+    lum0 = fill @ np.array([0.2126, 0.7152, 0.0722])
+    mx, mn = fill.max(2), fill.min(2)
+    hue_r = (fill[..., 0] >= fill[..., 1]) & (fill[..., 0] >= fill[..., 2])
+    gold = (fill[..., 1] > 0.4 * fill[..., 0]) & (fill[..., 2] < 0.6 * fill[..., 1]) & hue_r & (lum0 > 0.03)   # yellow (pale pink is not)
+    cloth = island & hue_r & ~gold & (lum0 > 0.004)
+    target = np.median(fill[cloth], 0)
+    rr_ = max(4, TEX // 80)
+
+    def boxm(a_, m_):
+        def b1(x):
+            for ax in (0, 1):
+                c_ = np.cumsum(np.pad(x, [(rr_ + 1, rr_) if k == ax else (0, 0) for k in range(x.ndim)], mode="edge"), ax)
+                x = (np.take(c_, range(2 * rr_ + 1, c_.shape[ax]), ax) - np.take(c_, range(0, c_.shape[ax] - 2 * rr_ - 1), ax))
+            return x
+        num = b1(a_ * m_[..., None])
+        den = b1(m_.astype(float))[..., None]
+        return num / np.maximum(den, 1e-6), den[..., 0]
+
+    broad, den = boxm(fill, cloth)
+    broad, _ = boxm(broad, den > 0.5)          # twice: smooth
+    ratio = target / np.maximum(broad, 1e-4)
+    flat = np.clip(fill * ratio, 0, 1)
+    k_ = FLATTEN * cloth
+    fill = fill * (1 - k_[..., None]) + flat * k_[..., None]
+    print("FLATTEN cloth texels", int(cloth.sum()), "target", np.round(target, 3).tolist(), flush=True)
+    if CLOTH_TILE and FAB:
+        near = gold.astype(float)
+        for _ in range(2):                       # grow the ornament by CLOTH_TILE texels (box max), soft edge
+            near = (boxm(near, np.ones_like(near, bool))[0][..., 0] > 0.02).astype(float) if False else near
+        from math import ceil
+        g_ = gold.copy()
+        step = max(1, CLOTH_TILE // 4)
+        for _ in range(4):
+            g2 = g_.copy()
+            for dy in (-step, 0, step):
+                for dx in (-step, 0, step):
+                    g2 |= np.roll(np.roll(g_, dy, 0), dx, 1)
+            g_ = g2
+        keep_ = g_.astype(float)
+        for _ in range(3):                       # feather the boundary
+            keep_ = (keep_ + np.roll(keep_, 2, 0) + np.roll(keep_, -2, 0) + np.roll(keep_, 2, 1) + np.roll(keep_, -2, 1)) / 5
+        tile_c = np.clip(fab * (target / np.maximum(fmean, 1e-3)), 0, 1)
+        w_t = cloth * (1 - keep_)
+        fill = fill * (1 - w_t[..., None]) + tile_c * w_t[..., None]
+        print("CLOTH TILE texels", int((w_t > 0.5).sum()), flush=True)
 # pad the islands: the texels outside them were black, and texture filtering / mipmaps bled that black into the
 # cloth along every UV seam (dark marks on the jacket's shoulders); push-pull carries the island colours outward
 # near-black specks inside the cloth (shadow pixels of the drawing, unseen texels): holes, refilled from around

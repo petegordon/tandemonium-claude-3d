@@ -43,7 +43,12 @@
    "ease_npz": "out/outfit_male_victorian/keyed/breeches_coverage.npz",
    "ease_smooth": 90,
    "ease_post_smooth": 14,
-   "seat_bump": 0.004
+   "seat_bump": 0.004,
+   "trim_top": {
+    "z": 0.936,
+    "rise": 0.13,
+    "y0": -0.15
+   }
   },
   "shirt": {
    "kind": "shirt",
@@ -52,7 +57,7 @@
    "z_bot": 0.83,
    "back_rise": 0.3,
    "rise_y0": -0.1,
-   "tris": 3200,
+   "tris": 7000,
    "cuff": 0.06,
    "wrist_offset": 0.0,
    "cover_margin": 0.012,
@@ -91,13 +96,14 @@
    },
    "tuck": {
     "into": "breeches",
-    "z_top": 0.98,
-    "rise": 0.0,
-    "y0": -0.1,
-    "margin": 0.03,
+    "z_top": 0.936,
+    "rise": 0.13,
+    "y0": -0.15,
+    "margin": 0.005,
     "hide": true,
     "push_in": 0.045,
-    "push_depth": 0.004
+    "push_depth": 0.004,
+    "push_above": 0.02
    },
    "hem_zone": 0.14,
    "cuff_clear": 0.007,
@@ -602,7 +608,7 @@
    "anchor_z": 1.265,
    "bow_w": 0.17,
    "bow_h_ratio": 0.571,
-   "collar_h_scale": 1.05,
+   "collar_h_scale": 1.35,
    "colors": {
     "bow": [
      120,
@@ -620,7 +626,12 @@
    "knot_h": 0.47,
    "collar_gap_deg": 1.5,
    "collar_off": 0.006,
-   "bow_rough": 0.72
+   "bow_rough": 0.72,
+   "bow_z_frac": 0.12,
+   "collar_studs": true,
+   "stud_deg": 15,
+   "stud_down": 0.28,
+   "stud_r": 0.0055
   }
  }
 }

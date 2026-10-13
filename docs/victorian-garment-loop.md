@@ -77,3 +77,19 @@ Outfits: `--tag full --variant jacket`, `--tag nojacket --without coat`, `--tag 
 - **Boots**: the calf poked through the shaft's back -> every body vertex below the boot rim is hidden.
 - Vest back stays brocade (Pete's rear reference has it); the pale flap was the old glove cuff, gone.
 - Hat medallion larger (21 mm) and turned toward the front.
+
+## Round 5 (2026-10-13): doubled jacket buttons, mottled cloth, shirt collar + pin-tucks
+- **Painted buttons erased from the references** before baking (`erase_ref_buttons.py --zone xmin,xmax,zmin,zmax`:
+  the button panel in body metres, projected through the calibrated cameras; inside it every round gold blob -- even
+  one touching the edge trim, by its round core -- is filled from the cloth around it; originals kept as *.orig.png).
+  The modelled brass buttons are then the only buttons.
+- **Clean burgundy**: `project_bake.py --flatten 0.9` evens the cloth's broad light / dark blotches toward its median
+  colour (gold = yellow texels kept), and `--cloth-tile 12` puts the fabric weave in the median burgundy on plain cloth
+  more than ~12 texels from any gold -- the drawing's embroidery, lapels and cuffs stay, the painted wear goes.
+- **Shirt collar**: taller standing collar (`collar_h_scale` 1.35), bow lower on it (`bow_z_frac` 0.12), wing tips,
+  two gold collar studs (`collar_studs`). **Pin-tucks**: `add_pleats.py` -- 4 raised half-tube tucks each side of the
+  placket, ray-snapped to the shirt, in the shirt's cloth.
+- **Waist**: breeches' top cut straight (`trim_edge.py --z 0.936 --rise 0.13 --y0 -0.15`, recorded as
+  `breeches.trim_top`), shirt tuck line matches; the shirt rebuilt denser (7000 tris) -- its big triangles spanned the
+  band and cut through it; the tuck push skips vertices already inside the outer garment and eases its depth in from
+  the rim (`push_ramp`, `push_reach`, `push_above`).
