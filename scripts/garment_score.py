@@ -19,6 +19,9 @@ from pathlib import Path
 
 import bpy
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).parent))
+import body_cover  # noqa: E402
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -71,7 +74,7 @@ def imp(path):
 
 
 gar = imp(GLB)
-if {PIECE, *WITH} & {"breeches", "coat"}:          # the tail is hidden under the breeches and the jacket (Pete)
+if False:                                            # (superseded by body_cover below)
     import bmesh
     bo = next(o for o in goose if o.name.startswith("base_goose_game"))
     gi = {g.name: g.index for g in bo.vertex_groups}
@@ -91,6 +94,9 @@ for w in WITH:
     f = D / "shells" / f"{w}.glb"
     if f.exists():
         others += imp(f)
+bo_ = next(o for o in goose if o.name.startswith("base_goose_game"))     # the body as the dressed goose shows it
+body_cover.remove_faces(bo_, body_cover.covered_faces(bo_, gar + others, hide_tail=bool({PIECE, *WITH} & {"breeches", "coat"}),
+                                                     force=body_cover.force_groups([PIECE, *WITH])))
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
 sc.view_settings.view_transform = "Standard"
@@ -183,6 +189,27 @@ img.pixels = np.dstack([sheet[::-1], np.ones(sheet.shape[:2])]).ravel().tolist()
 img.filepath_raw = str(SD / f"{PIECE}_{TAG}.png")
 img.file_format = "PNG"
 img.save()
+# close-ups framed on the garment itself (800 x 800, on the goose): front, left, rear, right, 3/4 -> <piece>_<tag>_close.png
+gv = np.concatenate([np.array([(o.matrix_world @ v.co)[:] for v in o.data.vertices]) for o in gar])
+lo, hi = gv.min(0), gv.max(0)
+ctr = Vector(((lo + hi) / 2).tolist())
+ext = float(max(hi[2] - lo[2], hi[0] - lo[0], hi[1] - lo[1])) * 1.25
+sc.render.resolution_x = sc.render.resolution_y = 800
+sc.render.resolution_percentage = 100
+cam.data.ortho_scale = ext
+close = []
+for name, az, el in (("front", 0, 0.05), ("left", 90, 0.05), ("rear", 180, 0.05), ("right", -90, 0.05), ("q34", 35, 0.25)):
+    a_ = math.radians(az)
+    d = Vector((math.sin(a_), -math.cos(a_), el)).normalized()
+    cam.location = ctr + d * 6
+    cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    close.append(render(SD / f"_{PIECE}_{TAG}_close_{name}.png", False)[..., :3])
+strip = np.concatenate(close, axis=1)
+ci = bpy.data.images.new("close", strip.shape[1], strip.shape[0])
+ci.pixels = np.dstack([strip[::-1], np.ones(strip.shape[:2])]).ravel().tolist()
+ci.filepath_raw = str(SD / f"{PIECE}_{TAG}_close.png")
+ci.file_format = "PNG"
+ci.save()
 ious = [s["iou"] for s in scores.values() if s.get("iou") is not None]
 summary = {"piece": PIECE, "tag": TAG, "glb": str(GLB.relative_to(ROOT)), "views": scores,
            "mean_iou": round(float(np.mean(ious)), 3) if ious else None, "sheet": str(SD / f"{PIECE}_{TAG}.png")}

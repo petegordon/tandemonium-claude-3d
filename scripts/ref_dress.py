@@ -38,8 +38,11 @@ a = ap.parse_args()
 G = a.garment
 OUT = g2.ROOT / "out" / "outfit_male_victorian" / "dressed" / G
 OUT.mkdir(parents=True, exist_ok=True)
-REAR_FIX = {"bow_tie", "breeches"}
-SKIP = {"bow_tie": {"rear"}}     # the bow tie's back is only its collar band: modelled around the neck by the builder
+REAR_FIX = {"bow_tie"}          # (breeches: the 21:08 sheet's rear -- a closed seat at the right width; its wrongly
+                                 #  placed back buttons are dropped below, the fabric layer fills them)
+DROP_BUTTONS = {("breeches", "rear")}
+SKIP = {"bow_tie": {"rear"}}
+HIDES_TAIL = {"jacket"}     # only where the drawing shows the tail through the garment (the jacket's split tails)     # the bow tie's back is only its collar band: modelled around the neck by the builder
 
 
 def src_of(g, view):
@@ -157,32 +160,85 @@ for view in ("front", "left", "rear"):  # (front first: it teaches the garment p
             PALETTE = palette_of(ref, mask)
         # large blobs far from the garment's colours are not garment (the tail through the breeches' seat: the tail
         # is hidden, the bake fills it from the cloth around); small ones (buttons, studs) stay
-        foreign = mask & (pal_dist(ref) > 0.20)
+        foreign = mask & (pal_dist(ref) > 0.28)          # (0.20 took the dark lines of a strong weave)
+        foreign = ndimage.binary_closing(foreign, iterations=1) & mask     # feathery fragments join into one blob
         flab, fn = ndimage.label(foreign)
         if fn:
             sizes = ndimage.sum(foreign, flab, range(1, fn + 1))
             big = np.isin(flab, np.where(sizes > 0.004 * mask.sum() + 60)[0] + 1)
             mask &= ~big
+        # holes the garment encloses (the tail opening just removed): clone the cloth around them in, shifted
+        # sideways (then up / down) by the hole's own size, so a pattern keeps its direction -- complete references
+        holes = ndimage.binary_fill_holes(mask) & ~mask
+        hl, hn = ndimage.label(holes)
+        ref = ref.copy()
+        for k in range(1, hn + 1):
+            hy, hx = np.where(hl == k)
+            hw, hh = hx.max() - hx.min() + 1, hy.max() - hy.min() + 1
+            for dx, dy in ((hw + 2, 0), (-hw - 2, 0), (0, hh + 2), (0, -hh - 2), (hw + 2, hh + 2), (-hw - 2, hh + 2)):
+                sy, sx = hy + dy, hx + dx
+                ok_ = (sy >= 0) & (sy < mask.shape[0]) & (sx >= 0) & (sx < mask.shape[1])
+                if ok_.all() and mask[sy, sx].mean() > 0.97:
+                    ref[hy, hx] = ref[sy, sx]
+                    mask[hy, hx] = True
+                    break
         score = float(out.iou_scores.cpu().numpy().ravel()[0])
     else:
         mask, score = np.zeros_like(rm), 0.0
+    if (G, view) in DROP_BUTTONS:
+        # buttons: SMALL blobs that differ from the fabric's main colour (tan and brass are close in hue)
+        fab_c = np.median(ref[mask].astype(float), axis=0) / 255
+        rf = ref.astype(float) / 255
+        off = mask & (np.sqrt(((rf - fab_c) ** 2).sum(-1)) > 0.20) & (rf.mean(-1) > fab_c.mean() + 0.04)   # brighter
+        bl, bn = ndimage.label(off)
+        if bn:
+            sz = ndimage.sum(off, bl, range(1, bn + 1))
+            small = np.isin(bl, np.where((sz >= 6) & (sz < 150))[0] + 1)
+            mask = mask & ~ndimage.binary_dilation(small, iterations=2)
+    np.save(OUT / f"{view}_drawmask.npy", mask)          # the garment in the drawing's own pixels (fabric_tile)
     man, mm = g2.mannequin(view)
     col, ok = pw.sample(ref, gu, gv)
     msk, _ = pw.sample(mask.astype(np.uint8), gu, gv)
     on = msk.astype(bool) & ok
+    if G in HIDES_TAIL:
+        # our tail is hidden under this garment: where OUR tail sits in this view, the drawing shows tail (or an
+        # opening for it), so that part of the reference is left out -- the bake fills it from the cloth around
+        pl, pnames = g2.part_map(view)
+        tail = ndimage.binary_dilation(pl == pnames.index("tail"), iterations=14)
+        gap = on & tail
+        on &= ~tail
+        # the garment covers the tail: clone the SAME drawing's cloth into that patch (from below -- the backs of
+        # the thighs -- or beside it), so weave, colour and shading continue across the seat
+        if gap.any():
+            gy, gx = np.where(gap)
+            gh, gw_ = gy.max() - gy.min() + 1, gx.max() - gx.min() + 1
+            for dy, dx in ((gh + 4, 0), (0, gw_ + 4), (0, -gw_ - 4), (gh // 2 + 4, gw_ // 2 + 4), (gh // 2 + 4, -gw_ // 2 - 4)):
+                sy, sx = gy + dy, gx + dx
+                okb = (sy >= 0) & (sy < on.shape[0]) & (sx >= 0) & (sx < on.shape[1])
+                if okb.all() and on[sy, sx].mean() > 0.9:
+                    good = on[sy, sx]
+                    col[gy[good], gx[good]] = col[sy[good], sx[good]]
+                    on[gy[good], gx[good]] = True
+                    break
     comp = man.astype(np.uint8).copy()
     comp[on] = col[on]
     Image.fromarray(comp).save(OUT / f"{view}.png")
     rgba = np.dstack([col, (on * 255).astype(np.uint8)])          # the garment alone (alpha), for project_bake.py
     Image.fromarray(rgba).save(OUT / f"{view}_garment.png")
+    # soft-edged alpha for the bake: eroded, then blurred -- a view's coverage fades out instead of a jagged cut
+    soft = ndimage.gaussian_filter(ndimage.binary_erosion(on, iterations=3).astype(float), 3.0)
+    soft_rgba = np.dstack([col, (np.clip(soft * 1.4, 0, 1) * 255 * on).astype(np.uint8)])
+    Image.fromarray(soft_rgba).save(OUT / f"{view}_garment_soft.png")
     if view == "left":
         Image.fromarray(comp[:, ::-1]).save(OUT / "right.png")
         Image.fromarray(rgba[:, ::-1]).save(OUT / "right_garment.png")
+        Image.fromarray(soft_rgba[:, ::-1]).save(OUT / "right_garment_soft.png")
     report["views"][view] = {"src": str(src_of(G, view).relative_to(g2.ROOT)), "to_body_model": [round(float(sg), 4),
                              round(float(txg), 1), round(float(tyg), 1)], "trust_iou": round(float(giou), 3),
                              "body_model_iou_global": round(float(bm["cp"]["iou"]), 3),
                              "prompts": dict(zip(names, lbl)), "sam_iou_pred": round(score, 3),
-                             "mask_px": int(mask.sum()), "on_mannequin_px": int(on.sum())}
+                             "mask_px": int(mask.sum()), "on_mannequin_px": int(on.sum()),
+                             "view_px_per_drawing_px": round(float(s0 * sg), 4)}
     t = ref.astype(float).copy()
     t[mask] = t[mask] * 0.45 + np.array([255, 60, 0]) * 0.55
     ti = Image.fromarray(t.astype(np.uint8)).resize((ref.shape[1] * 2, ref.shape[0] * 2), Image.NEAREST)
