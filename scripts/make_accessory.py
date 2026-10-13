@@ -490,6 +490,54 @@ elif PIECE == "necktie":
         V_[:, 1] = y_.ravel()
     parts.append(mesh_obj("blade", V_, fs, COL["tie"], rough=0.9, solid=0.003))
     info.update({"collar_h_mm": round(Hc * 1000, 1), "neck_r_side_mm": round(Rs * 1000, 1)})
+elif PIECE == "pancollar":
+    # Peter Pan blouse collar: a low stand and a flat fall with ROUNDED front ends lying on the shoulders, and a
+    # small ribbon bow (two loops, two tails, a knot) at the throat
+    Rs = neck_r(math.pi / 2, ZB + 0.01)
+    Hc = AD.get("collar_h_scale", 0.6) * Rs
+    z_lo, z_hi = ZB - 0.008, ZB + 0.7 * Hc
+    gap = math.radians(AD.get("collar_gap_deg", 4))
+    off = AD.get("collar_off", 0.006)
+    stand = band("stand", z_lo, lambda th: z_hi, off, COL["collar"], th_range=(gap, 2 * math.pi - gap), nz=3, wrap=False)
+    parts.append(stand)
+    fall_d = AD.get("fall_depth", 0.05)
+    round_deg = AD.get("round_deg", 28)
+
+    def fall_depth(th):
+        a = abs((th + math.pi) % (2 * math.pi) - math.pi)              # 0 = front
+        # full depth round the back and sides; the front ends curve up into a round
+        u = np.clip((a - math.radians(AD.get("fall_gap_deg", 8))) / math.radians(round_deg), 0, 1)
+        return fall_d * (0.25 + 0.75 * math.sqrt(max(1 - (1 - u) ** 2, 0.0)))
+    fall_over = [next(x for x in load(OUT / f"{nm}.glb") if x.type == "MESH") for nm in AD.get("fall_over", [])]
+    fg = math.radians(AD.get("fall_gap_deg", 8))
+    for side, rng in (("L", (fg, math.pi)), ("R", (-math.pi, -fg))):
+        parts.append(drape(f"fall_{side}", 0, z_hi + 0.003, fall_depth, 0.0028, COL["collar"], nth=31, nd=8,
+                           extra=(stand, *fall_over), th_range=rng, solid=0.0016))
+    for o in fall_over:
+        bpy.data.objects.remove(o)
+    # ribbon bow at the throat
+    zb_ = z_hi - AD.get("bow_down", 0.012)
+    pk, _ = outer(0.0, zb_, (stand,))
+    c0 = np.array([0.0, pk[1] - 0.006, zb_])
+    up, outv, side = np.array([0, 0, 1.0]), np.array([0, -1.0, 0]), np.array([1.0, 0, 0])
+    bw, bh, rw = AD.get("bow_w", 0.055), AD.get("bow_h", 0.022), AD.get("ribbon_w", 0.008)
+    for sg in (1, -1):
+        # loop: a flattened ring of ribbon from the knot out to one side and back
+        path = []
+        for k in range(17):
+            a = 2 * math.pi * k / 16
+            path.append(c0 + side * sg * (bw / 4) * (1 - math.cos(a)) + up * (bh / 2) * math.sin(a) * 0.9
+                        + outv * 0.002 * math.sin(a / 2))
+        parts.append(tube(f"loop_{'L' if sg > 0 else 'R'}", path, lambda i: (0.0012, rw / 2, (outv, up)), COL["bow"],
+                          nseg=8, caps=False, rough=0.5))
+        # tail: hanging down and out from the knot, cut at an angle
+        tp = [c0 + side * sg * 0.004 * t + up * -AD.get("tail_len", 0.035) * t + side * sg * 0.008 * t * t + outv * 0.002
+              for t in np.linspace(0, 1, 7)]
+        parts.append(tube(f"tail_{'L' if sg > 0 else 'R'}", tp, lambda i: (rw / 2, 0.0012, (side, outv)), COL["bow"],
+                          nseg=8, rough=0.5))
+    kpath = [c0 + outv * 0.003 + side * x for x in np.linspace(-0.006, 0.006, 4)]
+    parts.append(tube("knot", kpath, lambda i: (0.0055, 0.004, (up, outv)), COL["bow"], nseg=10, rough=0.5))
+    info.update({"collar_h_mm": round(Hc * 1000, 1), "neck_r_side_mm": round(Rs * 1000, 1)})
 elif PIECE == "collar":
     Rs = neck_r(math.pi / 2, ZB + 0.01)
     R = neck_r(0.0, ZB + 0.01)

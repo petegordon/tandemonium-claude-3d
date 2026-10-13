@@ -6,15 +6,17 @@ set -e
 cd "$(dirname "$0")/.."
 B="${BLENDER:-/c/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
 PY=/c/Users/pete/ComfyUI-claude/.venv/Scripts/python.exe
-C=outfit_male_cyclist
-run() { "$B" -b --factory-startup --python "$@" 2>&1 | grep -E "^(SHELL|CLEAN|PATTERN|BAND|HAT|CAP|BOOT|STRAP|RENDER|TARGET)|Error|Traceback|line [0-9]+," || true; }
+C=${CHAR:-outfit_male_cyclist}           # (CHAR=outfit_female_cyclist bash scripts/build_cyclist.sh ...)
+run() { "$B" -b --factory-startup --python "$@" 2>&1 | grep -E "^(CROP|SHELL|CLEAN|PATTERN|BAND|HAT|CAP|BOOT|STRAP|RENDER|TARGET)|Error|Traceback|line [0-9]+," || true; }
 has_pattern() { "$PY" -I -c "import json,sys;d=json.load(open('chars/$C.json',encoding='utf-8'));sys.exit(0 if '$1' in d.get('patterns',{}) else 1)"; }
 PIECES="${*:-breeches shirt waistcoat gloves socks}"
 for p in $PIECES; do
   echo "== $p"
   case $p in
     boots) run scripts/make_boot.py -- --char $C ;;
-    hat) run scripts/make_cap.py -- --char $C ;;
+    hat) if grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C; else run scripts/make_cap.py -- --char $C; fi ;;
+    skirt) run scripts/make_skirt.py -- --char $C --piece skirt ;;
+    pancollar) run scripts/make_accessory.py -- --char $C --piece pancollar ;;
     necktie) run scripts/make_accessory.py -- --char $C --piece necktie ;;
     *) run scripts/make_garment.py -- --char $C --piece $p
        RF=$("$PY" -I -c "import json;print(int(bool(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p'].get('relax_folds'))))")
@@ -26,9 +28,18 @@ for p in $PIECES; do
   esac
   if has_pattern $p; then run scripts/pattern_paint.py -- --char $C --piece $p; fi
   if [ "$p" = breeches ]; then run scripts/add_kneestrap.py -- --char $C; fi
+  WT=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design'].get('$p',{}).get('with_outfit',{}).get('trim_below',''))" 2>/dev/null)
+  if [ -n "$WT" ]; then      # worn under another garment in the full outfit: the hidden lower part cut away
+    V=out/$C-goose/shells/variants/withshoes; mkdir -p $V
+    cp out/$C-goose/shells/$p.glb out/$C-goose/shells/$p.json out/$C-goose/shells/${p}_weights.npz out/$C-goose/shells/${p}_covers.npz $V/
+    run scripts/trim_edge.py -- --char $C --piece $p --z $WT --below --glb shells/variants/withshoes/$p.glb --out shells/variants/withshoes/$p.glb
+    WB=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p']['with_outfit'].get('keep_box',''))")
+    if [ -n "$WB" ]; then run scripts/crop_shell.py -- --char $C --glb shells/variants/withshoes/$p.glb --box $WB; fi
+  fi
   if [ "$p" = socks ]; then           # the with-shoes variant: foot trimmed inside the shoe (dress_goose.py --variant withshoes)
     V=out/$C-goose/shells/variants/withshoes; mkdir -p $V
     cp out/$C-goose/shells/socks.glb out/$C-goose/shells/socks.json out/$C-goose/shells/socks_weights.npz out/$C-goose/shells/socks_covers.npz $V/
-    run scripts/trim_edge.py -- --char $C --piece socks --z 0.075 --below --glb shells/variants/withshoes/socks.glb --out shells/variants/withshoes/socks.glb
+    TZ=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['socks'].get('with_shoes',{}).get('trim_below',0.075))")
+    run scripts/trim_edge.py -- --char $C --piece socks --z $TZ --below --glb shells/variants/withshoes/socks.glb --out shells/variants/withshoes/socks.glb
   fi
 done

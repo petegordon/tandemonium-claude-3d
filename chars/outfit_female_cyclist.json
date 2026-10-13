@@ -11,6 +11,779 @@
   "height": 1.0,
   "leg_pitch": 3.0
  },
- "garment_design": {},
- "patterns": {}
+ "garment_design": {
+  "shirt": {
+   "kind": "shirt",
+   "note": "cream blouse (under the cardigan: collar + cuffs show); tucked into the skirt",
+   "z_neck": 1.2818,
+   "z_top": 0.8468,
+   "z_bot": 0.8468,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 6000,
+   "cuff": 0.035,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.005,
+    "sleeve": 0.01,
+    "blouse": 0.0,
+    "cuff": 0.004,
+    "neck": 0.003,
+    "hem": 0.002
+   },
+   "mottle": 0.03,
+   "twill": 0.04,
+   "twill_scale": 520.0,
+   "roughness": 0.7,
+   "colors": {
+    "cream": [
+     240,
+     232,
+     214
+    ]
+   },
+   "tuck": {
+    "into": "skirt",
+    "z_top": 0.8618,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.005,
+    "hide": true,
+    "push_in": 0.04,
+    "push_depth": 0.004,
+    "push_above": 0.02
+   },
+   "hem_zone": 0.12,
+   "cuff_clear": 0.006,
+   "armpit_relax": 0,
+   "ease_post_smooth": 20,
+   "with_outfit": {
+    "trim_below": 0.9368,
+    "note": "under the cardigan the blouse ends above its hem (it poked through at the back)",
+    "keep_box": "-0.1,0.1,-0.5,0.0,1.0568,2.0"
+   }
+  },
+  "cardigan": {
+   "kind": "shirt",
+   "note": "fitted mustard rib-knit cardigan: V-neck to mid-chest, button band, ribbed hem / cuffs",
+   "z_neck": 1.2868,
+   "z_top": 0.8418,
+   "z_bot": 0.8418,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 6500,
+   "hem_points": {
+    "x": [
+     0.0,
+     0.2
+    ],
+    "z": [
+     0.8418,
+     0.8418
+    ],
+    "z_back": 0.8418
+   },
+   "v_neck": {
+    "z_vbot": 1.1418,
+    "top_w": 0.062,
+    "pow": 0.9
+   },
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "edge_relax": 25,
+   "edge_rings": 4,
+   "lo_edge_iter": 6,
+   "base_smooth": 25,
+   "cuff": 0.045,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.02,
+   "ease": {
+    "torso": 0.022,
+    "sleeve": 0.016,
+    "blouse": 0.0,
+    "cuff": 0.004,
+    "neck": 0.006,
+    "hem": 0.02
+   },
+   "knit": true,
+   "rib": {
+    "hem": 0.045,
+    "cuff": 0.045,
+    "v": 0.016,
+    "pitch": 0.004,
+    "depth": 0.0006
+   },
+   "button_top": 1.1218,
+   "button_step": 0.06,
+   "button_tint": 0.42,
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "hem_zone": 0.1,
+   "cuff_clear": 0.004,
+   "armpit_relax": 20,
+   "ease_post_smooth": 30
+  },
+  "skirt": {
+   "kind": "skirt",
+   "note": "knee-length knife-pleated skirt in brown herringbone tweed, waistband",
+   "guide": null,
+   "z_top": 0.8618,
+   "z_hem": 0.4268,
+   "z_bot": 0.4268,
+   "na": 96,
+   "nz": 24,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.004,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.8618,
+     0.8068,
+     0.7268,
+     0.6268,
+     0.5268,
+     0.4268
+    ],
+    "front": [
+     0.0,
+     0.01,
+     0.026,
+     0.045,
+     0.062,
+     0.078
+    ],
+    "side": [
+     0.0,
+     0.012,
+     0.032,
+     0.055,
+     0.075,
+     0.092
+    ],
+    "back": [
+     0.0,
+     0.01,
+     0.026,
+     0.045,
+     0.062,
+     0.078
+    ]
+   },
+   "pleats": {
+    "n": 16,
+    "depth": 0.02,
+    "z_stitch": 0.7668,
+    "open": 0.1,
+    "dir": 1
+   },
+   "soft_folds": 0.0006,
+   "under": [
+    "cardigan"
+   ],
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "weight_smooth": 12,
+   "colors": {
+    "tweed": [
+     255,
+     255,
+     255
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true
+  },
+  "gloves": {
+   "kind": "glove",
+   "z_top": 0.8568,
+   "z_bot": 0.7568,
+   "tris": 1600,
+   "cover_margin": 0.008,
+   "wrist_offset": -0.035,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "base_smooth": 24,
+   "round": 1.0,
+   "ease": {
+    "hand": 0.0025,
+    "cuff": 0.003
+   },
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.8,
+   "weight_smooth": 6,
+   "colors": {
+    "cream": [
+     255,
+     255,
+     255
+    ]
+   },
+   "plain_smooth": 70,
+   "top_r": 0.036,
+   "top_len": 0.085
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "argyle knee socks, dark green and cream, from just below the knee over the foot",
+   "z_top": 0.3668,
+   "z_bot": -1.0932,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.007,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.04,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "outer_smooth": 60,
+   "outer_min": 0.003,
+   "normal_tilt": 8,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": -0.0012
+   },
+   "min_r": 0.034,
+   "min_r_z": [
+    -0.0332,
+    0.2068
+   ]
+  }
+ },
+ "patterns": {
+  "skirt": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    64,
+    48,
+    36
+   ],
+   "light": [
+    108,
+    86,
+    66
+   ],
+   "column": 0.014,
+   "period": 0.008,
+   "contrast": 0.65,
+   "r0": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.06
+    ]
+   ],
+   "flecks": [
+    [
+     [
+      122,
+      62,
+      44
+     ],
+     0.006
+    ],
+    [
+     [
+      66,
+      80,
+      58
+     ],
+     0.005
+    ],
+    [
+     [
+      140,
+      124,
+      100
+     ],
+     0.003
+    ]
+   ],
+   "roughness": 0.92,
+   "detail_gamma": 0.5,
+   "bands": [
+    {
+     "name": "waistband",
+     "z_min": 0.8368,
+     "width": 0.024,
+     "color": [
+      70,
+      46,
+      30
+     ],
+     "rib": "z",
+     "pitch": 10.0
+    }
+   ],
+   "flat_nz": 0.97
+  },
+  "cardigan": {
+   "type": "rib",
+   "tex": 2048,
+   "color": [
+    176,
+    128,
+    40
+   ],
+   "pitch": 0.005,
+   "rib_dark": 0.9,
+   "axes": [
+    [
+     0.0,
+     0.0
+    ]
+   ],
+   "leg_axes": [
+    [
+     0.0,
+     0.0
+    ]
+   ],
+   "arms": true,
+   "detail_gamma": 0.5,
+   "buttons": {
+    "color": [
+     92,
+     58,
+     34
+    ]
+   },
+   "roughness": 0.95,
+   "r0": 0.15
+  },
+  "socks": {
+   "type": "argyle",
+   "tex": 1024,
+   "a": [
+    36,
+    62,
+    44
+   ],
+   "b": [
+    222,
+    206,
+    170
+   ],
+   "c": [
+    36,
+    62,
+    44
+   ],
+   "line": [
+    196,
+    150,
+    52
+   ],
+   "back": [
+    36,
+    62,
+    44
+   ],
+   "diamond_w": 0.042,
+   "diamond_h": 0.06,
+   "z0": 0.0068,
+   "line_w": 0.0007,
+   "centre_y": 9.0,
+   "centre_accent": false,
+   "r0": 0.045,
+   "axes": [
+    [
+     0.085,
+     0.065
+    ],
+    [
+     -0.085,
+     0.065
+    ]
+   ],
+   "roughness": 0.95,
+   "bands": [
+    {
+     "name": "top",
+     "z_min": 0.2068,
+     "width": 0.03,
+     "color": [
+      36,
+      62,
+      44
+     ],
+     "rib": "around",
+     "pitch": 0.004
+    }
+   ],
+   "flat_nz": 0.97
+  },
+  "gloves": {
+   "type": "glove",
+   "tex": 1024,
+   "leather": [
+    206,
+    186,
+    150
+   ],
+   "strap": [
+    190,
+    168,
+    130
+   ],
+   "stitch": [
+    180,
+    170,
+    150
+   ],
+   "stud": [
+    190,
+    160,
+    110
+   ],
+   "strap_a": [
+    -0.03,
+    -0.012
+   ],
+   "holes": false,
+   "roughness": 0.8
+  },
+  "boots": {
+   "type": "brogue",
+   "tex": 1024,
+   "materials": [
+    "boots_leather"
+   ],
+   "leather": [
+    120,
+    62,
+    32
+   ],
+   "seam": [
+    52,
+    28,
+    14
+   ],
+   "centre_x": 0.092,
+   "toe_y": -0.06,
+   "heel_y": 0.105,
+   "top_line": [
+    [
+     0.0,
+     0.08
+    ],
+    [
+     0.15,
+     0.09
+    ],
+    [
+     0.35,
+     0.088
+    ],
+    [
+     0.5,
+     0.08
+    ],
+    [
+     0.7,
+     0.066
+    ],
+    [
+     0.88,
+     0.054
+    ],
+    [
+     1.0,
+     0.046
+    ]
+   ],
+   "z_off": -0.0932,
+   "wing": false,
+   "medallion_on": false,
+   "laces": false,
+   "quarter_t": 0.42,
+   "collar_z": 0.093,
+   "lace_t": [
+    0.4,
+    0.62
+   ],
+   "tbar": {
+    "strap_t": 0.3,
+    "w": 0.0065,
+    "bar_w": 0.007,
+    "bar_t": 0.6,
+    "z_low": 0.025,
+    "buckle_z": 0.06,
+    "color": [
+     92,
+     46,
+     22
+    ],
+    "brass": [
+     170,
+     132,
+     72
+    ]
+   },
+   "roughness": 0.38
+  }
+ },
+ "joints_file": "out/outfit_female_cyclist-goose/joints.json",
+ "build_frame_lift": 0.0932,
+ "build_frame_note": "garment heights are in the BUILD frame: the slider-shaped body before dress_goose.py lifts the soles to the floor (+0.0932 m); the reference views / dressed renders are 0.0932 m higher",
+ "boot_design": {
+  "note": "brown leather T-bar shoes, low block heel (build frame: soles at -lift)",
+  "z_off": -0.0932,
+  "centre_x": 0.092,
+  "toe_y": -0.06,
+  "heel_y": 0.105,
+  "sole_w": [
+   [
+    0.0,
+    0.031
+   ],
+   [
+    0.25,
+    0.036
+   ],
+   [
+    0.55,
+    0.042
+   ],
+   [
+    0.8,
+    0.04
+   ],
+   [
+    1.0,
+    0.032
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.08
+   ],
+   [
+    0.15,
+    0.09
+   ],
+   [
+    0.35,
+    0.088
+   ],
+   [
+    0.5,
+    0.08
+   ],
+   [
+    0.7,
+    0.066
+   ],
+   [
+    0.88,
+    0.054
+   ],
+   [
+    1.0,
+    0.046
+   ]
+  ],
+  "shaft": [
+   [
+    0.07,
+    0.039,
+    0.046,
+    0.098
+   ],
+   [
+    0.088,
+    0.036,
+    0.042,
+    0.097
+   ],
+   [
+    0.1,
+    0.035,
+    0.041,
+    0.096
+   ]
+  ],
+  "heel_h": 0.034,
+  "heel_len": 0.05,
+  "power": 2.6,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.35,
+  "toe_cap": 0.035,
+  "toe_narrow": 1.2,
+  "toe_up": 0.008,
+  "sole_h": 0.011,
+  "welt": 0.002,
+  "heel_round": 0.018,
+  "sole_smooth": 12,
+  "sole_step": 0.003,
+  "leather_rgb": [
+   0.15,
+   0.045,
+   0.015
+  ]
+ },
+ "cloche_design": {
+  "note": "dark green felt cloche, mustard ribbon band, flat bow on the left side; set above the eyes",
+  "band_z": 1.625,
+  "band_tilt": 0.014,
+  "band_off": 0.016,
+  "round": 1.0,
+  "crown_h": 0.105,
+  "crown_puff": 0.12,
+  "brim_front": 0.042,
+  "brim_back": 0.032,
+  "brim_droop": 1.0,
+  "brim_flip": 0.004,
+  "ribbon_h": 0.02,
+  "ribbon_off": 0.003,
+  "bow_az": 70,
+  "bow_w": 0.064,
+  "bow_h": 0.034,
+  "skin_clear": 0.012,
+  "thickness": 0.003,
+  "felt": [
+   40,
+   72,
+   50
+  ],
+  "ribbon": [
+   184,
+   136,
+   48
+  ],
+  "bow_flat": true
+ },
+ "accessory_design": {
+  "pancollar": {
+   "anchor_z": 1.2768,
+   "collar_h_scale": 0.55,
+   "collar_off": 0.006,
+   "collar_gap_deg": 4,
+   "fall_depth": 0.045,
+   "round_deg": 36,
+   "fall_gap_deg": 14,
+   "fall_over": [
+    "cardigan"
+   ],
+   "bow_w": 0.075,
+   "bow_h": 0.03,
+   "ribbon_w": 0.012,
+   "tail_len": 0.045,
+   "bow_down": 0.012,
+   "colors": {
+    "collar": [
+     236,
+     226,
+     204
+    ],
+    "bow": [
+     32,
+     66,
+     44
+    ]
+   }
+  }
+ },
+ "accessory_over": {
+  "pancollar": [
+   "shirt"
+  ]
+ },
+ "skin_merge": {
+  "cardigan": {
+   "UpLeg": "Hips"
+  }
+ },
+ "layer_ignore": {
+  "skirt": [
+   "socks",
+   "boots",
+   "cardigan",
+   "shirt"
+  ],
+  "cardigan": [
+   "shirt",
+   "skirt",
+   "pancollar",
+   "gloves"
+  ],
+  "shirt": [
+   "pancollar",
+   "gloves",
+   "cardigan"
+  ],
+  "socks": [
+   "gloves",
+   "skirt"
+  ]
+ },
+ "force_hide": {
+  "skirt": [
+   "Tail"
+  ]
+ },
+ "chain_follow": {
+  "F": 1.0,
+  "S": 1.0,
+  "B": 0.55
+ },
+ "chain_drape": {
+  "F": [
+   1.0,
+   1.0,
+   0.95
+  ],
+  "S": [
+   1.0,
+   0.95,
+   0.85
+  ],
+  "B": [
+   1.0,
+   0.8,
+   0.6
+  ]
+ }
 }

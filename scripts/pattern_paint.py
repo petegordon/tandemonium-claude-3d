@@ -80,7 +80,7 @@ def around(P, N, axes):
         ang = np.arctan2(P[:, 0] - cx, -(P[:, 1] - cy))          # 0 = front, seam at the back
         u = np.where(on, ang * (PR.get("r0", 0.0) or np.maximum(d, 0.02)) + cx * 10, u)
     v = P[:, 2].copy()
-    flat = np.abs(N[:, 2]) > 0.75
+    flat = np.abs(N[:, 2]) > PR.get("flat_nz", 0.75)       # (a skirt's rump shelf is not a top: flat_nz 0.97)
     u = np.where(flat, P[:, 0], u)
     v = np.where(flat, -P[:, 1] + 5.0, v)
     return u, v
@@ -167,8 +167,48 @@ def knit_shade(P, N, c):
     return c * shade[:, None] * (0.98 + 0.04 * value_noise(P, 0.006))[:, None]     # (2 cm noise read as blotches)
 
 
+def joints():
+    """The character's joints (heads / tails): chars json "joints_file" (a shaped body, e.g. the female sliders),
+    else the base rig's refs/key_views/joints.json."""
+    import json as _j
+    f = ROOT / cfg.get("joints_file", "refs/key_views/joints.json")
+    return _j.loads(f.read_text(encoding="utf-8"))
+
+
+def arm_coords(P):
+    """Per point: distance to the nearer arm polyline (shoulder -> elbow -> wrist -> hand tip) and the arc
+    coordinate round that arm (fixed radius 4 cm, so ribs run straight down the sleeve)."""
+    js = joints()
+    best = np.full(len(P), 9.0)
+    u = np.zeros(len(P))
+    for s_ in ("Left", "Right"):
+        pts = [np.array(js[f"{s_}Arm"]["head"]), np.array(js[f"{s_}ForeArm"]["head"]),
+               np.array(js[f"{s_}Hand"]["head"]), np.array(js[f"{s_}Hand"]["tail"])]
+        for q0, q1 in zip(pts[:-1], pts[1:]):
+            dq = q1 - q0
+            t_ = np.clip(((P - q0) @ dq) / (dq @ dq), 0, 1)
+            c_ = q0 + t_[:, None] * dq
+            rad = P - c_
+            d_ = np.linalg.norm(rad, axis=1)
+            ax = dq / np.linalg.norm(dq)
+            ref = np.array([0, -1.0, 0]) - ax * ax[1] * -1
+            ref -= ax * (ref @ ax)
+            ref /= np.linalg.norm(ref)
+            side = np.cross(ax, ref)
+            ang = np.arctan2(rad @ side, rad @ ref)
+            take = d_ < best
+            best = np.where(take, d_, best)
+            u = np.where(take, ang * 0.04, u)
+    return best, u
+
+
 def rib(P, N):
     u, v = around(P, N, PR.get("leg_axes", [[0.09, 0.035], [-0.09, 0.035]]))
+    if PR.get("arms"):          # sleeves: ribs along the arm (the torso keeps the vertical ones)
+        da, ua = arm_coords(P)
+        torso_r = np.hypot(P[:, 0], P[:, 1])
+        on_arm = (da < 0.07) & (np.abs(P[:, 0]) > PR.get("arm_x", 0.13))
+        u = np.where(on_arm, ua, u)
     pitch = PR.get("pitch", 0.005)
     r = 0.5 + 0.5 * np.cos(2 * np.pi * (P[:, 2] if PR.get("horizontal") else u) / pitch)   # (a knitted tie: across)
     c = rgb(PR["color"])[None] * (PR.get("rib_dark", 0.72) + (1 - PR.get("rib_dark", 0.72)) * r)[:, None]
@@ -183,7 +223,7 @@ def brogue(P, N):
     cx0, toe, heel = PR["centre_x"], PR["toe_y"], PR["heel_y"]
     sx = np.where(P[:, 0] >= 0, 1.0, -1.0)
     X = (P[:, 0] - cx0 * sx) * sx               # + = outward
-    Y, Z = P[:, 1], P[:, 2]
+    Y, Z = P[:, 1], P[:, 2] - PR.get("z_off", 0.0)      # (z_off: the shoe built below the floor -- female sliders)
     L = heel - toe
     t = (heel - Y) / L                           # 0 heel .. 1 toe
     base = rgb(PR["leather"])
@@ -208,12 +248,12 @@ def brogue(P, N):
     yw = toe + PR.get("wing_c", 0.055) + PR.get("wing_back", 0.085) * np.clip(np.abs(X) / hw, 0, 1.2) ** 2
     side = np.clip((ztop - Z) / 0.03, 0, 1) * (np.abs(X) > 0.03)
     along = np.abs(X) + np.maximum(ztop - Z, 0)
-    m = seam(Y - yw, along, off=0.0028)
+    m = seam(Y - yw, along, off=0.0028) if PR.get("wing", True) else np.zeros(len(P), bool)
     # toe medallion: a rosette of holes on the cap
     mc = np.array([0.0, toe + PR.get("medallion", 0.026)])
     dm = np.hypot(X - mc[0], Y - mc[1])
     ang = np.arctan2(Y - mc[1], X - mc[0])
-    for rr_, n_ in ((0.0, 1), (0.0055, 8), (0.010, 12)):
+    for rr_, n_ in (((0.0, 1), (0.0055, 8), (0.010, 12)) if PR.get("medallion_on", True) else ()):
         if rr_ == 0:
             m |= (dm < 0.0012) & upper & (Z > ztop - 0.02)
             continue
@@ -221,13 +261,33 @@ def brogue(P, N):
         m |= (np.abs(dm - rr_) < 0.0009) & (np.abs(a_) * 2 * np.pi * rr_ / n_ * n_ / 1.0 < 0.0011) & upper & (Z > ztop - 0.02)
     # quarter seam: across the instep in front of the laces, down to the sole at both sides
     yq = heel - L * PR.get("quarter_t", 0.47) + 0.03 * np.clip(np.abs(X) / hw, 0, 1.2) ** 1.5
-    m |= seam(Y - yq, along, off=-0.0026)
+    m |= seam(Y - yq, along, off=-0.0026, dots=PR.get("wing", True))
     # heel counter: a curved seam round the heel
     hz = 0.035 + 0.02 * np.clip(t / 0.25, 0, 1)
     m |= seam(np.where(t < 0.3, Z - hz, 9.0), np.abs(X) + Y, off=0.0025)
     c = np.where(m[:, None], dark[None] * (0.8 + 0.4 * value_noise(P, 0.002))[:, None], c)
-    # lace throat: eyelet facings, 5 eyelets a side, crossed laces
     tl0, tl1 = PR.get("lace_t", [0.44, 0.62])
+    TB = PR.get("tbar")
+    if TB:
+        # T-bar: a strap across the instep (side to side, down to the sole line on each side) and a centre bar from
+        # the throat to the vamp; darker leather, stitched edges, a brass buckle on the outer side
+        st = TB.get("strap_t", 0.36)
+        ys_ = heel - L * st
+        w_ = TB.get("w", 0.006)
+        strap = (np.abs(Y - ys_) < w_) & (Z > TB.get("z_low", 0.03))
+        bar = (np.abs(X) < TB.get("bar_w", 0.006)) & (t > st) & (t < TB.get("bar_t", 0.62)) & (Z > ztop - 0.02)
+        sc = rgb(TB.get("color", [86, 44, 22]))
+        c = np.where((strap | bar)[:, None], sc[None] * (0.9 + 0.2 * value_noise(P, 0.003))[:, None], c)
+        edge = ((np.abs(np.abs(Y - ys_) - w_ + 0.0012) < 0.0005) & (Z > TB.get("z_low", 0.03))) | \
+               ((np.abs(np.abs(X) - TB.get("bar_w", 0.006) + 0.0012) < 0.0005) & bar)
+        c = np.where(edge[:, None], c * 0.7, c)
+        bx = (X > 0.025) & (np.abs(Y - ys_) < w_ * 1.5) & (np.abs(Z - TB.get("buckle_z", 0.06)) < 0.008)
+        ring = bx & ((np.abs(Y - ys_) > w_ * 1.5 - 0.0018) | (np.abs(Z - TB.get("buckle_z", 0.06)) > 0.008 - 0.0018))
+        c = np.where(ring[:, None], rgb(TB.get("brass", [170, 130, 70]))[None], c)
+    if not PR.get("laces", True):
+        c = np.where(((Z > PR.get("collar_z", 0.1)) & (t < tl0))[:, None], c * 0.84, c)
+        return c
+    # lace throat: eyelet facings, 5 eyelets a side, crossed laces
     inth = (t > tl0) & (t < tl1) & (Z > ztop - 0.016)
     gap = np.abs(X) < 0.006 + 0.004 * (t - tl0) / (tl1 - tl0)
     c = np.where((inth & gap)[:, None], rgb(PR.get("tongue", [86, 46, 24]))[None], c)
@@ -247,7 +307,7 @@ def glove(P, N):
     of the hand, three stitched points running down the back, a perforated knuckle panel (refs/key_views/joints.json:
     each hand from its Hand bone's head (wrist) to its tail (tip); the back of the hand faces away from the body)."""
     import json as _j
-    js = _j.loads((ROOT / "refs" / "key_views" / "joints.json").read_text(encoding="utf-8"))
+    js = joints()
     base = rgb(PR["leather"])
     c = np.tile(base, (len(P), 1)) * (0.9 + 0.2 * value_noise(P, 0.0025))[:, None]
     c *= (0.95 + 0.1 * value_noise(P, 0.02))[:, None]
@@ -278,7 +338,8 @@ def glove(P, N):
             c = np.where(pts[:, None], stitch[None], c)
         kn = on & (a > w0[1] + 0.07) & (a < w0[1] + 0.09) & (np.abs(phi) < 0.9)
         holes = kn & ((((a / 0.0045) % 1.0 - 0.5) ** 2 + ((phi * r_ / 0.0045) % 1.0 - 0.5) ** 2) < 0.07)
-        c = np.where(holes[:, None], c * 0.45, c)
+        if PR.get("holes", True):
+            c = np.where(holes[:, None], c * 0.45, c)
     return c
 
 
@@ -413,6 +474,20 @@ print("TEXELS", int(mask.sum()), "boundary pts", len(boundary))
 P, N = pos[mask].astype(float), nrm[mask].astype(float)
 col = PATTERNS[PR["type"]](P, N)
 col = bands(P, col, boundary)
+BT = PR.get("buttons")
+if BT:
+    # buttons painted where the garment's own detail bake put them (centre front, every button_step from button_top)
+    Rg = cfg.get("garment_design", {}).get(PIECE, {})
+    zs_ = np.arange(Rg.get("button_top", 1.2), Rg.get("z_bot", 0.9) + 0.03, -Rg.get("button_step", 0.06))
+    br = BT.get("r", 0.0055)
+    for zb_ in zs_:
+        dbt = np.hypot(P[:, 0], P[:, 2] - zb_)
+        on_ = (P[:, 1] < 0) & (dbt < br)
+        shade_ = 0.75 + 0.35 * np.clip(1 - dbt / br, 0, 1)
+        col = np.where(on_[:, None], rgb(BT["color"])[None] * shade_[:, None], col)
+        ring_ = (P[:, 1] < 0) & (np.abs(dbt - br) < 0.0008)
+        col = np.where(ring_[:, None], col * 0.6, col)
+    print("BUTTONS", len(zs_))
 # keep the detail texture's shading (its folds / grooves), resampled to TEX
 ys, xs = np.nonzero(mask)
 dy = np.clip((ys + 0.5) * SH / TEX, 0, SH - 1).astype(int)

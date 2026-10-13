@@ -32,8 +32,13 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(GLB))
 # --with shell.glb,...: extra garment shells over the (naked) goose -- quick previews before dress_goose.py
 WITH = [ROOT / w_ for w_ in opt("--with", "").split(",") if w_]
+WLIFT = opt("--with-lift", 0.0)      # shells built in a shaped body's build frame (female: below the floor-lifted goose)
 for w_ in WITH:
+    before_ = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=str(w_))
+    for o_ in set(bpy.context.scene.objects) - before_:
+        if o_.parent is None:
+            o_.location.z += WLIFT
 meshes =[o for o in bpy.data.objects if o.type == "MESH"]
 for o in meshes:                      # as the game shows a fully worn outfit: layered sub-meshes (the body parts a
     if "__" in o.name:                # garment covers, e.g. "body__breeches") are hidden

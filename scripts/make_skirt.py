@@ -23,7 +23,7 @@ S = R
 NA, NZ, UP = S.get("na", 64), S.get("nz", 38), S.get("hi_up", 6)
 Z_TOP, Z_HEM = S["z_top"], S["z_hem"]
 Z_BOT = Z_HEM
-noarm = ~np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in dom])
+noarm = ~np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) or (S.get("skip_tail") and d == "Tail") for d in dom])
 bvh_body = BVHTree.FromPolygons([tuple(x) for x in BPv], [list(p.vertices) for p in body.data.polygons
                                                            if noarm[list(p.vertices)].all()])
 core = BPv[noarm & (np.abs(BPv[:, 0]) < 0.16)]
@@ -66,12 +66,16 @@ rb = np.where(np.isnan(rb), 0.0, rb)
 rb = np.maximum.accumulate(rb, axis=1)                 # hangs: never tucks in going down
 clear = S.get("clear", 0.012)
 r = smooth2(rb, 4) + clear
-gp = next(o for o in load(D / "pieces" / f"{S.get('guide', 'dress')}.glb") if o.type == "MESH")
-only_select(gp)
-bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-rg = radius_field(BVHTree.FromObject(gp, bpy.context.evaluated_depsgraph_get()), THS, ZS, YC)
-bpy.data.objects.remove(gp)
+GUIDE_F = D / "pieces" / f"{S.get('guide') or 'dress'}.glb"
+if S.get("guide") and GUIDE_F.exists():
+    gp = next(o for o in load(GUIDE_F) if o.type == "MESH")
+    only_select(gp)
+    bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    rg = radius_field(BVHTree.FromObject(gp, bpy.context.evaluated_depsgraph_get()), THS, ZS, YC)
+    bpy.data.objects.remove(gp)
+else:                                  # (no guide: the profile alone shapes the skirt)
+    rg = np.full((NA, NZ), np.nan)
 okg = ~np.isnan(rg)
 rg = np.where(okg, rg, 0.0)
 rgs = smooth2(rg, S.get("guide_smooth", 14)) / np.maximum(smooth2(okg.astype(float), S.get("guide_smooth", 14)), 1e-3)
@@ -95,20 +99,22 @@ log("radius mm body p50 / guide p50", round(float(np.median(rb)) * 1000), round(
 TT, ZZ = np.meshgrid(THS, ZS, indexing="ij")
 az = np.degrees((TT + math.pi) % (2 * math.pi) - math.pi)              # -180..180, 0 = front
 # bustle drape: a single swelling over the back below the waist
-B_ = S["bustle"]
+B_ = S.get("bustle") or {"z": 0.8, "dz": 0.1, "daz": 60, "r": 0.0, "fold": 0.0, "n": 0}
 bz = np.exp(-((ZZ - B_["z"]) / B_["dz"]) ** 2) * np.clip((Z_TOP - ZZ) / 0.05, 0, 1)
 ba = np.exp(-((np.abs(az) - 180) / B_["daz"]) ** 2)
 r = r + B_.get("r", 0.0) * bz * ba
 # flounces: two tiers standing out a little from the skirt
-F_ = S["flounce"]
-z1, z2 = Z_HEM + F_["h"], Z_HEM + 2 * F_["h"]
+F_ = S.get("flounce")
 st = lambda z, z0: np.clip((z0 - z) / 0.015, 0, 1)  # noqa: E731
-r = r + F_["out"] * st(ZZ, z2) * 0.6 + F_["out"] * st(ZZ, z1) * 0.6
+if F_:
+    z1, z2 = Z_HEM + F_["h"], Z_HEM + 2 * F_["h"]
+    r = r + F_["out"] * st(ZZ, z2) * 0.6 + F_["out"] * st(ZZ, z1) * 0.6
 # apron: front panel over the skirt down to a curved hem rising to the hips
-A_ = S["apron"]
-zap = A_["z_front"] + (A_["z_side"] - A_["z_front"]) * np.clip(np.abs(az) / A_["az"], 0, 1) ** 2
-in_ap = (np.abs(az) < A_["az"]) & (ZZ > zap)
-r = r + A_["out"] * in_ap * np.clip((ZZ - zap) / 0.01, 0, 1)
+A_ = S.get("apron")
+if A_:
+    zap = A_["z_front"] + (A_["z_side"] - A_["z_front"]) * np.clip(np.abs(az) / A_["az"], 0, 1) ** 2
+    in_ap = (np.abs(az) < A_["az"]) & (ZZ > zap)
+    r = r + A_["out"] * in_ap * np.clip((ZZ - zap) / 0.01, 0, 1)
 # waist: snug onto the body at the top
 wt = np.clip((Z_TOP - ZZ) / S.get("waist_blend", 0.08), 0, 1) ** 1.5
 wt = wt * wt * (3 - 2 * wt)
@@ -144,6 +150,14 @@ for nm in S.get("under", []):           # tucked under these (bodice): stay insi
     lim = np.minimum(lim, np.roll(lim, 1, 0)); lim = np.minimum(lim, np.roll(lim, -1, 0))
     r = np.minimum(r, np.maximum(lim, rb + 0.001))
     log("tucked under", nm, int((~np.isnan(ru)).sum()), "grid points")
+PL_ = S.get("pleats")
+if PL_:
+    ramp_ = np.clip((PL_.get("z_stitch", Z_TOP - 0.08) - ZZ) / PL_.get("open", 0.12), 0, 1) ** 0.8
+    saw_ = (TT * PL_["n"] / (2 * math.pi) + PL_.get("phase", 0.0)) % 1.0
+    if PL_.get("dir", 1) < 0:
+        saw_ = 1.0 - saw_
+    r = r + PL_["depth"] * ramp_ * (saw_ - 0.5)
+    log("pleats", PL_["n"], "depth mm", PL_["depth"] * 1000)
 # (tiers are separate panels, built after the hi skirt below)
 
 
@@ -208,7 +222,7 @@ arc = rh * 1.0
 # waistband
 disp += groove(np.abs(Zh - (Z_TOP - 0.02)), 0.0015, 0.0012)
 # flounces: gathered (dense vertical ruffles growing toward each tier's lower edge), tier tops gathered
-for zt in (z2, z1):
+for zt in ((z2, z1) if F_ else ()):
     inb = (Zh < zt) & (Zh > zt - F_["h"])
     u = np.clip((zt - Zh) / F_["h"], 0, 1)
     # gathered ruffle: uneven folds (two frequencies, wandering phase) opening toward the tier's edge
@@ -218,17 +232,30 @@ for zt in (z2, z1):
     disp += groove(np.abs(Zh - zt), 0.0016, 0.0016) + groove(np.abs(Zh - (zt - 0.006)), 0.0008, 0.0005)
     occm = np.where(np.abs(Zh - zt) < 0.004, 0.75, occm)
 disp += groove(np.abs(Zh - (Z_HEM + 0.004)), 0.001, 0.0008)
-# apron: edge (turned, shadowed underneath) + swag folds sweeping up toward the hips
-zaph = A_["z_front"] + (A_["z_side"] - A_["z_front"]) * np.clip(np.abs(azh) / A_["az"], 0, 1) ** 2
-de = Zh - zaph
-apr = (np.abs(azh) < A_["az"]) & (de > 0)
-disp += np.where(apr, 0.0012 * np.clip(1 - de / 0.006, 0, 1), 0.0)
-occm = np.where((np.abs(azh) < A_["az"]) & (de < 0) & (de > -0.008), 0.7, occm)
-# swags: a few soft catenary folds hanging between the hip gathers (deepest at the centre front)
-xa = np.abs(azh) / A_["az"]
-sag = Zh - (zaph + (Z_TOP - zaph) * 0.0) + 0.09 * (1 - xa ** 2)
-sw = np.where(apr, np.sin(sag / A_["swag"] * 2 * math.pi) * (1 - xa ** 2) ** 0.5, 0.0)
-disp += A_["swag_amp"] * sw * np.clip((Z_TOP - 0.08 - Zh) / 0.12, 0, 1) * np.clip(de / 0.05, 0, 1)
+apr = np.zeros_like(Zh, bool)
+if A_:
+    # apron: edge (turned, shadowed underneath) + swag folds sweeping up toward the hips
+    zaph = A_["z_front"] + (A_["z_side"] - A_["z_front"]) * np.clip(np.abs(azh) / A_["az"], 0, 1) ** 2
+    de = Zh - zaph
+    apr = (np.abs(azh) < A_["az"]) & (de > 0)
+    disp += np.where(apr, 0.0012 * np.clip(1 - de / 0.006, 0, 1), 0.0)
+    occm = np.where((np.abs(azh) < A_["az"]) & (de < 0) & (de > -0.008), 0.7, occm)
+    # swags: a few soft catenary folds hanging between the hip gathers (deepest at the centre front)
+    xa = np.abs(azh) / A_["az"]
+    sag = Zh - (zaph + (Z_TOP - zaph) * 0.0) + 0.09 * (1 - xa ** 2)
+    sw = np.where(apr, np.sin(sag / A_["swag"] * 2 * math.pi) * (1 - xa ** 2) ** 0.5, 0.0)
+    disp += A_["swag_amp"] * sw * np.clip((Z_TOP - 0.08 - Zh) / 0.12, 0, 1) * np.clip(de / 0.05, 0, 1)
+if PL_:
+    # pleat folds: a crisp crease along each fold edge (shadowed under the overlap), a pressed line on the inner fold
+    ph_h = (Th * PL_["n"] / (2 * math.pi) + PL_.get("phase", 0.0)) % 1.0
+    if PL_.get("dir", 1) < 0:
+        ph_h = 1.0 - ph_h
+    ramp_h = np.clip((PL_.get("z_stitch", Z_TOP - 0.08) - Zh) / PL_.get("open", 0.12), 0, 1)
+    dfold = np.minimum(ph_h, 1 - ph_h) * 2 * math.pi * rh / PL_["n"]
+    disp += groove(dfold, 0.0012, 0.0014) * (0.3 + 0.7 * ramp_h)
+    occm = np.where((ph_h < 0.06) & (ramp_h > 0.05), 0.62 + 0.38 * ph_h / 0.06, occm)
+    # the stitched-down part: a seam line along each fold from the waist to z_stitch
+    disp += np.where(Zh > PL_.get("z_stitch", Z_TOP - 0.08), groove(dfold, 0.0007, 0.0006), 0.0)
 # tiers: gathered folds in each tier, turned scalloped edge, shadow on the tier below
 for (zbe_, wa_), tr in zip(tedges, TIERS):
     occm = np.where((wa_ > 0.3) & (Zh < zbe_) & (Zh > zbe_ - 0.025), 0.6 + 0.4 * np.clip((zbe_ - Zh) / 0.025, 0, 1), occm)
@@ -241,7 +268,7 @@ edge_b = (bah > 0.25) & (np.abs(Zh - zbe) < 0.006) & (B_.get("r", 0.0) > 0)
 disp += np.where(edge_b, 0.002, 0.0)
 occm = np.where((bah > 0.25) & (Zh < zbe) & (Zh > zbe - 0.012) & (B_.get("r", 0.0) > 0), 0.72, occm)
 # long soft folds on the under-skirt
-disp += 0.0018 * np.sin(Th * 11 + 0.8 * np.sin(Zh * 9)) * np.clip((Z_TOP - 0.15 - Zh) / 0.3, 0, 1) * ~apr
+disp += S.get("soft_folds", 0.0018) * np.sin(Th * 11 + 0.8 * np.sin(Zh * 9)) * np.clip((Z_TOP - 0.15 - Zh) / 0.3, 0, 1) * ~apr
 Phi = loft(THh, ZSh, rh + disp, ych)
 hi = grid_mesh(f"{PIECE}_hi", Phi)
 occ = np.clip((1 + disp / 0.0012 * 0.18) * occm, 0.6, 1.08).ravel()

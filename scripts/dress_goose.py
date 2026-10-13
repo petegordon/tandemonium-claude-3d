@@ -98,6 +98,10 @@ cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text())
 # knee band stays whole over the socks / shoes -- a mask there tore the hem into a sawtooth)
 for k_, v_ in cfg.get("layer_ignore", {}).items():
     LAYER_IGNORE[k_] = tuple(LAYER_IGNORE.get(k_, ())) + tuple(v_)
+FOLLOW.update(cfg.get("chain_follow", {}))          # chars json: per-character cloth-chain follow / drape (the
+DRAPE_BY.update(cfg.get("chain_drape", {}))          # female cyclist's skirt rides the thighs seated, back too)
+for k_, v_ in cfg.get("force_hide", {}).items():     # chars json "force_hide" {piece: [bone substrings]} (skirt: Tail)
+    FORCE[k_] = tuple(FORCE.get(k_, ())) + tuple(v_)
 names = [g.name for g in body.vertex_groups]
 me = body.data
 V = np.array([v.co[:] for v in me.vertices])

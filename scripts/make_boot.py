@@ -227,6 +227,9 @@ ob.select_set(True)
 bpy.context.view_layer.objects.active = ob
 bpy.ops.object.join()
 ob = bpy.context.view_layer.objects.active
+if B.get("z_off"):        # a shaped body whose soles sit below z = 0 in the build frame (female sliders: -0.0932)
+    for v in ob.data.vertices:
+        v.co.z += B["z_off"]
 tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
 for f in (D / "versions" / f"boots_{TAG}_geo.glb", D / "shells" / "boots.glb"):
     bpy.ops.export_scene.gltf(filepath=str(f), export_format="GLB", use_selection=True)

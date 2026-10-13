@@ -215,13 +215,20 @@ if KIND in ("shirt", "coat", "glove"):
             zf = np.interp(np.abs(x), HP_["x"], HP_["z"])
             return fr * zf + (1 - fr) * HP_["z_back"]
 
+        VN_ = R.get("v_neck")       # a cardigan: V opening at the front, from z_vbot up to the neck (half width top_w)
+
+        def v_w(z):
+            return VN_["top_w"] * np.clip((z - VN_["z_vbot"]) / (Z_NECK - VN_["z_vbot"]), 0, 1) ** VN_.get("pow", 0.9)
+
         def resid(c):
-            if abs(c[0]) > 0.2:
-                return {"hem": 9.0}
-            return {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
+            out_ = {"hem": 9.0} if abs(c[0]) > 0.2 else {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
+            if VN_:
+                front_ = c[1] < ycf(c[2])
+                out_["v"] = float(abs(c[0]) - v_w(c[2])) if (front_ and c[2] > VN_["z_vbot"] - 0.005) else 9.0
+            return out_
 
         def inside_amount(c):
-            return resid(c)["hem"]
+            return min(resid(c).values())
 elif KIND == "vest":
     # outline (no planes but the back neck): pointed front hem, V opening with small lapels, deep armholes
     Z_NECK = R["z_neck"]
@@ -1068,6 +1075,24 @@ if R.get("outer_smooth"):
         Pm = Pm - 0.53 * (Pb_ - Pm)
     out_ = ((Pm - P) * N).sum(1)
     Pm = Pm + N * np.maximum(R.get("outer_min", 0.004) - out_, 0)[:, None]
+    if R.get("min_r"):
+        # a sock over the goose's very thin ankle: per leg and 1 cm of height, the ring is held at least min_r from
+        # its own centre between min_r_z (lo, hi) -- knitted tube, not shrink-wrap (the argyle pinched and tore there)
+        zlo_, zhi_ = R.get("min_r_z", [-1.0, 9.0])
+        for sg_ in (1, -1):
+            side_ = (Pm[:, 0] * sg_ > 0.01) & (Pm[:, 2] > zlo_ - 0.03) & (Pm[:, 2] < zhi_ + 0.03)
+            for zc_ in np.arange(zlo_ - 0.03, zhi_ + 0.03, 0.01):
+                ring_ = side_ & (np.abs(Pm[:, 2] - zc_) < 0.006)
+                if ring_.sum() < 6:
+                    continue
+                c_ = Pm[ring_, :2].mean(0)
+                d_ = Pm[ring_, :2] - c_
+                r_ = np.linalg.norm(d_, axis=1)
+                w_ = np.clip(min((zc_ - (zlo_ - 0.03)) / 0.03, ((zhi_ + 0.03) - zc_) / 0.03, 1.0), 0, 1)
+                tgt_ = np.maximum(r_, R["min_r"] * w_ + r_ * (1 - w_))
+                Pm[ring_, :2] = c_ + d_ / np.maximum(r_, 1e-6)[:, None] * tgt_[:, None]
+        for _ in range(4):
+            Pm = smooth_field(Pm, ed, 1, pin=boundary)
     if R.get("outer_keep_gap"):
         # ... but not across the crotch / between the legs: there the smoothing webbed the legs together and the seat
         # lost its split (blend back to the plain offset where the gap to the other surface is small)
@@ -1420,7 +1445,7 @@ elif KIND == "shirt":
     disp += np.where(plk & (np.abs(x) < 0.0125), 0.0008, 0.0)
     disp += groove(np.where(plk, np.abs(np.abs(x) - 0.0125), 9.0), 0.0011, 0.0008)
     tintm = np.ones(len(Ph))
-    for zb_ in np.arange(Z_NECK - 0.03, float(ztop(-0.1)) - (Z_TOP - Z_BOT) + 0.05, -R.get("button_step", 0.065)):
+    for zb_ in np.arange(R.get("button_top", Z_NECK - 0.03), float(ztop(-0.1)) - (Z_TOP - Z_BOT) + 0.05, -R.get("button_step", 0.065)):
         dbt = np.sqrt(x ** 2 + (zh - zb_) ** 2)
         disp += np.where(plk, 0.0017 * np.exp(-(dbt / 0.0036) ** 2) - 0.0005 * np.exp(-((dbt - 0.0045) / 0.0012) ** 2), 0.0)
         if R.get("button_tint"):
@@ -1463,8 +1488,13 @@ elif KIND == "shirt":
         inc = on & (dwh < cuff)
         disp += np.where(inc, 0.0015 * np.clip(dwh / 0.003, 0, 1), 0.0)
         disp += np.where(on, groove(np.abs(dwh - cuff), 0.0015, 0.0011) + groove(np.abs(dwh - 0.006), 0.0008, 0.0004), 0.0)
-        dl = np.hypot((np.abs(phi) - np.pi * 0.62) * rr, dwh - cuff * 0.5)
-        disp += np.where(on, 0.0022 * np.exp(-(dl / 0.0042) ** 2), 0.0)
+        if R.get("knit"):           # knitted cuff: ribs round the wrist, no cufflink
+            RBk = R.get("rib", {})
+            disp += np.where(on & (dwh < RBk.get("cuff", cuff)), RBk.get("depth", 0.0006) *
+                             np.sin(phi * rr / RBk.get("pitch", 0.004) * 2 * np.pi), 0.0)
+        else:
+            dl = np.hypot((np.abs(phi) - np.pi * 0.62) * rr, dwh - cuff * 0.5)
+            disp += np.where(on, 0.0022 * np.exp(-(dl / 0.0042) ** 2), 0.0)
         # gathers above the cuff and at the inner elbow
         g_ = np.clip(1 - (dwh - cuff) / 0.09, 0, 1) * (dwh > cuff) * on
         ph_ = 0.8 * np.sin(phi * 2.1 + sg) + 0.5 * np.sin(phi * 4.7 + dwh * 50)
@@ -1472,10 +1502,23 @@ elif KIND == "shirt":
         de = np.linalg.norm(Ph - a1_, axis=1)
         inner = np.clip(np.cos(phi - np.pi * 0.5 * sg * 0), 0, 1)
         disp += 0.0013 * np.sin(de / 0.012 * 2 * np.pi) * np.exp(-(de / 0.045) ** 2) * on * (0.5 + 0.5 * inner)
-    # tucked hem: soft blousing folds just above the breeches line
-    bl = np.clip(1 - dhh / 0.08, 0, 1) * torso
-    phb = 0.9 * np.sin(phit * 3.1) + 0.5 * np.sin(phit * 7.3 + zh * 30)
-    disp += 0.0013 * np.sin(phit * 9 + phb) * bl
+    if R.get("knit"):
+        # cardigan: ribbed hem band (vertical ribs), a ribbed band along the V-neck (ribs across it), no blousing
+        RBk = R.get("rib", {})
+        pit, dep = RBk.get("pitch", 0.004), RBk.get("depth", 0.0006)
+        hb = torso & (dhh < RBk.get("hem", 0.045))
+        disp += np.where(hb, 0.0010 + dep * np.sin(phit * rt / pit * 2 * np.pi), 0.0) + \
+            np.where(torso, groove(np.abs(dhh - RBk.get("hem", 0.045)), 0.0009, 0.0006), 0.0)
+        if R.get("v_neck"):
+            dvn = np.array([resid(c)["v"] for c in Ph])
+            vb = torso & (dvn < RBk.get("v", 0.016))
+            disp += np.where(vb, 0.0010 + dep * np.sin(zh / pit * 2 * np.pi), 0.0) + \
+                np.where(torso & (dvn < 1), groove(np.abs(dvn - RBk.get("v", 0.016)), 0.0009, 0.0006), 0.0)
+    else:
+        # tucked hem: soft blousing folds just above the breeches line
+        bl = np.clip(1 - dhh / 0.08, 0, 1) * torso
+        phb = 0.9 * np.sin(phit * 3.1) + 0.5 * np.sin(phit * 7.3 + zh * 30)
+        disp += 0.0013 * np.sin(phit * 9 + phb) * bl
 if KIND == "vest":
     tintm = np.ones(len(Ph))                      # extra darkening (buttons, strap, buckle)
     rs = [resid(c) for c in Ph]
