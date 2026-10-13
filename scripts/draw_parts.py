@@ -1,6 +1,9 @@
 """Name the body parts of the DRAWN naked goose (Pete's worn sheets, bare figure) to match our mannequin's part map.
 
-  .venv python -I scripts/draw_parts.py [--figure bow_tie] [--model facebook/sam2.1-hiera-large]
+  .venv python -I scripts/draw_parts.py --src refs/base [--model facebook/sam2.1-hiera-large]
+      (--src: a folder of NAKED goose views front_raw / left_raw / rear_raw [/ right_drawn_raw]; Pete: name the parts
+       on a goose with nothing on -- refs/base is the turnaround our 3D base goose was made from. Without --src, the
+       old worn-sheet figure (--figure) is used.)
 
 Per view (front / left from sheet_front_side, rear from sheet_rear_right_v2; right = the left mirrored):
 1. matte the drawn figure; register it onto our mannequin view by silhouette (similarity, goose2d.fit_sim);
@@ -32,9 +35,10 @@ import goose2d as g2  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--figure", default="bow_tie")
+ap.add_argument("--src", default="")
 ap.add_argument("--model", default="facebook/sam2.1-hiera-large")
 a = ap.parse_args()
-OUT = g2.WORN / "parts"
+OUT = (g2.ROOT / a.src / "parts") if a.src else (g2.WORN / "parts")
 OUT.mkdir(parents=True, exist_ok=True)
 J, T = g2.J, g2.T
 NAMES = g2.PARTS["parts"]
@@ -42,6 +46,9 @@ COL = {n: np.array(g2.PARTS["colors"][n]) for n in NAMES}
 
 
 def src(view):
+    if a.src:
+        d = g2.ROOT / a.src
+        return d / ("right_drawn_raw.png" if view == "right" else f"{view}_raw.png")
     if view == "rear":
         return g2.WORN / a.figure / "rear_v2_raw.png"
     return g2.WORN / a.figure / f"{view}_raw.png"
@@ -59,7 +66,8 @@ proc = Sam2Processor.from_pretrained(a.model)
 model = Sam2Model.from_pretrained(a.model, torch_dtype=torch.float32).to(dev).eval()
 
 tiles = []
-for view in ("front", "left", "rear"):
+VIEWS = ("front", "left", "rear") + (("right",) if a.src and src("right").exists() else ())
+for view in VIEWS:
     ref = np.asarray(Image.open(src(view)).convert("RGB"))
     rm = g2.matte(ref)
     man, mm = g2.mannequin(view)
@@ -93,9 +101,9 @@ for view in ("front", "left", "rear"):
         add("neck", mapped(J[b] + np.array([0, 0, 0.01])))
     for b in ("Spine", "Spine1", "Spine2"):
         add("torso", mapped(J[b]))
-    if view in ("rear", "left"):
+    if view in ("rear", "left", "right"):
         add("tail", mapped(J["Hips"] + np.array([0, 0.20, -0.10])))
-    sides = ("L", "R") if view in ("front", "rear") else ("L",)
+    sides = ("L", "R") if view in ("front", "rear") else (("L",) if view == "left" else ("R",))
     centre_u = mapped(np.array([0, 0, 1.0]))[0]
     for k in sides:
         sname = "Left" if k == "L" else "Right"
@@ -135,7 +143,10 @@ for view in ("front", "left", "rear"):
                     for f in fr:
                         t = f * L[-1]
                         i = min(np.searchsorted(L, t), len(L) - 1)
-                        add(f"{part}_{k}", tuple(poly[i]))
+                        # hands are black, forearms brown: the track can stop at the wrist when the hand
+                        # nearly touches the thigh, so hand seeds snap to the dark pixels below the track's end
+                        add(f"{part}_{k}", tuple(poly[i]) if part != "hand" else
+                            (pts[-1][0], pts[-1][1] + (12 if f > 0.9 else 4)), snap_dark=(part == "hand"))
             # legs: inner runs below the crotch
             for part, (b0, b1, fs) in {"thigh": ("UpLeg", "Leg", (0.25, 0.5, 0.8)), "shin": ("Leg", "Foot", (0.3, 0.7)),
                                        "foot": ("Foot", "ToeBase", (0.6,))}.items():
@@ -164,38 +175,61 @@ for view in ("front", "left", "rear"):
                 for f in fs:
                     p = J[f"{sname}{b0}"] + f * (J[f"{sname}{b1}"] - J[f"{sname}{b0}"])
                     add(f"{part}_{k}", mapped(p), snap_dark=(part in ("shin", "foot")))
+    if view in ("left", "right") or a.src:
+        # side views (and every view of the naked base turnaround, which our 3D goose was made from: same pose,
+        # IoU ~0.94): the arm lies across the torso in the same colours, so SAM cannot split them -- the drawing
+        # matches our mannequin closely here (IoU ~0.93), so OUR exact part map is carried over (similarity), and
+        # figure pixels outside our silhouette take the nearest part
+        pl, _ = g2.part_map(view)
+        ys_, xs_ = np.mgrid[0:ref.shape[0], 0:ref.shape[1]]
+        vx = np.clip(np.round(xs_ * s + tx).astype(int), 0, g2.W0 - 1)
+        vy = np.clip(np.round(ys_ * s + ty).astype(int), 0, g2.H0 - 1)
+        lab = np.where(rm, pl[vy, vx], -1)
+        miss = rm & (lab < 0)
+        if miss.any():
+            _, (iy, ix) = ndimage.distance_transform_edt(lab < 0, return_indices=True)
+            lab[miss] = lab[iy[miss], ix[miss]]
+        np.save(OUT / f"{view}_labels.npy", lab)
+        (OUT / f"{view}_reg.json").write_text(json.dumps({"src": str(src(view).relative_to(g2.ROOT)), "iou": round(float(iou), 3),
+                                                          "s": float(s), "tx": float(tx), "ty": float(ty),
+                                                          "seeds": {}, "method": "our part map"}, indent=1),
+                                              encoding="utf-8")
+        seeds = {}
+    else:
+        lab = None
     # SAM: every seeded part an object (its seeds positive, a few seeds of other parts negative)
-    up = 2.5
-    objs = [n for n in NAMES if n in seeds]
-    allp = [(n, p) for n in objs for p in seeds[n]]
-    pts_all, lbl_all = [], []
-    for n in objs:
-        pos = seeds[n]
-        neg = [p for m_, p in allp if m_ != n]
-        pts_all.append([[u * up, v * up] for u, v in pos + neg])
-        lbl_all.append([1] * len(pos) + [0] * len(neg))
-    kmax = max(len(p) for p in pts_all)
-    for p, lb in zip(pts_all, lbl_all):
-        while len(p) < kmax:
-            p.append([0.0, 0.0])
-            lb.append(-10)
-    big = Image.fromarray(ref).resize((int(ref.shape[1] * up), int(ref.shape[0] * up)), Image.LANCZOS)
-    inputs = proc(images=big, input_points=[pts_all], input_labels=[lbl_all], return_tensors="pt").to(dev)
-    with torch.no_grad():
-        out = model(**inputs, multimask_output=False)
-    lg = proc.post_process_masks(out.pred_masks.cpu(), inputs["original_sizes"].cpu(), binarize=False)[0][:, 0].numpy()
-    lg = np.stack([np.asarray(Image.fromarray(x).resize((ref.shape[1], ref.shape[0]), Image.BILINEAR)) for x in lg])
-    best = lg.argmax(0)
-    lab = np.where(rm & (lg.max(0) > 0), np.array([NAMES.index(n) for n in objs])[best], -1)
-    miss = rm & (lab < 0)
-    if miss.any() and (lab >= 0).any():
-        _, (iy, ix) = ndimage.distance_transform_edt(lab < 0, return_indices=True)
-        lab[miss] = lab[iy[miss], ix[miss]]
-    np.save(OUT / f"{view}_labels.npy", lab)
-    (OUT / f"{view}_reg.json").write_text(json.dumps({"src": str(src(view).relative_to(g2.ROOT)), "iou": round(float(iou), 3),
-                                                      "s": float(s), "tx": float(tx), "ty": float(ty),
-                                                      "seeds": seeds}, indent=1), encoding="utf-8")
-    if view == "left":
+    if lab is None:
+        up = 2.5
+        objs = [n for n in NAMES if n in seeds]
+        allp = [(n, p) for n in objs for p in seeds[n]]
+        pts_all, lbl_all = [], []
+        for n in objs:
+            pos = seeds[n]
+            neg = [p for m_, p in allp if m_ != n]
+            pts_all.append([[u * up, v * up] for u, v in pos + neg])
+            lbl_all.append([1] * len(pos) + [0] * len(neg))
+        kmax = max(len(p) for p in pts_all)
+        for p, lb in zip(pts_all, lbl_all):
+            while len(p) < kmax:
+                p.append([0.0, 0.0])
+                lb.append(-10)
+        big = Image.fromarray(ref).resize((int(ref.shape[1] * up), int(ref.shape[0] * up)), Image.LANCZOS)
+        inputs = proc(images=big, input_points=[pts_all], input_labels=[lbl_all], return_tensors="pt").to(dev)
+        with torch.no_grad():
+            out = model(**inputs, multimask_output=False)
+        lg = proc.post_process_masks(out.pred_masks.cpu(), inputs["original_sizes"].cpu(), binarize=False)[0][:, 0].numpy()
+        lg = np.stack([np.asarray(Image.fromarray(x).resize((ref.shape[1], ref.shape[0]), Image.BILINEAR)) for x in lg])
+        best = lg.argmax(0)
+        lab = np.where(rm & (lg.max(0) > 0), np.array([NAMES.index(n) for n in objs])[best], -1)
+        miss = rm & (lab < 0)
+        if miss.any() and (lab >= 0).any():
+            _, (iy, ix) = ndimage.distance_transform_edt(lab < 0, return_indices=True)
+            lab[miss] = lab[iy[miss], ix[miss]]
+        np.save(OUT / f"{view}_labels.npy", lab)
+        (OUT / f"{view}_reg.json").write_text(json.dumps({"src": str(src(view).relative_to(g2.ROOT)), "iou": round(float(iou), 3),
+                                                          "s": float(s), "tx": float(tx), "ty": float(ty),
+                                                          "seeds": seeds}, indent=1), encoding="utf-8")
+    if view == "left" and "right" not in VIEWS:
         np.save(OUT / "right_labels.npy", lab[:, ::-1])
     # tile: drawing tinted by part + seeds | our part map in the same frame
     t = ref.astype(float) / 255
@@ -224,5 +258,6 @@ x = 0
 for t_ in tiles:
     sheet.paste(t_, (x, 0))
     x += t_.width + 10
-sheet.save(g2.ROOT / "renders" / "drawn_parts.png")
-print("SHEET", g2.ROOT / "renders" / "drawn_parts.png")
+SH = g2.ROOT / "renders" / ("drawn_parts_base.png" if a.src else "drawn_parts.png")
+sheet.save(SH)
+print("SHEET", SH)

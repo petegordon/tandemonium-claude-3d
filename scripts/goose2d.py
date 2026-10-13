@@ -32,7 +32,9 @@ def matte(img):
     k = 21
     pad = np.pad(bg, ((k // 2, k // 2), (0, 0)), mode="edge")
     bg = np.stack([np.median(pad[r:r + k], axis=0) for r in range(len(bg))])
-    return np.abs(im - bg[:, None]).max(-1) > 28
+    m = np.abs(im - bg[:, None]).max(-1) > 28
+    from scipy import ndimage                           # (venv only) bright highlights leave holes: fill them
+    return ndimage.binary_fill_holes(m)
 
 
 def mannequin(view):
