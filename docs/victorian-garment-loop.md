@@ -129,3 +129,13 @@ Outfits: `--tag full --variant jacket`, `--tag nojacket --variant vest --without
   domed buttons (`add_back_tab.py`).
 - **Front**: buttons 17 mm, two columns of three nearer the opening; lapels wider (`--lapel` w 0.035 -> 0.10).
 - Chain: `bash scripts/build_victorian_coat.sh <tag>`; outfits as in round 6.
+
+## Round 8 (2026-10-13): Pete's "do the tweaks"
+- **Bow tie** deep burgundy: `recolor_bow.py` thins the heavy gold scroll of the prepped product shot (only its core
+  kept) and pulls the cloth to burgundy 70,20,28 with its shading (the original kept as `bow_texture.orig.png`).
+- **Boots** 4 cm lower (top 0.475 -> 0.435; the drawing's boot top is 0.365 of sole-to-shoulder, ours was 0.40):
+  `squash_band.py` compresses the shaft above 0.22 on the built shell (texture and buttons kept); recipe shaft updated,
+  `shaft_r7` = before.
+- **Shirt-back smudges**: `fix_bright.py --dark 0.92 --k 99` lifts broad grey patches of the white cloth to its median
+  colour, keeping the fine creases / weave (all three shirt shells).
+- Hat medallion r 0.021 -> 0.03; collar studs r 0.0055 -> 0.0085.

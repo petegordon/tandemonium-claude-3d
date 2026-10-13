@@ -70,6 +70,22 @@ bad = (broad > K * med) & pale & used
 bad = box(bad.astype(float), 3) > 0.01
 print("BRIGHT median", round(float(med), 3), "patch texels", int(bad.sum()))
 px[..., :3] = np.where(bad[..., None], pushpull(rgb, used & ~bad), rgb)
+# --dark K2 (white cloth, e.g. the shirt): broad grey smudges darker than K2 x median are lifted by the ratio
+# median / broad brightness (the weave and fine creases kept), fading in over K2 -> 1
+DARK = opt("--dark", 0.0)
+if DARK > 0:
+    rgb = px[..., :3]
+    ratio = np.clip(med / np.maximum(broad, 1e-4), 1.0, 2.5)
+    k = np.clip((1.0 - broad / med) / (1.0 - DARK), 0, 1) * pale * used
+    k = box(box(k, 3), 3)
+    lift = 1.0 + (ratio - 1.0) * k
+    # ... and the cool grey cast goes too: inside the patch the colour becomes the cloth's median colour carrying only
+    # the fine light / dark detail (lum / broad)
+    medcol = np.median(rgb[used & (lum > med * 0.9)], 0)
+    tinted = medcol[None, None, :] * np.clip(lum / np.maximum(broad, 1e-4), 0.6, 1.3)[..., None]
+    px[..., :3] = np.clip(rgb * lift[..., None] * (1 - k[..., None]) + tinted * k[..., None], 0, 1)
+    bad = k > 0.05
+    print("DARK lifted texels", int(bad.sum()))
 img.pixels = px.ravel().tolist()
 img.pack()
 if "--preview" in argv:

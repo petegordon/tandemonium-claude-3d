@@ -472,7 +472,7 @@
   "plume": {
    "side": 1,
    "angle_deg": 45,
-   "medallion_r": 0.021,
+   "medallion_r": 0.03,
    "feathers": [
     {
      "length": 0.185,
@@ -594,6 +594,63 @@
     0.036
    ],
    [
+    0.2959,
+    0.05,
+    0.054,
+    0.038
+   ],
+   [
+    0.3465,
+    0.066,
+    0.072,
+    0.042
+   ],
+   [
+    0.3886,
+    0.075,
+    0.081,
+    0.043
+   ],
+   [
+    0.435,
+    0.079,
+    0.085,
+    0.043
+   ]
+  ],
+  "heel_h": 0.024,
+  "heel_len": 0.042,
+  "power": 2.3,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.3,
+  "toe_cap": 0.04,
+  "toe_narrow": 1.8,
+  "toe_up": 0.008,
+  "sole_h": 0.013,
+  "welt": 0.0035,
+  "heel_round": 0.018,
+  "shaft_r7": [
+   [
+    0.1,
+    0.044,
+    0.053,
+    0.044
+   ],
+   [
+    0.14,
+    0.038,
+    0.045,
+    0.04
+   ],
+   [
+    0.22,
+    0.04,
+    0.045,
+    0.036
+   ],
+   [
     0.31,
     0.05,
     0.054,
@@ -618,19 +675,7 @@
     0.043
    ]
   ],
-  "heel_h": 0.024,
-  "heel_len": 0.042,
-  "power": 2.3,
-  "shaft_power": 2.1,
-  "voxel": 0.004,
-  "smooth_iter": 8,
-  "roughness": 0.3,
-  "toe_cap": 0.04,
-  "toe_narrow": 1.8,
-  "toe_up": 0.008,
-  "sole_h": 0.013,
-  "welt": 0.0035,
-  "heel_round": 0.018
+  "shaft_note": "round 8: top lowered 0.475 -> 0.435 (squash_band.py on the built shell; shaft_r7 = before)"
  },
  "accessory_design": {
   "bowtie": {
@@ -660,7 +705,7 @@
    "collar_studs": true,
    "stud_deg": 15,
    "stud_down": 0.28,
-   "stud_r": 0.0055
+   "stud_r": 0.0085
   }
  }
 }
