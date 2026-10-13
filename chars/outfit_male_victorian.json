@@ -15,10 +15,10 @@
  "garment_design": {
   "breeches": {
    "z_top": 0.98,
-   "z_bot": 0.37,
+   "z_bot": 0.395,
    "tris": 2600,
    "ease_min": 0.008,
-   "ease_max": 0.045,
+   "ease_max": 0.034,
    "colors": {
     "tan": [
      175,
@@ -40,13 +40,16 @@
    "rise_y0": -0.1,
    "band_ease": 0.006,
    "kneeband": 0.06,
-   "ease_npz": "out/outfit_male_victorian/keyed/breeches_coverage.npz"
+   "ease_npz": "out/outfit_male_victorian/keyed/breeches_coverage.npz",
+   "ease_smooth": 90,
+   "ease_post_smooth": 14,
+   "seat_bump": 0.004
   },
   "shirt": {
    "kind": "shirt",
    "z_neck": 1.28,
-   "z_top": 0.85,
-   "z_bot": 0.85,
+   "z_top": 0.83,
+   "z_bot": 0.83,
    "back_rise": 0.3,
    "rise_y0": -0.1,
    "tris": 3200,
@@ -54,13 +57,13 @@
    "wrist_offset": 0.0,
    "cover_margin": 0.012,
    "ease": {
-    "torso": 0.01,
-    "sleeve": 0.026,
-    "blouse": 0.03,
+    "torso": 0.009,
+    "sleeve": 0.032,
+    "blouse": 0.036,
     "cuff": 0.005,
     "neck": 0.003,
     "hem": 0.003,
-    "puff": 0.012,
+    "puff": 0.0,
     "puff_at": 0.6,
     "puff_w": 0.35
    },
@@ -87,15 +90,16 @@
    },
    "tuck": {
     "into": "breeches",
-    "z_top": 0.91,
+    "z_top": 0.96,
     "rise": 0.3,
     "y0": -0.1,
-    "margin": 0.012,
-    "hide": false
+    "margin": 0.022,
+    "hide": true
    },
    "hem_zone": 0.14,
    "cuff_clear": 0.007,
-   "armpit_relax": 0
+   "armpit_relax": 0,
+   "ease_post_smooth": 20
   },
   "waistcoat": {
    "kind": "vest",
@@ -236,7 +240,12 @@
     "pocket_z": 0.86,
     "vent_h": 0.3,
     "waist_z": 0.93,
-    "cuff_band": 0.065
+    "cuff_band": 0.065,
+    "tails": {
+     "z_top": 0.88,
+     "w_bot": 0.075,
+     "pow": 1.2
+    }
    },
    "ease": {
     "torso": 0.024,
@@ -245,8 +254,8 @@
     "collar": 0.012,
     "clear": 0.007,
     "under_max": 0.075,
-    "waist": 0.01,
-    "skirt": 0.026
+    "waist": 0.004,
+    "skirt": 0.012
    },
    "over": [
     "shirt",
@@ -520,22 +529,28 @@
     0.036
    ],
    [
-    0.32,
-    0.049,
-    0.052,
-    0.037
-   ],
-   [
-    0.4,
-    0.057,
-    0.061,
+    0.31,
+    0.05,
+    0.054,
     0.038
    ],
    [
-    0.46,
+    0.37,
     0.066,
-    0.071,
-    0.038
+    0.072,
+    0.042
+   ],
+   [
+    0.42,
+    0.075,
+    0.081,
+    0.043
+   ],
+   [
+    0.475,
+    0.079,
+    0.085,
+    0.043
    ]
   ],
   "heel_h": 0.024,

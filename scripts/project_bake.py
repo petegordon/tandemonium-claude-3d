@@ -51,7 +51,7 @@ CAM = json.loads((ROOT / "refs" / "key_views" / "cameras.json").read_text(encodi
 W0, H0 = CAM["size_px"]
 PPM = CAM["px_per_m"]
 TGT = np.array(CAM["target"])
-VIEWS = [v for v in ("front", "left", "rear", "right") if (RD / f"{v}_garment.png").exists()]
+VIEWS = [v for v in opt("--views", "front,left,rear,right").split(",") if (RD / f"{v}_garment.png").exists()]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 # (an empty scene + the body appended: baking in the opened base_goose.blend scene fails "No valid selected objects")

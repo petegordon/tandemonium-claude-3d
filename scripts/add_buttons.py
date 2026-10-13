@@ -120,6 +120,13 @@ buttons = []
 for p, n, rad, v in found:
     if all(np.linalg.norm(p - q) > 1.5 * max(rad, r2) for q, _, r2, _ in buttons):
         buttons.append((p, n, rad, v))
+if "--mirror" in argv:
+    # symmetric garments: every button gets its mirror partner (x -> -x) unless one is already there
+    for p, n, rad, v in list(buttons):
+        q = p * np.array([-1, 1, 1])
+        if abs(p[0]) > 0.01 and all(np.linalg.norm(q - b_[0]) > 1.5 * rad for b_ in buttons):
+            loc, nrm, _, _ = GB.find_nearest(Vector(q))
+            buttons.append((np.array(loc[:]), np.array(nrm[:]), rad, "extra"))
 if EXTEND:
     # per side (x sign): the detected line of buttons, continued downward at its own spacing, snapped to the surface
     for sx in (1, -1):

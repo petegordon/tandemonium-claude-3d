@@ -43,7 +43,9 @@ REAR_FIX = {"bow_tie"}          # (breeches: the 21:08 sheet's rear -- a closed 
 DROP_BUTTONS = {("breeches", "rear")}
 SKIP = {"bow_tie": {"rear"}}
 HIDES_TAIL = {"jacket"}
-FEATHER_FREE = {"jacket"}     # only where the drawing shows the tail through the garment (the jacket's split tails)     # the bow tie's back is only its collar band: modelled around the neck by the builder
+Z_FLOOR = {"breeches": 0.47}     # below this height (m) the drawing shows the boots over the knee: the tile fills
+DARK_FREE = {"jacket": 0.22}
+FEATHER_FREE = {"jacket", "breeches", "shirt", "vest"}     # only where the drawing shows the tail through the garment (the jacket's split tails)     # the bow tie's back is only its collar band: modelled around the neck by the builder
 
 
 def src_of(g, view):
@@ -194,6 +196,12 @@ for view in ("front", "left", "rear"):  # (front first: it teaches the garment p
         feather = mask & (h_ > 12) & (h_ < 45) & (v_ < 0.50) & (s_ > 0.25)
         feather = ndimage.binary_opening(feather, iterations=1)
         mask = mask & ~ndimage.binary_dilation(feather, iterations=2)
+    if G in DARK_FREE:
+        # deep shadow blotches in the drawing (under the arms, between the tails): near-black -> the cloth fills
+        v2_ = ref.astype(float).max(-1) / 255
+        dark = mask & (v2_ < DARK_FREE[G])
+        dark = ndimage.binary_opening(dark, iterations=1)
+        mask = mask & ~ndimage.binary_dilation(dark, iterations=3)
     if (G, view) in DROP_BUTTONS:
         # buttons: SMALL blobs that differ from the fabric's main colour (tan and brass are close in hue)
         fab_c = np.median(ref[mask].astype(float), axis=0) / 255
@@ -209,6 +217,8 @@ for view in ("front", "left", "rear"):  # (front first: it teaches the garment p
     col, ok = pw.sample(ref, gu, gv)
     msk, _ = pw.sample(mask.astype(np.uint8), gu, gv)
     on = msk.astype(bool) & ok
+    if G in Z_FLOOR:
+        on[int(g2.z_to_row(Z_FLOOR[G])):, :] = False
     if G in HIDES_TAIL:
         # our tail is hidden under this garment: where OUR tail sits in this view, the drawing shows tail (or an
         # opening for it), so that part of the reference is left out -- the bake fills it from the cloth around

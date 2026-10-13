@@ -313,11 +313,20 @@ if KIND == "coat":
         zs, ws = zip(*V_["open"])
         return float(np.interp(z, zs, ws))
 
+    def tail_w(z):
+        """Half width of the gap between the tails: 0 at the vent top, w_bot at the hem."""
+        TL = V_["tails"]
+        t = np.clip((TL["z_top"] - z) / (TL["z_top"] - V_["z_back"]), 0, 1)
+        return TL["w_bot"] * t ** TL.get("pow", 1.3)
+
     def resid(c):
         x_, y_, z_ = c
         front = (y_ < min(ycf(z_), V_.get("front_y", -0.02))) and abs(x_) < 0.2   # (the seat cap sags toward the centre)
         r_ = {"hem": z_ - hem_z(x_, y_, z_), "neck": Z_NECK - z_}
         r_["v"] = (abs(x_) - v_w(z_)) if front else 9.0
+        TL = V_.get("tails")
+        if TL and not front and y_ > ycf(z_) and z_ < TL["z_top"]:     # swallowtails: an open vent at the back
+            r_["vent"] = abs(x_) - tail_w(z_)
         if abs(x_) > 0.2:                          # sleeves: only the wrist planes cut them
             r_["hem"] = 9.0
         return r_
@@ -574,6 +583,8 @@ if KIND in ("vest", "coat") or (KIND == "shirt" and R.get("hem_points")):
             c[2] = hem_z(c[0], c[1], c[2])
         elif k_ == "v":
             c[0] = np.sign(c[0] or 1) * v_w(c[2])
+        elif k_ == "vent":
+            c[0] = np.sign(c[0] or 1) * tail_w(c[2])
         elif k_ == "arm":
             ac = ARMC[1 if c[0] > 0 else -1]
             c = ac + (c - ac) / max(np.linalg.norm(c - ac), 1e-6) * ARMR

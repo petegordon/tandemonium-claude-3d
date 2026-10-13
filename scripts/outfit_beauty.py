@@ -39,11 +39,9 @@ H = hi[2] - lo[2]
 ctr = Vector(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, lo[2] + H * 0.5))
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
-try:
-    sc.view_settings.view_transform = "AgX"
-    sc.view_settings.look = "AgX - Medium High Contrast"
-except TypeError:
-    sc.view_settings.view_transform = "Filmic"
+sc.view_settings.view_transform = "Standard"     # (AgX washed the burgundy to salmon, the tan to pink)
+sc.view_settings.look = "None"
+sc.view_settings.exposure = -0.35
 sc.render.resolution_x, sc.render.resolution_y = int(PX * 0.62), PX
 wd = bpy.data.worlds.new("w")
 wd.use_nodes = True
@@ -84,9 +82,9 @@ for name, az in (("front", 0), ("q34", 35), ("side", 90), ("rear", 180), ("q34b"
     a = math.radians(az)
     d = Vector((math.sin(a), -math.cos(a), 0.0))
     side = Vector((math.cos(a), math.sin(a), 0.0))
-    light("key", "AREA", 900, tuple(ctr + d * 3 + side * 2.2 + Vector((0, 0, 2.2))), 2.0, (1.0, 0.96, 0.9))
+    light("key", "AREA", 650, tuple(ctr + d * 3 + side * 2.2 + Vector((0, 0, 2.2))), 2.0, (1.0, 0.96, 0.9))
     light("fill", "AREA", 300, tuple(ctr + d * 3 - side * 2.5 + Vector((0, 0, 0.6))), 3.0, (0.9, 0.94, 1.0))
-    light("rim", "AREA", 700, tuple(ctr - d * 3 + side * 0.8 + Vector((0, 0, 2.0))), 1.5)
+    light("rim", "AREA", 550, tuple(ctr - d * 3 + side * 0.8 + Vector((0, 0, 2.0))), 1.5)
     cam.location = ctr + d * dist + Vector((0, 0, 0.12))
     cam.rotation_euler = (ctr - cam.location).to_track_quat("-Z", "Y").to_euler()
     p = OUT.parent / f"_{OUT.stem}_{name}.png"
