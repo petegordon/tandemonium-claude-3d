@@ -1,0 +1,38 @@
+{
+ "seed": 21,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-13: new male outfit by text-to-image on the base goose (1920s cyclist chosen).",
+  "outfit": "a 1920s gentleman cyclist's outfit -- a tweed flat cap in brown herringbone; a crisp white collared shirt with a narrow dark green knitted tie; a fitted V-neck argyle sweater vest in mustard, dark green and cream diamonds, with a ribbed waistband (no belt); brown herringbone tweed plus-four knickerbockers that blouse over the knee, each leg closed by its own narrow brown leather buckled strap just below that knee (no strap between the legs); long knitted wool knee socks in dark green with a turned-down cuff; brown leather lace-up brogue shoes with perforated wingtips; tan leather driving gloves on the hands",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged.",
+  "view_hint": {
+   "rear": "From the back: the cap's back, the vest's plain knitted back, the plus-fours' seat and back of the legs, the backs of the socks and shoes.",
+   "left": "Show the cap's peak in profile and the plus-fours ballooning over the knee.",
+   "right": "Show the cap's peak in profile and the plus-fours ballooning over the knee."
+  }
+ },
+ "views": {
+  "q34": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s gentleman cyclist's outfit -- a tweed flat cap in brown herringbone; a crisp white collared shirt with a narrow dark green knitted tie; a fitted V-neck argyle sweater vest in mustard, dark green and cream diamonds, with a ribbed waistband (no belt); brown herringbone tweed plus-four knickerbockers that blouse over the knee, each leg closed by its own narrow brown leather buckled strap just below that knee (no strap between the legs); long knitted wool knee socks in dark green with a turned-down cuff; brown leather lace-up brogue shoes with perforated wingtips; tan leather driving gloves on the hands). Picture 1 is the three-quarter front view (turned to its left): keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. ",
+   "seconds": 72,
+   "peak_gb": 9.9
+  },
+  "left": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s gentleman cyclist's outfit -- a tweed flat cap in brown herringbone; a crisp white collared shirt with a narrow dark green knitted tie; a fitted V-neck argyle sweater vest in mustard, dark green and cream diamonds, with a ribbed waistband (no belt); brown herringbone tweed plus-four knickerbockers that blouse over the knee, each leg closed by its own narrow brown leather buckled strap just below that knee (no strap between the legs); long knitted wool knee socks in dark green with a turned-down cuff; brown leather lace-up brogue shoes with perforated wingtips; tan leather driving gloves on the hands). Picture 1 is the side view, facing left: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. Show the cap's peak in profile and the plus-fours ballooning over the knee.",
+   "seconds": 72,
+   "peak_gb": 9.9
+  },
+  "rear": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s gentleman cyclist's outfit -- a tweed flat cap in brown herringbone; a crisp white collared shirt with a narrow dark green knitted tie; a fitted V-neck argyle sweater vest in mustard, dark green and cream diamonds, with a ribbed waistband (no belt); brown herringbone tweed plus-four knickerbockers that blouse over the knee, each leg closed by its own narrow brown leather buckled strap just below that knee (no strap between the legs); long knitted wool knee socks in dark green with a turned-down cuff; brown leather lace-up brogue shoes with perforated wingtips; tan leather driving gloves on the hands). Picture 1 is the back view: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. From the back: the cap's back, the vest's plain knitted back, the plus-fours' seat and back of the legs, the backs of the socks and shoes.",
+   "seconds": 72,
+   "peak_gb": 9.9
+  },
+  "right": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s gentleman cyclist's outfit -- a tweed flat cap in brown herringbone; a crisp white collared shirt with a narrow dark green knitted tie; a fitted V-neck argyle sweater vest in mustard, dark green and cream diamonds, with a ribbed waistband (no belt); brown herringbone tweed plus-four knickerbockers that blouse over the knee, each leg closed by its own narrow brown leather buckled strap just below that knee (no strap between the legs); long knitted wool knee socks in dark green with a turned-down cuff; brown leather lace-up brogue shoes with perforated wingtips; tan leather driving gloves on the hands). Picture 1 is the side view, facing right: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. Show the cap's peak in profile and the plus-fours ballooning over the knee.",
+   "seconds": 72,
+   "peak_gb": 9.9
+  }
+ }
+}

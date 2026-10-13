@@ -33,6 +33,23 @@ meshes = [o for o in bpy.data.objects if o.type == "MESH"]
 for o in meshes:                      # as the game shows a fully worn outfit: layered sub-meshes (the body parts a
     if "__" in o.name:                # garment covers, e.g. "body__breeches") are hidden
         o.hide_render = o.hide_viewport = True
+# --hide-bones Tail[,..]: delete the body vertices skinned mostly to those bones (the text-to-image input views: the
+# naked goose without its tail, which clothes hide -- the image model otherwise kept it poking out of the trousers)
+HIDE = [b for b in opt("--hide-bones", "").split(",") if b]
+if HIDE:
+    import bmesh
+    for o in meshes:
+        gi = [g.index for g in o.vertex_groups if any(b in g.name for b in HIDE)]
+        if not gi:
+            continue
+        kill = {v.index for v in o.data.vertices if sum(g.weight for g in v.groups if g.group in gi) > 0.35}
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.verts.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[bm.verts[i] for i in kill], context="VERTS")
+        bm.to_mesh(o.data)
+        bm.free()
+        print("HIDE", o.name, len(kill), "verts")
 # wool / felt / silk read matte: the default specular (0.5) laid a white film over the dark cloth (the burgundy
 # rendered salmon); rough non-metal materials take --cloth-spec
 CLOTH_SPEC = opt("--cloth-spec", 0.2)
@@ -57,7 +74,7 @@ wd.node_tree.nodes["Background"].inputs[1].default_value = 0.35
 sc.world = wd
 # seamless studio cyclorama: floor curving up into the backdrop (no horizon line); it turns with each view so the
 # wall is always behind the goose. Darker than before (the key light blew the old floor out to white)
-CYC_GREY = opt("--floor", 0.16)
+CYC_GREY = opt("--floor", 0.16)            # (--floor 0.6: the light-grey studio of Pete's reference sheets)
 prof = [(-8.0, 0.0)] + [(1.2 + 1.6 * math.sin(t), 1.6 - 1.6 * math.cos(t))
                         for t in np.linspace(0, math.pi / 2, 14)] + [(2.8, 8.0)]
 cv, cf = [], []
@@ -100,7 +117,11 @@ sc.collection.objects.link(cam)
 sc.camera = cam
 dist = H * 1.75
 tiles = []
-for name, az in (("front", 0), ("q34", 35), ("side", 90), ("rear", 180), ("q34b", 215)):
+# --views name:azimuth,... (default the five beauty views; the text-to-image input sheet uses
+# front:0,q34:35,left:90,rear:180,right:270)
+VIEWS = [(v.split(":")[0], float(v.split(":")[1])) for v in
+         opt("--views", "front:0,q34:35,side:90,rear:180,q34b:215").split(",")]
+for name, az in VIEWS:
     for o in [o for o in sc.objects if o.type == "LIGHT"]:
         bpy.data.objects.remove(o)
     a = math.radians(az)
