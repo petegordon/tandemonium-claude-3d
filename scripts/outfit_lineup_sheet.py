@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 argv = sys.argv[1:]
 OUT = ROOT / (argv[argv.index("--out") + 1] if "--out" in argv else "docs/img/outfit_lineup.png")
 
-GEESE = [("m_orig", "Male - original"), ("m_vic", "Male - fancy (Victorian)"), ("m_cyc", "Male - 1920s cyclist"),
-         ("f_orig", "Female - original"), ("f_cyc", "Female - 1920s lady cyclist")]
-PAIRS = [("hpS", "Original", "original male + original female"),
-         ("rideS", "Cyclist", "male cyclist + lady cyclist"),
-         ("fancyS", "Fancy", "Victorian male + original female")]
+GEESE = [("m_orig", "Male - Victorian (original)"), ("m_cyc", "Male - 1920s cyclist"), ("m_vic", "Male - Fancy gent"),
+         ("f_vic", "Female - Victorian lady"), ("f_cyc", "Female - 1920s lady cyclist"), ("f_orig", "Female - Fancy (red dress)")]
+PAIRS = [("vicS", "Victorian", "original male + Victorian lady"),
+         ("rideS", "Cyclists", "male cyclist + lady cyclist"),
+         ("fancyS", "Fancy", "Fancy gent + red-dress lady")]
 BG = (232, 232, 232)
 
 

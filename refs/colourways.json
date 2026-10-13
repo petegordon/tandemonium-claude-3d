@@ -1,0 +1,594 @@
+{
+ "note": "Pete 2026-10-13: colour changes for all three pairs (review sheet). Targets are sRGB; outfit_beauty.py --recolour remaps each garment's texture by hue / saturation / value so the weave and details stay.",
+ "pairs": {
+  "victorian": {
+   "label": "Victorian",
+   "captain": "outfit_male",
+   "stoker": "outfit_female_victorian",
+   "ways": {
+    "v_navy": {
+     "label": "Navy + mustard",
+     "captain": {
+      "coat": [
+       30,
+       40,
+       70
+      ],
+      "waistcoat": [
+       150,
+       110,
+       40
+      ],
+      "breeches": [
+       200,
+       190,
+       164
+      ],
+      "hat:felt": [
+       40,
+       44,
+       64
+      ],
+      "hat:band": [
+       150,
+       110,
+       40
+      ]
+     },
+     "stoker": {
+      "jacket": [
+       30,
+       40,
+       70
+      ],
+      "skirt": [
+       30,
+       40,
+       70
+      ],
+      "waistcoat": [
+       150,
+       110,
+       40
+      ],
+      "hat:felt": [
+       40,
+       44,
+       64
+      ],
+      "hat:band": [
+       150,
+       110,
+       40
+      ],
+      "hat:feather": [
+       70,
+       74,
+       90
+      ]
+     }
+    },
+    "v_forest": {
+     "label": "Forest + claret",
+     "captain": {
+      "coat": [
+       42,
+       70,
+       50
+      ],
+      "waistcoat": [
+       112,
+       28,
+       42
+      ],
+      "breeches": [
+       184,
+       168,
+       136
+      ],
+      "hat:felt": [
+       46,
+       60,
+       46
+      ],
+      "hat:band": [
+       112,
+       28,
+       42
+      ]
+     },
+     "stoker": {
+      "jacket": [
+       42,
+       70,
+       50
+      ],
+      "skirt": [
+       42,
+       70,
+       50
+      ],
+      "waistcoat": [
+       112,
+       28,
+       42
+      ],
+      "hat:felt": [
+       46,
+       60,
+       46
+      ],
+      "hat:band": [
+       112,
+       28,
+       42
+      ]
+     }
+    },
+    "v_charcoal": {
+     "label": "Charcoal + plum",
+     "captain": {
+      "coat": [
+       62,
+       62,
+       66
+      ],
+      "waistcoat": [
+       92,
+       40,
+       86
+      ],
+      "breeches": [
+       176,
+       176,
+       180
+      ],
+      "hat:felt": [
+       52,
+       50,
+       54
+      ],
+      "hat:band": [
+       92,
+       40,
+       86
+      ]
+     },
+     "stoker": {
+      "jacket": [
+       62,
+       62,
+       66
+      ],
+      "skirt": [
+       62,
+       62,
+       66
+      ],
+      "waistcoat": [
+       92,
+       40,
+       86
+      ],
+      "hat:felt": [
+       52,
+       50,
+       54
+      ],
+      "hat:band": [
+       92,
+       40,
+       86
+      ],
+      "hat:feather": [
+       90,
+       70,
+       96
+      ]
+     }
+    }
+   }
+  },
+  "cyclists": {
+   "label": "Cyclists",
+   "captain": "outfit_male_cyclist",
+   "stoker": "outfit_female_cyclist",
+   "ways": {
+    "c_blue": {
+     "label": "Sky blue + grey",
+     "captain": {
+      "waistcoat": [
+       104,
+       138,
+       182
+      ],
+      "breeches": [
+       92,
+       94,
+       100
+      ],
+      "socks": [
+       40,
+       52,
+       90
+      ],
+      "hat": [
+       96,
+       98,
+       104
+      ],
+      "necktie": [
+       40,
+       52,
+       90
+      ]
+     },
+     "stoker": {
+      "cardigan": [
+       104,
+       138,
+       182
+      ],
+      "skirt": [
+       92,
+       94,
+       100
+      ],
+      "socks": [
+       40,
+       52,
+       90
+      ],
+      "hat:felt": [
+       40,
+       52,
+       90
+      ],
+      "hat:ribbon": [
+       104,
+       138,
+       182
+      ],
+      "pancollar:loop": [
+       40,
+       52,
+       90
+      ],
+      "pancollar:tail": [
+       40,
+       52,
+       90
+      ],
+      "pancollar:knot": [
+       40,
+       52,
+       90
+      ]
+     }
+    },
+    "c_burgundy": {
+     "label": "Burgundy + oatmeal",
+     "captain": {
+      "waistcoat": [
+       122,
+       36,
+       50
+      ],
+      "breeches": [
+       176,
+       160,
+       128
+      ],
+      "socks": [
+       122,
+       36,
+       50
+      ],
+      "hat": [
+       150,
+       134,
+       104
+      ],
+      "necktie": [
+       122,
+       36,
+       50
+      ]
+     },
+     "stoker": {
+      "cardigan": [
+       122,
+       36,
+       50
+      ],
+      "skirt": [
+       176,
+       160,
+       128
+      ],
+      "socks": [
+       122,
+       36,
+       50
+      ],
+      "hat:felt": [
+       122,
+       36,
+       50
+      ],
+      "hat:ribbon": [
+       200,
+       180,
+       140
+      ],
+      "pancollar:loop": [
+       122,
+       36,
+       50
+      ],
+      "pancollar:tail": [
+       122,
+       36,
+       50
+      ],
+      "pancollar:knot": [
+       122,
+       36,
+       50
+      ]
+     }
+    },
+    "c_green": {
+     "label": "Bottle green + rust",
+     "captain": {
+      "waistcoat": [
+       48,
+       92,
+       62
+      ],
+      "breeches": [
+       138,
+       74,
+       44
+      ],
+      "socks": [
+       138,
+       74,
+       44
+      ],
+      "hat": [
+       120,
+       70,
+       46
+      ],
+      "necktie": [
+       138,
+       74,
+       44
+      ]
+     },
+     "stoker": {
+      "cardigan": [
+       48,
+       92,
+       62
+      ],
+      "skirt": [
+       138,
+       74,
+       44
+      ],
+      "socks": [
+       138,
+       74,
+       44
+      ],
+      "hat:felt": [
+       138,
+       74,
+       44
+      ],
+      "hat:ribbon": [
+       48,
+       92,
+       62
+      ],
+      "pancollar:loop": [
+       48,
+       92,
+       62
+      ],
+      "pancollar:tail": [
+       48,
+       92,
+       62
+      ],
+      "pancollar:knot": [
+       48,
+       92,
+       62
+      ]
+     }
+    }
+   }
+  },
+  "fancy": {
+   "label": "Fancy",
+   "captain": "outfit_male_victorian",
+   "stoker": "outfit_female",
+   "ways": {
+    "f_royal": {
+     "label": "Royal blue",
+     "captain": {
+      "coat": [
+       40,
+       58,
+       124
+      ],
+      "coat:collar": [
+       40,
+       58,
+       124
+      ],
+      "hat:band": [
+       40,
+       58,
+       124
+      ],
+      "bowtie:bow": [
+       40,
+       58,
+       124
+      ],
+      "bowtie:knot": [
+       40,
+       58,
+       124
+      ]
+     },
+     "stoker": {
+      "bodice": [
+       46,
+       64,
+       132
+      ],
+      "skirt": [
+       46,
+       64,
+       132
+      ],
+      "hat:felt": [
+       46,
+       64,
+       132
+      ],
+      "hat:satin": [
+       60,
+       80,
+       150
+      ],
+      "hat:feather": [
+       60,
+       80,
+       150
+      ]
+     }
+    },
+    "f_emerald": {
+     "label": "Emerald",
+     "captain": {
+      "coat": [
+       28,
+       92,
+       64
+      ],
+      "coat:collar": [
+       28,
+       92,
+       64
+      ],
+      "hat:band": [
+       28,
+       92,
+       64
+      ],
+      "bowtie:bow": [
+       28,
+       92,
+       64
+      ],
+      "bowtie:knot": [
+       28,
+       92,
+       64
+      ]
+     },
+     "stoker": {
+      "bodice": [
+       34,
+       104,
+       74
+      ],
+      "skirt": [
+       34,
+       104,
+       74
+      ],
+      "hat:felt": [
+       34,
+       104,
+       74
+      ],
+      "hat:satin": [
+       44,
+       120,
+       88
+      ],
+      "hat:feather": [
+       44,
+       120,
+       88
+      ]
+     }
+    },
+    "f_plum": {
+     "label": "Plum",
+     "captain": {
+      "coat": [
+       84,
+       36,
+       86
+      ],
+      "coat:collar": [
+       84,
+       36,
+       86
+      ],
+      "hat:band": [
+       84,
+       36,
+       86
+      ],
+      "bowtie:bow": [
+       84,
+       36,
+       86
+      ],
+      "bowtie:knot": [
+       84,
+       36,
+       86
+      ]
+     },
+     "stoker": {
+      "bodice": [
+       98,
+       44,
+       98
+      ],
+      "skirt": [
+       98,
+       44,
+       98
+      ],
+      "hat:felt": [
+       98,
+       44,
+       98
+      ],
+      "hat:satin": [
+       118,
+       56,
+       116
+      ],
+      "hat:feather": [
+       118,
+       56,
+       116
+      ]
+     }
+    }
+   }
+  }
+ }
+}

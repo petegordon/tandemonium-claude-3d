@@ -100,6 +100,11 @@ def leg_axes(P):
 # ---------------------------------------------------------------- patterns
 def herringbone(P, N):
     u, v = around(P, N, PR.get("axes", [[0.0, 0.03]]))
+    if PR.get("arms"):          # a jacket: on the sleeves the columns run along the arm (u round it, v along it)
+        da, ua = arm_coords(P)
+        on_arm = (da < 0.07) & (np.abs(P[:, 0]) > PR.get("arm_x", 0.13))
+        u = np.where(on_arm, ua, u)
+        v = np.where(on_arm, np.abs(P[:, 0]) * 0.8 + P[:, 2] * 0.6, v)
     w, per = PR.get("column", 0.008), PR.get("period", 0.0045)
     col = np.floor(u / w)
     s = np.where(col % 2 == 0, 1.0, -1.0)
@@ -299,6 +304,16 @@ def brogue(P, N):
     c = np.where(eye[:, None], rgb([30, 22, 16])[None], c)
     # topline binding
     c = np.where(((Z > PR.get("collar_z", 0.1)) & (t < tl0))[:, None], c * 0.84, c)
+    SL = PR.get("shaft_laces")
+    if SL:      # ankle boot: the lacing runs on up the front of the shaft (eyelets each side, crossed laces)
+        z0_, z1_, n_ = SL["z0"], SL["z1"], SL.get("rows", 6)
+        on_ = (N[:, 1] < -0.3) & (Z > z0_) & (Z < z1_)
+        k_ = (Z - z0_) / (z1_ - z0_) * n_
+        rd_ = np.abs(k_ % 1.0 - 0.5) * (z1_ - z0_) / n_
+        c = np.where((on_ & (np.abs(X) < 0.007))[:, None], rgb(PR.get("tongue", [86, 46, 24]))[None], c)
+        c = np.where((on_ & (np.abs(X) < 0.011) & (rd_ < 0.001))[:, None], rgb(PR.get("lace", [52, 30, 18]))[None], c)
+        eye_ = on_ & (np.hypot(np.abs(X) - 0.011, rd_) < 0.0017)
+        c = np.where(eye_[:, None], rgb(SL.get("eyelet", [150, 120, 70]))[None], c)
     return c
 
 
@@ -360,6 +375,10 @@ def bands(P, c, boundary):
             sel &= boundary[:, 2] > bd["z_min"]
         if "y_max" in bd:
             sel &= boundary[:, 1] < bd["y_max"]
+        if "abs_x_min" in bd:      # e.g. the sleeve ends only (not the hem at the same height)
+            sel &= np.abs(boundary[:, 0]) > bd["abs_x_min"]
+        if "abs_x_max" in bd:
+            sel &= np.abs(boundary[:, 0]) < bd["abs_x_max"]
         pts = boundary[sel]
         if not len(pts):
             continue
@@ -368,10 +387,13 @@ def bands(P, c, boundary):
             kd.insert(Vector(p_), k_)
         kd.balance()
         dist = np.array([kd.find(Vector(p_))[2] for p_ in P])
-        inb = dist < bd["width"]
+        off = bd.get("offset", 0.0)        # a band set back from the edge (a skirt's hem band)
+        inb = (dist >= off) & (dist < off + bd["width"])
         # ribs across the band: the along-edge coordinate of the nearest edge point
         along = P[:, 2] if bd.get("rib") == "z" else around(P, np.zeros_like(P), PR.get("axes", [[0.0, 0.03]]))[0]
         rr = 0.5 + 0.5 * np.cos(2 * np.pi * along / bd.get("pitch", 0.0045))
+        if bd.get("rib") == "none":        # plain cloth band (cuffs, lapels, a hem band): fine weave noise only
+            rr = 0.7 + 0.3 * value_noise(P, 0.002)
         col = rgb(bd["color"])[None] * (0.78 + 0.22 * rr)[:, None]
         c = np.where(inb[:, None], col, c)
         print("BAND", bd.get("name", ""), int(inb.sum()), "texels")

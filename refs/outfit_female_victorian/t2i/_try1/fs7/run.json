@@ -1,0 +1,24 @@
+{
+ "seed": 7,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-13: a new female for the 'Victorian' pair, partner to the ORIGINAL male (outfit_male: brown tweed jacket, red waistcoat, cream breeches, black boots, brown bowler, black bow tie) -- 'more like the original male, not as fancy' (the red bustle dress is now the Fancy pair's lady).",
+  "outfit": "a plain everyday 1890s Victorian lady cyclist's outfit, the partner of a gentleman in a brown tweed jacket, red waistcoat, cream breeches and a brown bowler -- a small brown felt boater hat with a flat crown, a narrow flat brim and a plain dark red ribbon band, no feathers, no flowers; a white cotton blouse with a high stand collar and a small black ribbon bow tie at the throat; a fitted waist-length jacket in brown tweed with slightly puffed shoulders, narrow lapels and a single row of small brown buttons, open at the front; a plain dark red waistcoat buttoned under the jacket; a plain A-line cycling skirt in cream twill, mid-calf length, hanging straight down with no bustle, no flounces, no ruffles and no trim; black stockings; black leather lace-up ankle boots with a low heel; short brown leather gloves",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean simple tailoring, every garment complete and well fitted to the goose's body. Modest and practical, not fancy. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the boater's back with the ribbon, the jacket's plain tweed back, the skirt hanging straight with no bustle, the backs of the stockings and boots.",
+   "left": "Side profile: the boater's flat brim in profile. The skirt hangs straight down from the hips, no bustle behind. Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the boater's flat brim in profile. The skirt hangs straight down from the hips, no bustle behind. Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Dress the goose in picture 1 in this outfit: a plain everyday 1890s Victorian lady cyclist's outfit, the partner of a gentleman in a brown tweed jacket, red waistcoat, cream breeches and a brown bowler -- a small brown felt boater hat with a flat crown, a narrow flat brim and a plain dark red ribbon band, no feathers, no flowers; a white cotton blouse with a high stand collar and a small black ribbon bow tie at the throat; a fitted waist-length jacket in brown tweed with slightly puffed shoulders, narrow lapels and a single row of small brown buttons, open at the front; a plain dark red waistcoat buttoned under the jacket; a plain A-line cycling skirt in cream twill, mid-calf length, hanging straight down with no bustle, no flounces, no ruffles and no trim; black stockings; black leather lace-up ankle boots with a low heel; short brown leather gloves. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean simple tailoring, every garment complete and well fitted to the goose's body. Modest and practical, not fancy. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Keep the goose's body, head, beak, eyes, pose, proportions, the camera (front view), the lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. Keep the arms and legs exactly where they are in picture 1.",
+   "seconds": 58,
+   "peak_gb": 10.3
+  }
+ }
+}

@@ -1,0 +1,896 @@
+{
+ "char": "outfit_female_victorian",
+ "notes": "Pete 2026-10-13: the 'Victorian' pair's lady, partner to the ORIGINAL male (outfit_male): a brown tweed walking dress -- dressier than the cyclist, plainer than the original female's red bustle dress -- in his style (brown tweed, dark red waistcoat, white collar + black bow tie, brown bowler). t2i seed 21 (refs/outfit_female_victorian/t2i/key1).",
+ "body_shape": "sliders",
+ "shape": {
+  "arm_girth": 0.58,
+  "torso_girth": 0.85,
+  "hip_girth": 0.95,
+  "leg_girth": 0.7,
+  "leg_length": 1.15,
+  "height": 1.0,
+  "leg_pitch": 3.0
+ },
+ "build_frame_lift": 0.0932,
+ "build_frame_note": "garment heights are in the BUILD frame: the slider-shaped body before dress_goose.py lifts the soles to the floor (+0.0932 m); the reference views / dressed renders are 0.0932 m higher",
+ "chain_follow": {
+  "F": 1.0,
+  "S": 0.9,
+  "B": 0.85
+ },
+ "chain_drape": {
+  "F": [
+   1.0,
+   1.0,
+   0.5
+  ],
+  "S": [
+   1.0,
+   0.8,
+   0.45
+  ],
+  "B": [
+   1.0,
+   0.85,
+   0.55
+  ]
+ },
+ "force_hide": {
+  "skirt": [
+   "Tail"
+  ]
+ },
+ "garment_design": {
+  "jacket": {
+   "kind": "shirt",
+   "note": "fitted waist-length brown tweed jacket bodice, open front over the waistcoat, tan lapels + collar, white cuffs (painted)",
+   "z_neck": 1.2868,
+   "z_top": 0.835,
+   "z_bot": 0.835,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 6500,
+   "hem_points": {
+    "x": [
+     0.0,
+     0.2
+    ],
+    "z": [
+     0.835,
+     0.835
+    ],
+    "z_back": 0.835
+   },
+   "v_neck": {
+    "z_vbot": 0.1,
+    "top_w": 0.085,
+    "pow": 0.9
+   },
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "edge_relax": 60,
+   "edge_rings": 6,
+   "lo_edge_iter": 10,
+   "base_smooth": 25,
+   "cuff": 0.045,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.02,
+   "ease": {
+    "torso": 0.022,
+    "sleeve": 0.012,
+    "blouse": 0.0,
+    "cuff": 0.006,
+    "neck": 0.02,
+    "hem": 0.03,
+    "puff": 0.024,
+    "puff_at": 0.08,
+    "puff_w": 0.15,
+    "puff_armw": 0.3,
+    "waist_nip": {
+     "z": 0.93,
+     "w": 0.07,
+     "amt": 0.012
+    },
+    "nip_min": 0.021
+   },
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "colors": {
+    "tweed": [
+     255,
+     255,
+     255
+    ]
+   },
+   "hem_zone": 0.08,
+   "cuff_clear": 0.004,
+   "armpit_relax": 20,
+   "ease_post_smooth": 30
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "knit": false,
+   "note": "plain dark red wool waistcoat (front shows in the jacket's opening), row of brass buttons",
+   "z_neck": 1.3,
+   "z_top": 0.9,
+   "z_bot": 0.815,
+   "tris": 3200,
+   "cover_margin": 0.02,
+   "outline": {
+    "z_notch": 0.835,
+    "z_point": 0.815,
+    "z_side": 0.84,
+    "z_back": 0.84,
+    "point_x": 0.05,
+    "side_x": 0.13,
+    "z_vbot": 1.13,
+    "v_top_w": 0.078,
+    "v_pow": 0.85,
+    "arm_r": 0.095,
+    "arm_off": [
+     -0.002,
+     0.0,
+     -0.03
+    ],
+    "lapel_w": 0.001,
+    "notch_down": 0.0,
+    "arm_iso": 0.88,
+    "arm_oval": [
+     1.155,
+     0.005,
+     0.105,
+     0.068,
+     0.112
+    ]
+   },
+   "ease": {
+    "torso": 0.008,
+    "lapel": 0.0,
+    "clear": 0.007
+   },
+   "over": [
+    "bowtie"
+   ],
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.85,
+   "lining_color": [
+    70,
+    18,
+    22
+   ],
+   "lining_roughness": 0.95,
+   "colors": {
+    "wool": [
+     255,
+     255,
+     255
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 25,
+   "lo_edge_iter": 8,
+   "offset_smooth": 30,
+   "normal_tilt": 8,
+   "outer_smooth": 25,
+   "outer_min": 0.009,
+   "button_top": 1.118,
+   "button_step": 0.0413,
+   "with_outfit": {
+    "trim_below": -1.0,
+    "keep_box": "-0.078,0.078,-0.5,-0.035,0.0,2.0",
+    "note": "full outfit: only the panel in the jacket's opening (the rest poked through the fitted jacket)",
+    "bisect": true
+   },
+   "edge_rings": 4,
+   "buttons": 7
+  },
+  "skirt": {
+   "kind": "skirt",
+   "note": "plain A-line brown tweed skirt to mid-calf, cream band above the hem (painted), no bustle",
+   "guide": null,
+   "z_top": 0.8618,
+   "z_hem": 0.255,
+   "z_bot": 0.255,
+   "na": 96,
+   "nz": 32,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.004,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.8618,
+     0.8068,
+     0.7268,
+     0.6268,
+     0.5268,
+     0.4268,
+     0.3268,
+     0.255
+    ],
+    "front": [
+     0.0,
+     0.01,
+     0.026,
+     0.045,
+     0.063,
+     0.08,
+     0.096,
+     0.106
+    ],
+    "side": [
+     0.0,
+     0.012,
+     0.033,
+     0.057,
+     0.079,
+     0.099,
+     0.117,
+     0.128
+    ],
+    "back": [
+     0.0,
+     0.01,
+     0.027,
+     0.047,
+     0.066,
+     0.084,
+     0.1,
+     0.11
+    ]
+   },
+   "soft_folds": 0.0009,
+   "under": [
+    "jacket",
+    "waistcoat"
+   ],
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "weight_smooth": 12,
+   "colors": {
+    "tweed": [
+     255,
+     255,
+     255
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "black wool stockings over the knee (the skirt covers the tops)",
+   "z_top": 0.4718,
+   "z_bot": -1.0932,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.007,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.04,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "outer_smooth": 90,
+   "outer_min": 0.003,
+   "normal_tilt": 8,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": 0.0568
+   },
+   "min_r": 0.03,
+   "min_r_z": [
+    -0.0332,
+    0.4368
+   ]
+  },
+  "gloves": {
+   "kind": "glove",
+   "z_top": 0.8568,
+   "z_bot": 0.7568,
+   "tris": 1600,
+   "cover_margin": 0.008,
+   "wrist_offset": -0.035,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "base_smooth": 24,
+   "round": 1.0,
+   "ease": {
+    "hand": 0.0025,
+    "cuff": 0.003
+   },
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.8,
+   "weight_smooth": 6,
+   "colors": {
+    "cream": [
+     255,
+     255,
+     255
+    ]
+   },
+   "plain_smooth": 70,
+   "top_r": 0.036,
+   "top_len": 0.085
+  }
+ },
+ "boot_design": {
+  "note": "black leather lace-up ankle boots, low heel (build frame: soles at -lift)",
+  "z_off": -0.0932,
+  "centre_x": 0.092,
+  "toe_y": -0.06,
+  "heel_y": 0.105,
+  "sole_w": [
+   [
+    0.0,
+    0.031
+   ],
+   [
+    0.25,
+    0.036
+   ],
+   [
+    0.55,
+    0.042
+   ],
+   [
+    0.8,
+    0.04
+   ],
+   [
+    1.0,
+    0.032
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.11
+   ],
+   [
+    0.15,
+    0.12
+   ],
+   [
+    0.35,
+    0.115
+   ],
+   [
+    0.5,
+    0.1
+   ],
+   [
+    0.7,
+    0.076
+   ],
+   [
+    0.88,
+    0.058
+   ],
+   [
+    1.0,
+    0.046
+   ]
+  ],
+  "shaft": [
+   [
+    0.07,
+    0.04,
+    0.046,
+    0.082
+   ],
+   [
+    0.1,
+    0.036,
+    0.04,
+    0.079
+   ],
+   [
+    0.14,
+    0.035,
+    0.038,
+    0.078
+   ],
+   [
+    0.175,
+    0.037,
+    0.04,
+    0.078
+   ]
+  ],
+  "heel_h": 0.032,
+  "heel_len": 0.045,
+  "power": 2.6,
+  "shaft_power": 2.0,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.35,
+  "toe_cap": 0.03,
+  "toe_narrow": 1.6,
+  "toe_up": 0.008,
+  "sole_h": 0.011,
+  "welt": 0.002,
+  "heel_round": 0.018,
+  "sole_smooth": 12,
+  "sole_step": 0.003,
+  "leather_rgb": [
+   0.02,
+   0.018,
+   0.018
+  ]
+ },
+ "patterns": {
+  "jacket": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    62,
+    41,
+    29
+   ],
+   "light": [
+    88,
+    60,
+    42
+   ],
+   "column": 0.012,
+   "period": 0.007,
+   "contrast": 0.4,
+   "r0": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "arms": true,
+   "flecks": [
+    [
+     [
+      118,
+      58,
+      40
+     ],
+     0.002
+    ]
+   ],
+   "roughness": 0.9,
+   "detail_gamma": 0.5,
+   "flat_nz": 0.97,
+   "bands": [
+    {
+     "name": "lapels",
+     "z_min": 0.9,
+     "abs_x_max": 0.2,
+     "width": 0.016,
+     "color": [
+      104,
+      68,
+      44
+     ],
+     "rib": "none"
+    },
+    {
+     "name": "cuffs",
+     "z_max": 0.92,
+     "abs_x_min": 0.24,
+     "width": 0.028,
+     "color": [
+      242,
+      240,
+      234
+     ],
+     "rib": "none"
+    }
+   ]
+  },
+  "skirt": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    62,
+    41,
+    29
+   ],
+   "light": [
+    88,
+    60,
+    42
+   ],
+   "column": 0.012,
+   "period": 0.007,
+   "contrast": 0.4,
+   "r0": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.06
+    ]
+   ],
+   "flecks": [
+    [
+     [
+      118,
+      58,
+      40
+     ],
+     0.002
+    ]
+   ],
+   "roughness": 0.92,
+   "detail_gamma": 0.5,
+   "bands": [
+    {
+     "name": "waistband",
+     "z_min": 0.8368,
+     "width": 0.024,
+     "color": [
+      70,
+      46,
+      30
+     ],
+     "rib": "z",
+     "pitch": 10.0
+    },
+    {
+     "name": "hem band",
+     "z_max": 0.3,
+     "offset": 0.05,
+     "width": 0.045,
+     "color": [
+      234,
+      224,
+      200
+     ],
+     "rib": "none"
+    }
+   ],
+   "flat_nz": 0.97
+  },
+  "waistcoat": {
+   "type": "herringbone",
+   "tex": 1024,
+   "dark": [
+    70,
+    14,
+    22
+   ],
+   "light": [
+    94,
+    22,
+    30
+   ],
+   "column": 0.008,
+   "period": 0.004,
+   "contrast": 0.3,
+   "r0": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "roughness": 0.85,
+   "detail_gamma": 0.5,
+   "buttons": {
+    "color": [
+     200,
+     156,
+     72
+    ],
+    "r": 0.0075
+   }
+  },
+  "socks": {
+   "type": "rib",
+   "tex": 1024,
+   "color": [
+    36,
+    34,
+    36
+   ],
+   "pitch": 0.003,
+   "rib_dark": 0.85,
+   "leg_axes": [
+    [
+     0.085,
+     0.065
+    ],
+    [
+     -0.085,
+     0.065
+    ]
+   ],
+   "roughness": 0.9,
+   "flat_nz": 0.97
+  },
+  "gloves": {
+   "type": "glove",
+   "tex": 1024,
+   "leather": [
+    34,
+    31,
+    31
+   ],
+   "strap": [
+    44,
+    40,
+    40
+   ],
+   "stitch": [
+    74,
+    68,
+    64
+   ],
+   "stud": [
+    196,
+    150,
+    70
+   ],
+   "strap_a": [
+    -0.03,
+    -0.012
+   ],
+   "holes": false,
+   "roughness": 0.8
+  },
+  "boots": {
+   "type": "brogue",
+   "tex": 1024,
+   "materials": [
+    "boots_leather"
+   ],
+   "leather": [
+    30,
+    28,
+    28
+   ],
+   "seam": [
+    12,
+    11,
+    11
+   ],
+   "centre_x": 0.092,
+   "toe_y": -0.06,
+   "heel_y": 0.105,
+   "top_line": [
+    [
+     0.0,
+     0.11
+    ],
+    [
+     0.15,
+     0.12
+    ],
+    [
+     0.35,
+     0.115
+    ],
+    [
+     0.5,
+     0.1
+    ],
+    [
+     0.7,
+     0.076
+    ],
+    [
+     0.88,
+     0.058
+    ],
+    [
+     1.0,
+     0.046
+    ]
+   ],
+   "z_off": -0.0932,
+   "wing": false,
+   "medallion_on": false,
+   "laces": true,
+   "quarter_t": 0.42,
+   "collar_z": 0.175,
+   "lace_t": [
+    0.35,
+    0.62
+   ],
+   "roughness": 0.3,
+   "tongue": [
+    26,
+    24,
+    24
+   ],
+   "lace": [
+    14,
+    12,
+    12
+   ],
+   "shaft_laces": {
+    "z0": 0.075,
+    "z1": 0.17,
+    "rows": 5
+   }
+  }
+ },
+ "hat_design": {
+  "brim_c": [
+   0.0,
+   -0.074
+  ],
+  "brim_ax": [
+   0.106,
+   0.124
+  ],
+  "brim_z": 1.612,
+  "curl": 0.016,
+  "crown_c": [
+   0.0,
+   -0.062
+  ],
+  "crown_ax": [
+   0.063,
+   0.088
+  ],
+  "crown_base": 1.618,
+  "crown_top": 1.697,
+  "band_h": 0.016,
+  "colors": {
+   "brown": [
+    92,
+    60,
+    42
+   ]
+  },
+  "band_color": [
+   104,
+   28,
+   36
+  ],
+  "brass_color": [
+   176,
+   132,
+   62
+  ],
+  "felt_rough": 0.85,
+  "buckles": false,
+  "plume": {
+   "side": 1,
+   "angle_deg": 50,
+   "medallion_r": 0.006,
+   "color": [
+    78,
+    54,
+    36
+   ],
+   "feathers": [
+    {
+     "length": 0.075,
+     "width": 0.04,
+     "tilt_deg": 28,
+     "curl_deg": 20,
+     "azimuth_deg": 60,
+     "twist_deg": 15,
+     "base_dz": 0.004,
+     "fold": 0.25
+    }
+   ],
+   "face_front": 0.7,
+   "palette": {
+    "base": [
+     52,
+     34,
+     22
+    ],
+    "edge": [
+     104,
+     72,
+     46
+    ],
+    "tip": [
+     140,
+     112,
+     82
+    ]
+   }
+  }
+ },
+ "accessory_design": {
+  "bowtie": {
+   "anchor_z": 1.265,
+   "bow_w": 0.12,
+   "bow_h_ratio": 0.571,
+   "collar_h_scale": 0.8,
+   "colors": {
+    "bow": [
+     26,
+     24,
+     24
+    ],
+    "neckband": [
+     244,
+     242,
+     236
+    ],
+    "cream_m": [
+     244,
+     242,
+     236
+    ]
+   },
+   "knot_w": 0.16,
+   "knot_h": 0.47,
+   "collar_gap_deg": 0.6,
+   "collar_off": 0.006,
+   "bow_rough": 0.72,
+   "bow_z_frac": 0.12
+  }
+ },
+ "layer_ignore": {
+  "skirt": [
+   "socks",
+   "boots",
+   "jacket",
+   "waistcoat"
+  ],
+  "jacket": [
+   "waistcoat",
+   "skirt",
+   "bowtie",
+   "gloves"
+  ],
+  "waistcoat": [
+   "bowtie",
+   "gloves",
+   "skirt",
+   "jacket"
+  ],
+  "socks": [
+   "gloves",
+   "skirt"
+  ],
+  "bowtie": [
+   "jacket",
+   "waistcoat"
+  ]
+ },
+ "skin_merge": {
+  "jacket": {
+   "UpLeg": "Hips"
+  },
+  "waistcoat": {
+   "UpLeg": "Hips"
+  }
+ },
+ "joints_file": "out/outfit_female_victorian-goose/joints.json"
+}

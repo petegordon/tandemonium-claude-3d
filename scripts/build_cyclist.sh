@@ -14,10 +14,13 @@ for p in $PIECES; do
   echo "== $p"
   case $p in
     boots) run scripts/make_boot.py -- --char $C ;;
-    hat) if grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C; else run scripts/make_cap.py -- --char $C; fi ;;
+    hat) if grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C
+         elif grep -q '"hat_design"' chars/$C.json; then run scripts/make_hat.py -- --char $C
+         else run scripts/make_cap.py -- --char $C; fi ;;
     skirt) run scripts/make_skirt.py -- --char $C --piece skirt ;;
     pancollar) run scripts/make_accessory.py -- --char $C --piece pancollar ;;
     necktie) run scripts/make_accessory.py -- --char $C --piece necktie ;;
+    bowtie) run scripts/make_accessory.py -- --char $C --piece bowtie ;;
     *) run scripts/make_garment.py -- --char $C --piece $p
        RF=$("$PY" -I -c "import json;print(int(bool(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p'].get('relax_folds'))))")
        if [ "$RF" = 1 ]; then "$B" -b --factory-startup --python scripts/relax_folds.py -- --piece $p --char $C 2>&1 | grep -iE "crease|Error" || true; fi
@@ -34,7 +37,8 @@ for p in $PIECES; do
     cp out/$C-goose/shells/$p.glb out/$C-goose/shells/$p.json out/$C-goose/shells/${p}_weights.npz out/$C-goose/shells/${p}_covers.npz $V/
     run scripts/trim_edge.py -- --char $C --piece $p --z $WT --below --glb shells/variants/withshoes/$p.glb --out shells/variants/withshoes/$p.glb
     WB=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p']['with_outfit'].get('keep_box',''))")
-    if [ -n "$WB" ]; then run scripts/crop_shell.py -- --char $C --glb shells/variants/withshoes/$p.glb --box $WB; fi
+    WC=$("$PY" -I -c "import json;print('--bisect' if json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p']['with_outfit'].get('bisect') else '')")
+    if [ -n "$WB" ]; then run scripts/crop_shell.py -- --char $C --glb shells/variants/withshoes/$p.glb --box $WB $WC; fi
   fi
   if [ "$p" = socks ]; then           # the with-shoes variant: foot trimmed inside the shoe (dress_goose.py --variant withshoes)
     V=out/$C-goose/shells/variants/withshoes; mkdir -p $V

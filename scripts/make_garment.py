@@ -926,6 +926,10 @@ if KIND == "shirt":
             u_ = ((P - a0_) @ dq) / (dq @ dq)
             on_ = (P[:, 0] * sg > 0.05) & (armw > E.get("puff_armw", 0.3))
             ease += np.where(on_, E["puff"] * np.exp(-((u_ - E.get("puff_at", 0.3)) / E.get("puff_w", 0.28)) ** 2), 0.0)
+    WN = E.get("waist_nip")     # fitted bodice: less ease about the waist, torso only {"z", "w", "amt"}
+    if WN:
+        ease -= WN["amt"] * np.exp(-((P[:, 2] - WN["z"]) / WN.get("w", 0.06)) ** 2) * np.clip(1 - armw / 0.3, 0, 1)
+        ease = np.maximum(ease, E.get("nip_min", 0.006))
     cuff = R.get("cuff", 0.045)
     ease = np.where(dwr < cuff + 0.01, np.minimum(ease, E.get("cuff", 0.005)) + 0.0 * dwr, ease)
     ease = ease * np.clip(dneck / 0.04, 0, 1) + E.get("neck", 0.003) * (1 - np.clip(dneck / 0.04, 0, 1))

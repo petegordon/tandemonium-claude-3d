@@ -189,7 +189,9 @@ def feather_texture(seed, W=256, Hh=640):
     down = (v < 0.16) & (d < hw * 1.1)                            # fluffy afterfeather near the base
     a = np.where(v < 0.16, down & (rng.random((Hh, W)) < 0.5 + 4.0 * (v - 0.07)), a)
     t = np.clip(d / np.maximum(hw, 1e-3), 0, 1)
-    brown, gold, pale = np.array([96, 60, 30.0]), np.array([212, 158, 78.0]), np.array([238, 206, 140.0])
+    pal = (PL or {}).get("palette", {})                         # plume "palette": rachis-side / edge / tip colours
+    brown, gold, pale = (np.array(pal.get(k, dv), float) for k, dv in
+                         (("base", [96, 60, 30]), ("edge", [212, 158, 78]), ("tip", [238, 206, 140])))
     col = brown + (gold - brown) * (t ** 0.6)[..., None]
     col = col + (pale - col) * (np.clip((v - 0.55) / 0.45, 0, 1) * 0.55 * t)[..., None]
     col *= (0.82 + 0.18 * (0.5 + 0.5 * np.sin(p * 2 * np.pi * 260)))[..., None]   # individual barbs
