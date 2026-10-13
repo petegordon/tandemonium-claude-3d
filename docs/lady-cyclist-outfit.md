@@ -77,3 +77,12 @@ This is the partner to [cyclist-outfit.md](cyclist-outfit.md). Pete picked the 1
 - The Peter Pan collar reads as a band more than two lobes. The cardigan cuffs are a little full.
 - In the raw dressed GLB, the riding pose leaves the skirt's cloth chains at rest in three.js, because constraints
   don't export. They follow the thighs once `ride_fit.py` bakes the riding clips, as with the Victorian coat tails.
+
+## Revisions r1-r3 (Pete: darker mustard matching his, socks over the knees, hat higher and tipped back)
+- **Mustard:** the cardigan uses his vest's mustard. Its base colour is scaled to [138,101,37] so the RENDERED colour
+  matches his (median 193,144,65 against his 195,146,66); the knit rib shading lifts the base about 8%. The cloche
+  ribbon and the sock overcheck lines use the same mustard.
+- **Socks** over the knee, up under the skirt hem (z_top 0.565 dressed): no leg shows, standing or seated. The minimum
+  radius now runs up past the knee and `outer_smooth` is 90, so the goose's knobbly knee no longer shows through.
+- **Hat:** band 1.2 cm higher (`band_z` 1.64). The new `tilt_back_deg` (9 deg) in `make_cloche.py` tips it back:
+  the front of the brim rises, pivoting about the band centre.

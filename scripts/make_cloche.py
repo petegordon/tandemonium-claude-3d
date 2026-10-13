@@ -133,6 +133,12 @@ for j in range(NB):
 me = bpy.data.meshes.new("hat")
 bm.to_mesh(me)
 bm.free()
+TILT = math.radians(C.get("tilt_back_deg", 0.0))   # worn tipped back: the front of the brim rises, pivot = the band centre
+if TILT:
+    piv = Vector((0.0, cy, BZ))
+    for v in me.vertices:
+        d_ = v.co - piv
+        v.co = piv + Vector((d_.x, d_.y * math.cos(TILT) + d_.z * math.sin(TILT), -d_.y * math.sin(TILT) + d_.z * math.cos(TILT)))
 hat = bpy.data.objects.new("hat_shell", me)
 bpy.context.scene.collection.objects.link(hat)
 for o in bpy.context.scene.objects:
