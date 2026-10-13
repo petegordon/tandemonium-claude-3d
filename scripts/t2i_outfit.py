@@ -74,7 +74,9 @@ def main():
     ap.add_argument("--base", default="renders/t2i/_base_views_{view}.png")
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--front", default="", help="reuse an existing dressed front instead of generating one")
+    ap.add_argument("--restage", action="store_true")
     a = ap.parse_args()
+    ref_front = ROOT / a.front if a.front else None
     spec = json.loads((ROOT / "refs" / a.outfit / "t2i_prompt.json").read_text(encoding="utf-8"))
     dest = ROOT / "refs" / a.outfit / "t2i" / a.tag
     dest.mkdir(parents=True, exist_ok=True)
@@ -83,16 +85,19 @@ def main():
     done, log = {}, {"seed": a.seed, "steps": a.steps, "unet": UNET, "lora": LORA, "spec": spec, "views": {}}
     if a.front:
         done["front"] = ROOT / a.front
-    for v in (["front"] if "front" not in done else []) + [v for v in views if v != "front"]:
+    # --restage: every view in --views (front too) is redrawn from picture 1 = that naked view, picture 2 = the chosen
+    # --front -- the approved outfit moved onto new input views (the calibrated orthographic key cameras)
+    order = views if a.restage else (["front"] if "front" not in done else []) + [v for v in views if v != "front"]
+    for v in order:
         base = ROOT / a.base.format(view=v)
         names = [upload(base, f"t2i_{a.outfit}_base_{v}.png")]
         hint = spec.get("view_hint", {}).get(v, "")
-        if v == "front":
+        if v == "front" and not a.restage:
             prompt = (f"Dress the goose in picture 1 in this outfit: {spec['outfit']}. {spec.get('style', '')} "
                       f"Keep the goose's body, head, beak, eyes, pose, proportions, the camera ({VIEW_WORDS[v]}), the "
                       f"lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. {hint}")
         else:
-            names.append(upload(done["front"], f"t2i_{a.outfit}_dressed_front.png"))
+            names.append(upload(ref_front if a.restage else done["front"], f"t2i_{a.outfit}_dressed_front.png"))
             prompt = (f"Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the "
                       f"same garments, colours, patterns, buttons and accessories ({spec['outfit']}). Picture 1 is the "
                       f"{VIEW_WORDS[v]}: keep its pose, body, head, camera angle, lighting and plain light-grey "

@@ -201,11 +201,13 @@ def band(name, z_lo, z_hi_fn, off, color, th_range=(-math.pi, math.pi), nz=3, wr
     return mesh_obj(name, vs, grid_faces(len(ths), nz, wrap), color, solid=solid, **kw)
 
 
-def drape(name, th_max, z_top, depth_fn, off, color, nth=25, nd=7, solid=0.0015, extra=(), smooth_it=6, **kw):
+def drape(name, th_max, z_top, depth_fn, off, color, nth=25, nd=7, solid=0.0015, extra=(), smooth_it=6, th_range=None,
+          **kw):
     """Flat garment on the chest: (azimuth, depth below z_top) grid projected onto the outermost surface,
     lower edge depth_fn(th). The radial distance is smoothed over the grid (fabric bridges the dress
-    shell's wrinkles) and kept within 1.5 mm of the surface it lies on."""
-    ths = np.linspace(-th_max, th_max, nth)
+    shell's wrinkles) and kept within 1.5 mm of the surface it lies on. th_range = (th0, th1) instead of
+    +-th_max (a turned-down collar: all round the neck but the front opening)."""
+    ths = np.linspace(*th_range, nth) if th_range else np.linspace(-th_max, th_max, nth)
     C, Dv, Rr = [], [], []
     for th in ths:
         dm = depth_fn(th)
@@ -428,6 +430,66 @@ if PIECE == "bowtie":
                                   rough=0.3, metal=1.0))
     info.update({"neck_r_front_side_mm": [round(R * 1000, 1), round(Rs * 1000, 1)], "collar_h_mm": round(Hc * 1000, 1),
                  "bow_w_h_mm": [round(Wb * 1000, 1), round(Hb * 1000, 1)]})
+elif PIECE == "necktie":
+    # turned-down shirt collar (stand + fall with pointed front tips) and a knitted four-in-hand tie: knot at the
+    # collar opening, blade down the shirt front (the sweater vest covers its lower part)
+    Rs = neck_r(math.pi / 2, ZB + 0.01)
+    Hc = AD.get("collar_h_scale", 0.9) * Rs
+    z_lo, z_hi = ZB - 0.008, ZB + 0.8 * Hc
+    gap = math.radians(AD.get("collar_gap_deg", 6))
+    off = AD.get("collar_off", 0.006)
+    stand = band("stand", z_lo, lambda th: z_hi, off, COL["collar"], th_range=(gap, 2 * math.pi - gap), nz=3, wrap=False)
+    parts.append(stand)
+    # fall: from the stand's top edge down over it and onto the shoulders; at the front it runs out into points
+    pl, pw = AD.get("point_len", 0.06), math.radians(AD.get("point_deg", 20))
+
+    def fall_depth(th):
+        a = abs((th + math.pi) % (2 * math.pi) - math.pi)              # 0 = front
+        return Hc * AD.get("fall_frac", 1.05) + pl * math.exp(-((a - pw) / math.radians(16)) ** 2) * (a < math.radians(70))
+    fall_over = [next(x for x in load(OUT / f"{nm}.glb") if x.type == "MESH") for nm in AD.get("fall_over", [])]
+    fg = max(gap * 0.6, math.radians(AD.get("fall_gap_deg", 0)))      # (the knot sits in the opening between the points)
+    for side, rng in (("L", (fg, math.pi)), ("R", (-math.pi, -fg))):
+        parts.append(drape(f"fall_{side}", 0, z_hi + 0.003, fall_depth, 0.0028, COL["collar"], nth=31, nd=8,
+                           extra=(stand, *fall_over), th_range=rng, solid=0.0016))
+    for o in fall_over:
+        bpy.data.objects.remove(o)
+    # knot: a small tapered block just under the collar opening
+    zk = z_hi - AD.get("knot_down", 0.012)
+    kh, kw_ = AD.get("knot_h", 0.032), AD.get("knot_w", 0.03)
+    pk, nk = outer(0.0, zk - kh / 2, (stand,))
+    yk = pk[1] - 0.007
+    up, outv = np.array([0, 0, 1.0]), np.array([0, -1.0, 0])
+    kpath = [np.array([0, yk + 0.002 * (1 - t), zk - kh * t]) for t in np.linspace(0, 1, 6)]
+    parts.append(tube("knot", kpath, lambda i: (AD.get("knot_t", 0.009) * (1 - 0.15 * i / 5), kw_ / 2 * (1 - 0.4 * i / 5), (outv, np.array([1.0, 0, 0]))),
+                      COL["tie"], nseg=12, rough=0.9))
+    # blade: flat strip on the shirt front from the knot down, square-ended (knitted tie)
+    zb0 = zk - kh * 0.8
+    zbot = AD.get("blade_bot", 0.96)
+    nz_ = 24
+    vs, fs = [], []
+    for j in range(nz_ + 1):
+        z = zb0 - (zb0 - zbot) * j / nz_
+        w = AD.get("blade_w_top", 0.026) + (AD.get("blade_w", 0.042) - AD.get("blade_w_top", 0.026)) * min(j / nz_ * 1.6, 1)
+        for x in (-w / 2, 0.0, w / 2):
+            hit = None
+            for o in under + [stand]:
+                b_ = body_bvh if o is body else BVHTree.FromObject(o, bpy.context.evaluated_depsgraph_get())
+                h_ = b_.ray_cast(Vector((x, -0.6, z)), Vector((0, 1, 0)), 1.0)
+                if h_[0] is not None and (hit is None or h_[0].y < hit):
+                    hit = h_[0].y
+            vs.append(np.array([x, (hit if hit is not None else -0.15) - AD.get("blade_off", 0.004) - 0.002 * (j == 0), z]))
+    for j in range(nz_):
+        for i in range(2):
+            a = j * 3 + i
+            fs.append((a, a + 1, a + 4, a + 3))
+    V_ = np.array(vs)
+    for _ in range(2):                     # the blade lies on the chest: a light smoothing of its depth
+        y_ = V_[:, 1].reshape(nz_ + 1, 3)
+        y_[1:-1] = 0.25 * y_[:-2] + 0.5 * y_[1:-1] + 0.25 * y_[2:]
+        y_[:] = y_.min(1, keepdims=True) * 0.15 + y_ * 0.85        # (flat across, but lying on the chest)
+        V_[:, 1] = y_.ravel()
+    parts.append(mesh_obj("blade", V_, fs, COL["tie"], rough=0.9, solid=0.003))
+    info.update({"collar_h_mm": round(Hc * 1000, 1), "neck_r_side_mm": round(Rs * 1000, 1)})
 elif PIECE == "collar":
     Rs = neck_r(math.pi / 2, ZB + 0.01)
     R = neck_r(0.0, ZB + 0.01)

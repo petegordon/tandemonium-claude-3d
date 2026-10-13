@@ -27,6 +27,7 @@ progress log: `PLAN.md`. This file = the exact restart state.
 - **Where:** `docs/goose-fit-tandem.md` section 6; sheet `docs/img/goosefit_24_26.png`.
 - **Harness:** `node tools/ride_harness/serve.mjs`, then `?bike=goosefit24`.
 - **Next:** Pete picks 24 or 26 in -> P5.1–P5.3 captain clips -> P5.4 stoker and skirt. |
+| Cyclist outfit (text-to-image) | **Done 2026-10-13.** 1920s cyclist built from local Qwen-Image-Edit reference views: `docs/cyclist-outfit.md`, `bash scripts/build_cyclist.sh` + `dress_goose.py --char outfit_male_cyclist --tag full`, review with `bash scripts/review_cyclist.sh <tag>`. |
 | P3 outfits | **Released: `p3-dressed-geese`** (dressed male + female GLBs, garment zips, cloth chains, release sheet docs/img/p3_release_sheet.png). Designed garments: make_garment.py (breeches, shirt, vest, jacket, gloves, boots, bodice), make_skirt.py, make_hat.py, make_ladyhat.py, make_accessory.py, make_cuffs.py; dress_goose.py layers + skins; release_sheet.py. Open: female boot heel, finger gloves, softer plume. Next: P3.6/3.7 or bike. |
 | P4–P6 | Not started (bike reference needs Pete's fixes first). |
 

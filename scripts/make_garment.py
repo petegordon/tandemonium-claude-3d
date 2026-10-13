@@ -276,6 +276,12 @@ elif KIND == "vest":
         wv = np.array([1.0 / max(d_, 1e-5) for _, _, d_ in nn])
         aw = float(np.dot(wv, [ARMW[i_] for _, i_, _ in nn]) / wv.sum())
         r_["arm"] = min(float(np.linalg.norm(np.asarray(c) - ARMC[sgc]) - ARMR), (V_.get("arm_iso", 0.5) - aw) * 0.08)
+        if V_.get("arm_oval"):
+            # sweater armhole: an oval in the side view (y, z) cut through everything lateral of |x| = x0, plus
+            # the arm itself (weight iso line) -- a clean scoop instead of the sphere's bites
+            cz_, cy_, rz_, ry_, x0_ = V_["arm_oval"]
+            q_ = math.sqrt(((z_ - cz_) / rz_) ** 2 + ((y_ - cy_) / ry_) ** 2)
+            r_["arm"] = min(max(x0_ - abs(x_), (q_ - 1) * min(rz_, ry_)), (V_.get("arm_iso", 0.5) - aw) * 0.08)
         return r_
 
     def inside_amount(c):
@@ -920,6 +926,9 @@ if KIND == "shirt":
     ease = ease * th + E.get("hem", 0.004) * (1 - th)
     ease = smooth_field(ease, ed, 6)
 else:
+    if R.get("ease_z"):     # designed ease by height (outfits from text-to-image views: no measured field)
+        EZ_ = np.array(R["ease_z"])
+        ease = np.interp(P[:, 2], EZ_[::-1, 0], EZ_[::-1, 1]) if EZ_[0, 0] > EZ_[-1, 0] else np.interp(P[:, 2], EZ_[:, 0], EZ_[:, 1])
     ok = ~np.isnan(ease)
     log("ease measured", round(float(ok.mean()), 3), "median mm", round(float(np.nanmedian(ease)) * 1000, 1))
     e_lo, e_hi = R.get("ease_min", 0.008), R.get("ease_max", 0.05)
@@ -931,7 +940,7 @@ else:
     # tight bands: waistband and knee band
     z = P[:, 2]
     t_w = np.clip((ztop(P[:, 1]) - z) / (wb * 2.5), 0, 1) if KIND == "breeches" else np.ones(len(z))
-    t_k = np.clip((z - Z_BOT) / (kb * 3.0), 0, 1) if KIND == "breeches" else np.ones(len(z))
+    t_k = np.clip((z - Z_BOT) / R.get("knee_ramp", kb * 3.0), 0, 1) if KIND == "breeches" else np.ones(len(z))
     band = np.minimum(t_w, t_k) ** 1.5
     ease = R.get("band_ease", 0.007) + (ease - R.get("band_ease", 0.007)) * band
 # seat bump over the capped tail
@@ -1050,6 +1059,15 @@ log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1
 
 mid = reg
 Pm = P + N * ease[:, None]
+if R.get("outer_smooth"):
+    # loose cloth (plus-fours) bridges the body's bumps (feather scales, the tail cap's rim): Taubin-smooth the
+    # offset surface itself, open edges held, then keep it at least "outer_min" outside the body
+    for _ in range(R["outer_smooth"]):
+        Pm = smooth_field(Pm, ed, 1, pin=boundary)
+        Pb_ = smooth_field(Pm, ed, 1, pin=boundary)
+        Pm = Pm - 0.53 * (Pb_ - Pm)
+    out_ = ((Pm - P) * N).sum(1)
+    Pm = Pm + N * np.maximum(R.get("outer_min", 0.004) - out_, 0)[:, None]
 if KIND == "boot":
     # boot top = a clean round tube over the breeches cuff (or the leg): per leg, radius about the ring
     # centroid held to at least (breeches / leg radius there + "top_clear"), blended out over "top_len"
@@ -1396,6 +1414,22 @@ if KIND == "vest":
     front = y < ycv
     phit = np.arctan2(x, -(y - ycv))
     rt = np.hypot(x, y - ycv)
+KNIT = KIND == "vest" and R.get("knit")
+if KNIT:
+    # knitted sweater vest: ribbed bands at the hem, round the V-neck and the armholes (ribs across each band),
+    # a small step where each band meets the body knit; side seams faint; no lapels, buttons, pockets or strap
+    RB = R.get("rib", {})
+    pitch, rdep = RB.get("pitch", 0.0045), RB.get("depth", 0.0007)
+    dvf = np.where(front, dv, 9.0)
+    bands = ((dh, RB.get("hem", 0.03), np.arctan2(x, -(y - ycv)) * rt),     # hem: vertical ribs (arc length round)
+             (dvf, RB.get("v", 0.014), zh / 0.8),                            # V: ribs across the trim
+             (da, RB.get("arm", 0.012), (zh + 0.6 * np.abs(y)) / 0.8))       # armholes
+    for d_, w_, s_ in bands:
+        inb = d_ < w_
+        disp += np.where(inb, 0.0011 + rdep * np.sin(s_ / pitch * 2 * np.pi), 0.0)
+        disp += groove(np.abs(d_ - w_), 0.0009, 0.0006)
+    disp += groove(np.abs(np.abs(phit) - np.pi / 2) * rt, 0.0010, 0.0004)
+if KIND == "vest" and not KNIT:
     # edge stitching 6 mm in from every edge, a turned edge (slight rise) at the hem / armholes
     for d_ in (dh, da, np.where(front, dv, 9.0)):
         disp += groove(np.abs(d_ - 0.006), 0.0009, 0.0005) + 0.0008 * np.clip(1 - d_ / 0.004, 0, 1)

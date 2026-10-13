@@ -1,0 +1,454 @@
+"""Paint a woven / knitted pattern onto a built garment, in 3D: every texel's surface point (position + normal, rasterised
+from the garment's own UVs) gets its colour from a procedural pattern laid out on the body, so a herringbone runs
+straight down the leg and an argyle stays square on the chest whatever the UV islands are.
+
+  blender -b --factory-startup --python scripts/pattern_paint.py -- --char outfit_male_cyclist --piece breeches
+      [--tex 2048] [--glb out/<char>-goose/shells/<piece>.glb]
+
+Recipe: chars/<char>.json "patterns" {piece: {"type": herringbone | argyle | rib | leather, ...}} (colours sRGB 0-255,
+sizes in metres). The garment's baked detail texture (weave, grooves, folds: make_garment.py) is kept as shading: the
+new base colour = pattern x (detail / its mean). The material's colour factor becomes white. The shell is rewritten in
+place (the previous one kept as versions/<piece>_prepattern.glb) + renders/<char>_pattern_<piece>.png.
+"""
+import json
+import math
+import shutil
+import sys
+from pathlib import Path
+
+import bpy
+import numpy as np
+from mathutils import Vector
+
+argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+
+
+def opt(name, default):
+    return type(default)(argv[argv.index(name) + 1]) if name in argv else default
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CHAR = opt("--char", "outfit_male_cyclist")
+PIECE = opt("--piece", "breeches")
+D = ROOT / "out" / f"{CHAR}-goose"
+GLB = ROOT / opt("--glb", f"out/{CHAR}-goose/shells/{PIECE}.glb")
+cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text(encoding="utf-8"))
+PR = cfg["patterns"][PIECE]
+TEX = opt("--tex", PR.get("tex", 1024))
+
+
+def rgb(c):
+    return np.array(c[:3], float) / 255.0
+
+
+def hash01(*q):
+    """Deterministic per-cell noise in [0, 1) from integer cell coordinates."""
+    h = np.zeros(q[0].shape, np.uint64)
+    for i, a in enumerate(q):
+        h ^= (a.astype(np.int64).astype(np.uint64) * np.uint64([73856093, 19349663, 83492791][i % 3]))
+    h = (h * np.uint64(2654435761)) % np.uint64(4294967291)
+    return (h % np.uint64(10007)).astype(float) / 10007.0
+
+
+def value_noise(p, cell):
+    """Smooth 3D value noise (trilinear over hashed lattice), p (N, 3) metres."""
+    q = p / cell
+    i = np.floor(q).astype(np.int64)
+    f = q - i
+    f = f * f * (3 - 2 * f)
+    out = 0.0
+    for dx in (0, 1):
+        for dy in (0, 1):
+            for dz in (0, 1):
+                w = (f[:, 0] if dx else 1 - f[:, 0]) * (f[:, 1] if dy else 1 - f[:, 1]) * (f[:, 2] if dz else 1 - f[:, 2])
+                out = out + w * hash01(i[:, 0] + dx, i[:, 1] + dy, i[:, 2] + dz)
+    return out
+
+
+# ---------------------------------------------------------------- surface coordinates
+def around(P, N, axes):
+    """(u, v): u = arc length round the nearest vertical axis (x, y centre per axis), v = height; texels facing up /
+    down (|nz| > 0.75) use the plane (x, -y) so a cap's top or a sock's sole has no pinch."""
+    best = None
+    for cx, cy in axes:
+        d = np.hypot(P[:, 0] - cx, P[:, 1] - cy)
+        best = d if best is None else np.minimum(best, d)
+    u = np.zeros(len(P))
+    for cx, cy in axes:
+        d = np.hypot(P[:, 0] - cx, P[:, 1] - cy)
+        on = d <= best + 1e-9
+        ang = np.arctan2(P[:, 0] - cx, -(P[:, 1] - cy))          # 0 = front, seam at the back
+        u = np.where(on, ang * (PR.get("r0", 0.0) or np.maximum(d, 0.02)) + cx * 10, u)
+    v = P[:, 2].copy()
+    flat = np.abs(N[:, 2]) > 0.75
+    u = np.where(flat, P[:, 0], u)
+    v = np.where(flat, -P[:, 1] + 5.0, v)
+    return u, v
+
+
+def axes_for(P):
+    """Vertical axes: the legs below the crotch (|x| ~ 0.09), else the body's centre line."""
+    return PR.get("axes", [[0.0, 0.03]])
+
+
+def leg_axes(P):
+    crotch = PR.get("crotch_z", 0.70)
+    legs = P[:, 2] < crotch
+    return legs
+
+
+# ---------------------------------------------------------------- patterns
+def herringbone(P, N):
+    u, v = around(P, N, PR.get("axes", [[0.0, 0.03]]))
+    w, per = PR.get("column", 0.008), PR.get("period", 0.0045)
+    col = np.floor(u / w)
+    s = np.where(col % 2 == 0, 1.0, -1.0)
+    t = (v + s * (u - col * w) * PR.get("slope", 1.0)) / per
+    thread = 0.5 + 0.5 * np.sin(2 * np.pi * t)
+    thread = np.clip((thread - 0.5) * PR.get("contrast", 1.6) + 0.5, 0, 1)
+    dark, light = rgb(PR["dark"]), rgb(PR["light"])
+    c = dark[None] * (1 - thread[:, None]) + light[None] * thread[:, None]
+    # tweed: slubby yarn (fine noise), flecks of other colours, a little column-to-column variation
+    c *= (0.92 + 0.16 * value_noise(P, 0.0025))[:, None]
+    c *= (0.96 + 0.08 * hash01(col, np.floor(v / 0.05)))[:, None]
+    for fc, rate in PR.get("flecks", []):
+        cell = np.floor(P / 0.0016).astype(np.int64)
+        hit = hash01(cell[:, 0], cell[:, 1], cell[:, 2]) < rate
+        c = np.where(hit[:, None], rgb(fc)[None], c)
+    c *= (0.94 + 0.12 * value_noise(P, 0.03))[:, None]
+    return c
+
+
+def argyle(P, N):
+    yc = PR.get("centre_y", 0.0)
+    front = P[:, 1] < yc + PR.get("front_margin", 0.0)
+    W, H = PR.get("diamond_w", 0.09), PR.get("diamond_h", 0.125)
+    # knitted in: the diamonds wrap round the body (arc at a fixed radius "r0"), not a flat print from the front
+    u = around(P, np.zeros_like(P), PR.get("axes", [[0.0, 0.03]]))[0] if PR.get("r0") else P[:, 0]
+    v = P[:, 2] - PR.get("z0", 1.0)
+    a, b = u / W + v / H, -u / W + v / H
+    i, j = np.floor(a), np.floor(b)
+    cA, cB, cC = rgb(PR["a"]), rgb(PR["b"]), rgb(PR["c"])
+    colc = (i - j)            # horizontal index of the diamond (0 = centre column)
+    c = np.where(((i + j) % 2 == 0)[:, None], cA[None], cB[None])
+    # centre column (i == j, always the "a" colour by parity): every other diamond in cream, as the reference
+    centre = (np.abs(colc) < 0.5) & (i % 2 == PR.get("accent_phase", 0)) if PR.get("centre_accent", True) else np.zeros(len(P), bool)
+    c = np.where(centre[:, None], cC[None], c)
+    # overcheck: thin lines along the diagonals through the diamond centres
+    fa, fb = a - i - 0.5, b - j - 0.5
+    lw = PR.get("line_w", 0.0022)
+    da = np.abs(fa) * math.hypot(W, H) / 2 * 2 / math.hypot(1, 1)
+    near_a = np.abs(fa) * (W * H / math.hypot(W, H)) < lw
+    near_b = np.abs(fb) * (W * H / math.hypot(W, H)) < lw
+    c = np.where((near_a | near_b)[:, None], rgb(PR["line"])[None], c)
+    base = rgb(PR["back"])
+    c = np.where(front[:, None], c, base[None])
+    c = knit_shade(P, N, c)
+    return c
+
+
+def knit_shade(P, N, c):
+    """Stockinette: rows of small Vs (columns of knit stitches) as a gentle light / dark modulation."""
+    sw, sh = PR.get("stitch_w", 0.0042), PR.get("stitch_h", 0.0036)
+    u, v = around(P, N, PR.get("axes", [[0.0, 0.03]]))
+    col = np.floor(u / sw)
+    fx = u / sw - col
+    vv = v / sh + np.abs(fx - 0.5) * 0.9
+    k = 0.5 + 0.5 * np.cos(2 * np.pi * vv)
+    edge = np.abs(fx - 0.5) * 2
+    shade = 0.9 + 0.1 * k - 0.06 * edge ** 3
+    return c * shade[:, None] * (0.98 + 0.04 * value_noise(P, 0.006))[:, None]     # (2 cm noise read as blotches)
+
+
+def rib(P, N):
+    u, v = around(P, N, PR.get("leg_axes", [[0.09, 0.035], [-0.09, 0.035]]))
+    pitch = PR.get("pitch", 0.005)
+    r = 0.5 + 0.5 * np.cos(2 * np.pi * (P[:, 2] if PR.get("horizontal") else u) / pitch)   # (a knitted tie: across)
+    c = rgb(PR["color"])[None] * (PR.get("rib_dark", 0.72) + (1 - PR.get("rib_dark", 0.72)) * r)[:, None]
+    c *= (0.95 + 0.1 * value_noise(P, 0.015))[:, None]
+    return c
+
+
+def brogue(P, N):
+    """Full brogue oxford in brown calf: wingtip toe cap (W seam + perforation row), toe medallion, quarter seam with
+    perforations, heel counter seam, lace throat with laces + eyelets, a darker topline binding, burnished toe / heel.
+    Per shoe: X across from the shoe's centre line, Y along (forward = -y), z up (metres, base-body frame)."""
+    cx0, toe, heel = PR["centre_x"], PR["toe_y"], PR["heel_y"]
+    sx = np.where(P[:, 0] >= 0, 1.0, -1.0)
+    X = (P[:, 0] - cx0 * sx) * sx               # + = outward
+    Y, Z = P[:, 1], P[:, 2]
+    L = heel - toe
+    t = (heel - Y) / L                           # 0 heel .. 1 toe
+    base = rgb(PR["leather"])
+    c = np.tile(base, (len(P), 1))
+    c *= (0.9 + 0.2 * value_noise(P, 0.004))[:, None]
+    burn = np.clip((t - 0.7) / 0.4, 0, 1) ** 1.5 + np.clip((0.15 - t) / 0.15, 0, 1) ** 1.5    # antiqued toe and heel
+    burn *= 0.7 + 0.6 * value_noise(P, 0.012)
+    c *= (1 - 0.3 * np.clip(burn, 0, 1))[:, None]
+    dark = rgb(PR.get("seam", [44, 24, 14]))
+    upper = Z > PR.get("welt_z", 0.016)
+    ztop = np.interp(t, *np.array(PR["top_line"]).T)
+
+    def seam(dist, along, w=0.0007, dots=True, off=0.0026, pitch=0.0042, r=0.00085):
+        """A stitched seam line (dist = signed distance across it) and a row of punched holes beside it."""
+        out = np.abs(dist) < w
+        if dots:
+            fr = (along / pitch) % 1.0 - 0.5
+            out |= (np.hypot(dist - off, fr * pitch) < r)
+        return out & upper
+    # wingtip: W-shaped cap seam, its wings sweeping back down the sides
+    hw = 0.05
+    yw = toe + PR.get("wing_c", 0.055) + PR.get("wing_back", 0.085) * np.clip(np.abs(X) / hw, 0, 1.2) ** 2
+    side = np.clip((ztop - Z) / 0.03, 0, 1) * (np.abs(X) > 0.03)
+    along = np.abs(X) + np.maximum(ztop - Z, 0)
+    m = seam(Y - yw, along, off=0.0028)
+    # toe medallion: a rosette of holes on the cap
+    mc = np.array([0.0, toe + PR.get("medallion", 0.026)])
+    dm = np.hypot(X - mc[0], Y - mc[1])
+    ang = np.arctan2(Y - mc[1], X - mc[0])
+    for rr_, n_ in ((0.0, 1), (0.0055, 8), (0.010, 12)):
+        if rr_ == 0:
+            m |= (dm < 0.0012) & upper & (Z > ztop - 0.02)
+            continue
+        a_ = (ang / (2 * np.pi) * n_) % 1.0 - 0.5
+        m |= (np.abs(dm - rr_) < 0.0009) & (np.abs(a_) * 2 * np.pi * rr_ / n_ * n_ / 1.0 < 0.0011) & upper & (Z > ztop - 0.02)
+    # quarter seam: across the instep in front of the laces, down to the sole at both sides
+    yq = heel - L * PR.get("quarter_t", 0.47) + 0.03 * np.clip(np.abs(X) / hw, 0, 1.2) ** 1.5
+    m |= seam(Y - yq, along, off=-0.0026)
+    # heel counter: a curved seam round the heel
+    hz = 0.035 + 0.02 * np.clip(t / 0.25, 0, 1)
+    m |= seam(np.where(t < 0.3, Z - hz, 9.0), np.abs(X) + Y, off=0.0025)
+    c = np.where(m[:, None], dark[None] * (0.8 + 0.4 * value_noise(P, 0.002))[:, None], c)
+    # lace throat: eyelet facings, 5 eyelets a side, crossed laces
+    tl0, tl1 = PR.get("lace_t", [0.44, 0.62])
+    inth = (t > tl0) & (t < tl1) & (Z > ztop - 0.016)
+    gap = np.abs(X) < 0.006 + 0.004 * (t - tl0) / (tl1 - tl0)
+    c = np.where((inth & gap)[:, None], rgb(PR.get("tongue", [86, 46, 24]))[None], c)
+    k = (t - tl0) / (tl1 - tl0) * 5
+    rowd = (np.abs(k % 1.0 - 0.5)) * L * (tl1 - tl0) / 5
+    eye = inth & (np.hypot(np.abs(X) - 0.012, rowd) < 0.0016)
+    lace = inth & (np.abs(X) < 0.012) & (rowd < 0.0011)
+    c = np.where(lace[:, None], rgb(PR.get("lace", [52, 30, 18]))[None], c)
+    c = np.where(eye[:, None], rgb([30, 22, 16])[None], c)
+    # topline binding
+    c = np.where(((Z > PR.get("collar_z", 0.1)) & (t < tl0))[:, None], c * 0.84, c)
+    return c
+
+
+def glove(P, N):
+    """Tan driving gloves (the goose's mitt hands): pebbled leather, a darker wrist strap with a press stud on the back
+    of the hand, three stitched points running down the back, a perforated knuckle panel (refs/key_views/joints.json:
+    each hand from its Hand bone's head (wrist) to its tail (tip); the back of the hand faces away from the body)."""
+    import json as _j
+    js = _j.loads((ROOT / "refs" / "key_views" / "joints.json").read_text(encoding="utf-8"))
+    base = rgb(PR["leather"])
+    c = np.tile(base, (len(P), 1)) * (0.9 + 0.2 * value_noise(P, 0.0025))[:, None]
+    c *= (0.95 + 0.1 * value_noise(P, 0.02))[:, None]
+    dark = rgb(PR.get("strap", [96, 62, 36]))
+    stitch = rgb(PR.get("stitch", [70, 44, 26]))
+    for s in ("Left", "Right"):
+        h0, h1 = np.array(js[f"{s}Hand"]["head"]), np.array(js[f"{s}Hand"]["tail"])
+        ax = (h1 - h0) / np.linalg.norm(h1 - h0)
+        on = (P[:, 0] > 0) if s == "Left" else (P[:, 0] < 0)
+        rel = P - h0
+        a = rel @ ax                                        # along the hand from the wrist joint
+        rad = rel - a[:, None] * ax
+        outw = np.array([1.0 if s == "Left" else -1.0, 0, 0])
+        outw = outw - (outw @ ax) * ax
+        outw /= np.linalg.norm(outw)
+        fwd = np.cross(ax, outw)
+        phi = np.arctan2(rad @ fwd, rad @ outw)             # 0 = back of the hand
+        r_ = np.linalg.norm(rad, axis=1)
+        w0 = PR.get("strap_a", [-0.03, -0.012])
+        band = on & (a > w0[0]) & (a < w0[1])
+        c = np.where(band[:, None], dark[None] * (0.9 + 0.2 * value_noise(P, 0.003))[:, None], c)
+        edge = on & ((np.abs(a - w0[0]) < 0.0012) | (np.abs(a - w0[1]) < 0.0012))
+        c = np.where(edge[:, None], stitch[None], c)
+        stud = on & (np.hypot(a - (w0[0] + w0[1]) / 2, phi * r_) < PR.get("stud_r", 0.0045))
+        c = np.where(stud[:, None], rgb(PR.get("stud", [150, 116, 66]))[None], c)
+        for k in (-1, 0, 1):                                # three points down the back of the hand
+            pts = on & (a > w0[1] + 0.008) & (a < w0[1] + 0.06) & (np.abs(phi * r_ - k * 0.009) < 0.0009)
+            c = np.where(pts[:, None], stitch[None], c)
+        kn = on & (a > w0[1] + 0.07) & (a < w0[1] + 0.09) & (np.abs(phi) < 0.9)
+        holes = kn & ((((a / 0.0045) % 1.0 - 0.5) ** 2 + ((phi * r_ / 0.0045) % 1.0 - 0.5) ** 2) < 0.07)
+        c = np.where(holes[:, None], c * 0.45, c)
+    return c
+
+
+PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove}
+
+
+def bands(P, c, boundary):
+    """Ribbed bands along the garment's open edges (sweater vest: hem, V-neck, armholes): 'bands' list of
+    {z_max | z_min, width, color}; ribs run across the band."""
+    if not PR.get("bands") or not len(boundary):
+        return c
+    from mathutils.kdtree import KDTree
+    for bd in PR["bands"]:
+        sel = np.ones(len(boundary), bool)
+        if "z_max" in bd:
+            sel &= boundary[:, 2] < bd["z_max"]
+        if "z_min" in bd:
+            sel &= boundary[:, 2] > bd["z_min"]
+        if "y_max" in bd:
+            sel &= boundary[:, 1] < bd["y_max"]
+        pts = boundary[sel]
+        if not len(pts):
+            continue
+        kd = KDTree(len(pts))
+        for k_, p_ in enumerate(pts):
+            kd.insert(Vector(p_), k_)
+        kd.balance()
+        dist = np.array([kd.find(Vector(p_))[2] for p_ in P])
+        inb = dist < bd["width"]
+        # ribs across the band: the along-edge coordinate of the nearest edge point
+        along = P[:, 2] if bd.get("rib") == "z" else around(P, np.zeros_like(P), PR.get("axes", [[0.0, 0.03]]))[0]
+        rr = 0.5 + 0.5 * np.cos(2 * np.pi * along / bd.get("pitch", 0.0045))
+        col = rgb(bd["color"])[None] * (0.78 + 0.22 * rr)[:, None]
+        c = np.where(inb[:, None], col, c)
+        print("BAND", bd.get("name", ""), int(inb.sum()), "texels")
+    return c
+
+
+# ---------------------------------------------------------------- rasterise the UVs
+# always paint the UNPATTERNED build: a fresh build (GLB newer than the stamp this script leaves) is copied to
+# versions/<piece>_prepattern.glb first; a re-run on an already painted shell starts from that copy
+(D / "versions").mkdir(parents=True, exist_ok=True)
+BAK = D / "versions" / f"{GLB.stem}_prepattern.glb"
+STAMP = GLB.with_suffix(".patterned")
+if not (STAMP.exists() and STAMP.read_text() == str(GLB.stat().st_mtime_ns) and BAK.exists()):
+    shutil.copy(GLB, BAK)
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.gltf(filepath=str(BAK))
+obs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+target_imgs = set()
+for o in obs:
+    for m in o.data.materials:
+        if not m or not m.node_tree:
+            continue
+        for n in m.node_tree.nodes:
+            if n.type == "TEX_IMAGE" and n.image and n.image.colorspace_settings.name != "Non-Color":
+                if any(l_.to_socket.name in ("Base Color", "A", "B", "Color1", "Color2") for l_ in n.outputs["Color"].links):
+                    target_imgs.add(n.image.name)
+print("TARGET images", target_imgs)
+if not target_imgs:
+    # modelled pieces with a plain colour (make_boot.py, make_cap.py): a new texture on the materials named in
+    # "materials", no detail shading to keep
+    ph = bpy.data.images.new(f"{CHAR}_{PIECE}_flat", 4, 4, alpha=False)
+    ph.pixels = [1.0] * 64
+    target_imgs.add(ph.name)
+    for o in obs:
+        for m in o.data.materials:
+            if m and m.node_tree and any(k in m.name for k in PR.get("materials", [])):
+                bs = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+                tx = m.node_tree.nodes.new("ShaderNodeTexImage")
+                tx.image = ph
+                m.node_tree.links.new(tx.outputs["Color"], bs.inputs["Base Color"])
+src_img = bpy.data.images[sorted(target_imgs)[0]]
+SW, SH = src_img.size
+detail = np.array(src_img.pixels[:], np.float32).reshape(SH, SW, -1)[..., :3]
+PAINT_MATS = PR.get("materials")       # only texels of faces with these materials are painted (else every face)
+
+pos = np.zeros((TEX, TEX, 3), np.float32)
+nrm = np.zeros((TEX, TEX, 3), np.float32)
+mask = np.zeros((TEX, TEX), bool)
+boundary = []
+for o in obs:
+    me = o.data
+    M = np.array(o.matrix_world)
+    V = np.array([(o.matrix_world @ v.co)[:] for v in me.vertices])
+    Nv = np.array([(o.matrix_world.to_3x3() @ v.normal).normalized()[:] for v in me.vertices])
+    me.calc_loop_triangles()
+    uvd = me.uv_layers.active.data
+    # boundary edges by POSITION (the glTF splits vertices along UV seams)
+    from collections import Counter
+    key = lambda i: tuple(np.round(V[i], 5))  # noqa: E731
+    cnt = Counter()
+    for pg in me.polygons:                 # faces per edge, by position: 1 = an open edge of the garment
+        for ek in pg.edge_keys:
+            a_, b_ = sorted([key(ek[0]), key(ek[1])])
+            cnt[(a_, b_)] += 1
+    for (a_, b_), k_ in cnt.items():
+        if k_ == 1:
+            for t_ in np.linspace(0, 1, 4):
+                boundary.append(np.array(a_) * (1 - t_) + np.array(b_) * t_)
+    for t in me.loop_triangles:
+        if PAINT_MATS and not any(k in me.materials[t.material_index].name for k in PAINT_MATS):
+            continue
+        uv =np.array([uvd[li].uv[:] for li in t.loops]) * [TEX, TEX]
+        vi = list(t.vertices)
+        x0, y0 = np.floor(uv.min(0)).astype(int)
+        x1, y1 = np.ceil(uv.max(0)).astype(int)
+        x0, y0 = max(x0, 0), max(y0, 0)
+        x1, y1 = min(x1, TEX - 1), min(y1, TEX - 1)
+        if x1 < x0 or y1 < y0:
+            continue
+        gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        (ax_, ay_), (bx_, by_), (cx_, cy_) = uv
+        den = (by_ - cy_) * (ax_ - cx_) + (cx_ - bx_) * (ay_ - cy_)
+        if abs(den) < 1e-12:
+            continue
+        l1 = ((by_ - cy_) * (gx - cx_) + (cx_ - bx_) * (gy - cy_)) / den
+        l2 = ((cy_ - ay_) * (gx - cx_) + (ax_ - cx_) * (gy - cy_)) / den
+        l3 = 1 - l1 - l2
+        ins = (l1 >= -0.02) & (l2 >= -0.02) & (l3 >= -0.02)
+        if not ins.any():
+            continue
+        L = np.stack([l1[ins], l2[ins], l3[ins]], 1)
+        yy, xx = (gy[ins] - 0.5).astype(int), (gx[ins] - 0.5).astype(int)
+        pos[yy, xx] = L @ V[vi]
+        nn = L @ Nv[vi]
+        nrm[yy, xx] = nn / np.maximum(np.linalg.norm(nn, axis=1, keepdims=True), 1e-9)
+        mask[yy, xx] = True
+boundary = np.array(boundary) if boundary else np.zeros((0, 3))
+print("TEXELS", int(mask.sum()), "boundary pts", len(boundary))
+
+P, N = pos[mask].astype(float), nrm[mask].astype(float)
+col = PATTERNS[PR["type"]](P, N)
+col = bands(P, col, boundary)
+# keep the detail texture's shading (its folds / grooves), resampled to TEX
+ys, xs = np.nonzero(mask)
+dy = np.clip((ys + 0.5) * SH / TEX, 0, SH - 1).astype(int)
+dx = np.clip((xs + 0.5) * SW / TEX, 0, SW - 1).astype(int)
+dl = detail[dy, dx].mean(1)
+dmean = float(np.median(dl[dl > 0.05])) if (dl > 0.05).any() else 1.0
+shade = np.clip(dl / dmean, 0.55, 1.25) ** PR.get("detail_gamma", 1.0)
+col = np.clip(col * shade[:, None], 0, 1)
+img = np.zeros((TEX, TEX, 3), np.float32)
+img[mask] = col
+# pad the islands (push-pull: empty texels take their filled neighbours' mean, 12 rounds)
+filled = mask.copy()
+for _ in range(12):
+    acc = np.zeros_like(img)
+    cntm = np.zeros((TEX, TEX), np.float32)
+    for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        acc += np.roll(np.roll(img * filled[..., None], sy, 0), sx, 1)
+        cntm += np.roll(np.roll(filled.astype(np.float32), sy, 0), sx, 1)
+    new = (~filled) & (cntm > 0)
+    img[new] = acc[new] / cntm[new][:, None]
+    filled |= new
+out = bpy.data.images.new(f"{CHAR}_{PIECE}_pattern", TEX, TEX, alpha=False)
+out.pixels = np.concatenate([img, np.ones((TEX, TEX, 1), np.float32)], -1).ravel().tolist()
+out.pack()
+for o in obs:
+    for m in o.data.materials:
+        if not m or not m.node_tree:
+            continue
+        for n in m.node_tree.nodes:
+            if n.type == "TEX_IMAGE" and n.image and n.image.name in target_imgs:
+                n.image = out
+            if n.type == "MIX" and getattr(n, "blend_type", "") == "MULTIPLY":
+                for s_ in n.inputs:
+                    if s_.name in ("B", "Color2") and s_.type == "RGBA" and not s_.is_linked:
+                        s_.default_value = (1, 1, 1, 1)
+        if not any(n.type == "TEX_IMAGE" and n.image == out for n in m.node_tree.nodes):
+            continue                       # (other materials -- a sole, a lining with its own colour -- stay as they are)
+        bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bs is not None and "roughness" in PR:
+            bs.inputs["Roughness"].default_value = PR["roughness"]
+bpy.ops.object.select_all(action="DESELECT")
+for o in bpy.context.scene.objects:
+    o.select_set(True)
+bpy.ops.export_scene.gltf(filepath=str(GLB), use_selection=True, export_format="GLB")
+STAMP.write_text(str(GLB.stat().st_mtime_ns))
+print("PATTERN", PIECE, PR["type"], "->", GLB)

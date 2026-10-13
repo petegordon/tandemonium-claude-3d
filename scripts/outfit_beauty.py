@@ -6,6 +6,7 @@
 Perspective camera (50 mm) at eye level, three-point lighting (key, fill, rim) on a seamless dark-grey studio cyclorama (floor curving into the backdrop),
 the Standard view transform (AgX washed the colours out), EEVEE with soft shadows. Each tile frames the whole goose (hat to boots).
 """
+import json
 import math
 import sys
 from pathlib import Path
@@ -29,7 +30,11 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(GLB))
-meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+# --with shell.glb,...: extra garment shells over the (naked) goose -- quick previews before dress_goose.py
+WITH = [ROOT / w_ for w_ in opt("--with", "").split(",") if w_]
+for w_ in WITH:
+    bpy.ops.import_scene.gltf(filepath=str(w_))
+meshes =[o for o in bpy.data.objects if o.type == "MESH"]
 for o in meshes:                      # as the game shows a fully worn outfit: layered sub-meshes (the body parts a
     if "__" in o.name:                # garment covers, e.g. "body__breeches") are hidden
         o.hide_render = o.hide_viewport = True
@@ -42,7 +47,7 @@ if HIDE:
         gi = [g.index for g in o.vertex_groups if any(b in g.name for b in HIDE)]
         if not gi:
             continue
-        kill = {v.index for v in o.data.vertices if sum(g.weight for g in v.groups if g.group in gi) > 0.35}
+        kill = {v.index for v in o.data.vertices if sum(g.weight for g in v.groups if g.group in gi) > opt("--hide-w", 0.35)}
         bm = bmesh.new()
         bm.from_mesh(o.data)
         bm.verts.ensure_lookup_table()
@@ -67,7 +72,12 @@ sc.view_settings.view_transform = "Standard"     # (AgX washed the burgundy to s
 sc.view_settings.look = "None"
 sc.view_settings.exposure = opt("--exposure", -0.6)
 sc.render.resolution_x, sc.render.resolution_y = int(PX * 0.62), PX
-wd = bpy.data.worlds.new("w")
+# --cams refs/key_views/cameras.json: the calibrated orthographic key cameras (same framing as the blue mannequin
+# views) instead of the 50 mm beauty cameras -- the text-to-image inputs whose results project straight onto the body
+CAMS = json.loads((ROOT / opt("--cams", "")).read_text(encoding="utf-8")) if opt("--cams", "") else None
+if CAMS:
+    sc.render.resolution_x, sc.render.resolution_y = CAMS["size_px"]
+wd =bpy.data.worlds.new("w")
 wd.use_nodes = True
 wd.node_tree.nodes["Background"].inputs[0].default_value = (0.55, 0.56, 0.58, 1)
 wd.node_tree.nodes["Background"].inputs[1].default_value = 0.35
@@ -116,6 +126,10 @@ cam.data.lens = 50
 sc.collection.objects.link(cam)
 sc.camera = cam
 dist = H * 1.75
+if opt("--frame", ""):          # --frame zc,h: a close-up framing h metres tall about height zc
+    zc_, h_ = [float(x) for x in opt("--frame", "").split(",")]
+    ctr = Vector((ctr[0], ctr[1], zc_))
+    dist = h_ * 1.75
 tiles = []
 # --views name:azimuth,... (default the five beauty views; the text-to-image input sheet uses
 # front:0,q34:35,left:90,rear:180,right:270)
@@ -134,6 +148,11 @@ for name, az in VIEWS:
     light("kick", "AREA", 120, tuple(ctr + d * 2.5 - side * 1.0 + Vector((0, 0, -0.6))), 1.5, (0.95, 0.95, 1.0))
     cam.location = ctr + d * dist + Vector((0, 0, 0.12))
     cam.rotation_euler = (ctr - cam.location).to_track_quat("-Z", "Y").to_euler()
+    if CAMS:
+        cam.data.type = "ORTHO"
+        cam.data.ortho_scale = CAMS["ortho_m_height"]
+        cam.location = Vector(CAMS["views"][name]["location"])
+        cam.rotation_euler = (Vector(CAMS["target"]) - cam.location).to_track_quat("-Z", "Y").to_euler()
     p = OUT.parent / f"_{OUT.stem}_{name}.png"
     sc.render.filepath = str(p)
     bpy.ops.render.render(write_still=True)

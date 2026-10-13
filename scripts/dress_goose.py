@@ -71,7 +71,7 @@ LAYER_ERODE = 2      # rings the layer-hidden zone is shrunk by
 LAYER_D = 0.06       # designed garment faces under another shell within this distance are layer-masked
 LAYER_IN = 0.02      # ... or with another shell up to 2 cm behind it (the garment pokes through that shell)
 # (breeches stay whole under the jacket: under its flared hem you can see up to them)
-LAYER_IGNORE = {"bodice": ("skirt", "collar", "gloves", "cuffs"), "skirt": ("boots",), "boots": ("breeches", "coat", "skirt"), "gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie"),
+LAYER_IGNORE = {"bodice": ("skirt", "collar", "gloves", "cuffs"), "skirt": ("boots",), "boots": ("breeches", "coat", "skirt"), "gloves": ("shirt", "coat", "breeches", "waistcoat"), "shirt": ("bowtie", "necktie", "gloves"), "breeches": ("shirt", "coat"), "waistcoat": ("shirt", "breeches", "bowtie", "necktie"), "socks": ("gloves",),
                 "coat": ("shirt", "breeches", "bowtie", "waistcoat", "gloves", "boots", "hat")}
 LAYER_INWARD_ONLY = {"shirt": ("breeches",)}   # tucked: hidden only where it ends up outside the breeches   # (shirt tucked inside the breeches)   # (bow on the collar, cuffs over the glove tops stay whole)
 MASK_IN = 0.015       # inward: a shell up to 1.5 cm under the body surface (the body pokes through it)
@@ -94,6 +94,10 @@ for o in list(bpy.data.objects):                    # keep rig, body, eye parts
     elif o.type == "MESH" and o is not body and o.parent is not rig:
         bpy.data.objects.remove(o)       # stale eye copies parented to the body object: they stayed put in poses
 cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text())
+# chars json "layer_ignore" {piece: [pieces]}: extra shells that never hide this one (the cyclist: the plus-fours'
+# knee band stays whole over the socks / shoes -- a mask there tore the hem into a sawtooth)
+for k_, v_ in cfg.get("layer_ignore", {}).items():
+    LAYER_IGNORE[k_] = tuple(LAYER_IGNORE.get(k_, ())) + tuple(v_)
 names = [g.name for g in body.vertex_groups]
 me = body.data
 V = np.array([v.co[:] for v in me.vertices])
@@ -339,6 +343,16 @@ for k, o in shells.items():
             Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wo
             Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
             print("TUCK", k, "->", tk["into"], int((f_ > 0).sum()), "verts")
+        # chars json "skin_merge" {piece: {src bone (substring): dst bone}}: a garment that never covers the thighs
+        # (the cyclist's sweater vest) gives its hem's leg weights to the hips -- seated, the thighs bent it out
+        for s_, d_ in cfg.get("skin_merge", {}).get(k, {}).items():
+            if d_ in names:
+                for j_, nm in enumerate(names):
+                    if s_ in nm and nm != d_:
+                        Wv[:, names.index(d_)] += Wv[:, j_]
+                        Wv[:, j_] = 0
+                legw = Wv[:, [names.index(n) for n in leg]].sum(1)
+                print("SKIN MERGE", k, s_, "->", d_)
         for outer in ():                                 # (moved to pass C: final weights)
             wjf = SH(f"{outer}_weights.npz")
             if outer not in shells or not wjf.exists():

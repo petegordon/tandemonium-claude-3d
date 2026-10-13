@@ -24,3 +24,9 @@ looking. Picked set: `refs/outfit_male_cyclist/t2i/pick/` (front, left, rear, ri
   that as it did for Pete's drawings.
 - It sometimes flips the facing of a side view (the "right" came out facing left) and re-adds a tail in the 3/4.
 - Output ~800 x 1330 px per view.
+
+## Calibrated re-staging (for the build)
+The approved views were re-drawn in the four orthographic key cameras: `outfit_beauty.py --cams
+refs/key_views/cameras.json` for the inputs, and `t2i_outfit.py --restage --front <approved front>` (every view gets
+picture 2 = the approved front). The results are in `refs/outfit_male_cyclist/t2i/key1/`, and the 3D build is judged
+against them from the same cameras. The full build is documented in [cyclist-outfit.md](cyclist-outfit.md).

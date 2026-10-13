@@ -1,0 +1,788 @@
+{
+ "char": "outfit_male_cyclist",
+ "notes": "Pete 2026-10-13: 1920s gentleman cyclist from text (t2i reference views refs/outfit_male_cyclist/t2i/key1, Qwen-Image-Edit-2511 on the naked base goose in the calibrated key cameras). Garments DESIGNED on the base body (make_garment / make_cap / make_accessory / make_boot) from recipes measured off those views; patterns (herringbone, argyle, knit ribs) painted procedurally in 3D by pattern_paint.py.",
+ "body_shape": "sliders",
+ "shape": {
+  "leg_length": 1.15
+ },
+ "shells_on_base": true,
+ "accessory_drop": {},
+ "garment_design": {
+  "breeches": {
+   "kind": "breeches",
+   "note": "plus-fours: brown herringbone tweed, full in the leg, bloused over a knee band 6 cm below the knee",
+   "z_top": 0.95,
+   "z_bot": 0.3,
+   "tris": 3600,
+   "ease_min": 0.006,
+   "ease_max": 0.075,
+   "ease_z": [
+    [
+     0.95,
+     0.008
+    ],
+    [
+     0.86,
+     0.012
+    ],
+    [
+     0.74,
+     0.014
+    ],
+    [
+     0.62,
+     0.018
+    ],
+    [
+     0.52,
+     0.03
+    ],
+    [
+     0.44,
+     0.048
+    ],
+    [
+     0.38,
+     0.058
+    ],
+    [
+     0.345,
+     0.055
+    ],
+    [
+     0.33,
+     0.04
+    ]
+   ],
+   "ease_smooth": 30,
+   "ease_post_smooth": 10,
+   "knee_ramp": 0.022,
+   "kneeband": 0.03,
+   "waistband": 0.035,
+   "band_ease": 0.005,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "seat_bump": 0.004,
+   "fly_len": 0.12,
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "colors": {
+    "tweed": [
+     255,
+     255,
+     255
+    ]
+   },
+   "outer_smooth": 70,
+   "outer_min": 0.005,
+   "base_smooth": 20
+  },
+  "shirt": {
+   "kind": "shirt",
+   "z_neck": 1.29,
+   "z_top": 0.88,
+   "z_bot": 0.88,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 7000,
+   "cuff": 0.05,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.008,
+    "sleeve": 0.016,
+    "blouse": 0.012,
+    "cuff": 0.005,
+    "neck": 0.003,
+    "hem": 0.003
+   },
+   "mottle": 0.04,
+   "twill": 0.05,
+   "twill_scale": 520.0,
+   "roughness": 0.75,
+   "colors": {
+    "white": [
+     240,
+     240,
+     236
+    ]
+   },
+   "tuck": {
+    "into": "breeches",
+    "z_top": 0.93,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.005,
+    "hide": true,
+    "push_in": 0.045,
+    "push_depth": 0.004,
+    "push_above": 0.02
+   },
+   "hem_zone": 0.14,
+   "cuff_clear": 0.007,
+   "armpit_relax": 0,
+   "ease_post_smooth": 20
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "knit": true,
+   "note": "argyle V-neck sweater vest (mustard / dark green / cream), ribbed hem, V-neck and armholes; plain mustard knit back",
+   "z_neck": 1.3,
+   "z_top": 0.9,
+   "z_bot": 0.84,
+   "tris": 3200,
+   "cover_margin": 0.02,
+   "outline": {
+    "z_notch": 0.855,
+    "z_point": 0.855,
+    "z_side": 0.855,
+    "z_back": 0.855,
+    "point_x": 0.05,
+    "side_x": 0.13,
+    "z_vbot": 1.115,
+    "v_top_w": 0.078,
+    "v_pow": 0.85,
+    "arm_r": 0.095,
+    "arm_off": [
+     -0.002,
+     0.0,
+     -0.03
+    ],
+    "lapel_w": 0.001,
+    "notch_down": 0.0,
+    "arm_iso": 0.88,
+    "arm_oval": [
+     1.155,
+     0.005,
+     0.105,
+     0.068,
+     0.112
+    ]
+   },
+   "rib": {
+    "hem": 0.032,
+    "v": 0.014,
+    "arm": 0.012,
+    "pitch": 0.0045,
+    "depth": 0.0007
+   },
+   "ease": {
+    "torso": 0.012,
+    "lapel": 0.0,
+    "clear": 0.007
+   },
+   "over": [
+    "shirt",
+    "breeches",
+    "necktie"
+   ],
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "lining_color": [
+    150,
+    112,
+    40
+   ],
+   "lining_roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "offset_smooth": 30,
+   "normal_tilt": 8,
+   "outer_smooth": 25,
+   "outer_min": 0.009
+  },
+  "gloves": {
+   "kind": "glove",
+   "z_top": 0.9,
+   "z_bot": 0.8,
+   "tris": 1600,
+   "cover_margin": 0.008,
+   "wrist_offset": -0.045,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "base_smooth": 24,
+   "ease": {
+    "hand": 0.0025,
+    "cuff": 0.003
+   },
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.55,
+   "weight_smooth": 6,
+   "colors": {
+    "tan": [
+     255,
+     255,
+     255
+    ]
+   },
+   "plain_smooth": 70,
+   "top_r": 0.036,
+   "top_len": 0.085,
+   "round": 1.0
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "dark green knee socks (ribbed), from inside the plus-fours' knee band down over the foot (the shoe covers the foot)",
+   "z_top": 0.335,
+   "z_bot": -1.0,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.005,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "green": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "trim_below": 0.075,
+   "normal_tilt": 8,
+   "outer_smooth": 30,
+   "outer_min": 0.003
+  }
+ },
+ "boot_design": {
+  "note": "brown brogue oxfords: the Victorian boot last cut down to a low shoe (top line at the ankle)",
+  "centre_x": 0.092,
+  "toe_y": -0.135,
+  "heel_y": 0.097,
+  "sole_w": [
+   [
+    0.0,
+    0.032
+   ],
+   [
+    0.25,
+    0.038
+   ],
+   [
+    0.55,
+    0.044
+   ],
+   [
+    0.8,
+    0.041
+   ],
+   [
+    1.0,
+    0.032
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.096
+   ],
+   [
+    0.15,
+    0.108
+   ],
+   [
+    0.35,
+    0.108
+   ],
+   [
+    0.5,
+    0.096
+   ],
+   [
+    0.7,
+    0.076
+   ],
+   [
+    0.88,
+    0.06
+   ],
+   [
+    1.0,
+    0.05
+   ]
+  ],
+  "shaft": [
+   [
+    0.08,
+    0.041,
+    0.05,
+    0.045
+   ],
+   [
+    0.1,
+    0.036,
+    0.043,
+    0.043
+   ],
+   [
+    0.112,
+    0.033,
+    0.039,
+    0.042
+   ]
+  ],
+  "heel_h": 0.022,
+  "heel_len": 0.042,
+  "power": 2.6,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.35,
+  "toe_cap": 0.04,
+  "toe_narrow": 1.3,
+  "toe_up": 0.01,
+  "sole_h": 0.011,
+  "welt": 0.002,
+  "heel_round": 0.018,
+  "leather_rgb": [
+   0.15,
+   0.045,
+   0.015
+  ],
+  "sole_smooth": 4,
+  "sole_step": 0.003
+ },
+ "cap_design": {
+  "note": "tweed flat cap: soft crown on a head band fitted to the head, its top pulled forward and down over a short stiff peak; covered button on top",
+  "band_z": 1.61,
+  "band_tilt": 0.012,
+  "band_off": 0.01,
+  "top_back": 0.062,
+  "top_front": 0.03,
+  "overhang": 0.025,
+  "attach": 0.04,
+  "puff": 0.22,
+  "puff_front_cut": 1.0,
+  "front_wide": 0.02,
+  "front_drop": 0.016,
+  "peak_len": 0.056,
+  "peak_droop": 0.02,
+  "peak_half_angle": 68,
+  "button_r": 0.009,
+  "thickness": 0.003,
+  "clear": 0.02,
+  "color": [
+   110,
+   86,
+   64
+  ],
+  "skin_clear": 0.01,
+  "seat_in": 0.002
+ },
+ "accessory_design": {
+  "necktie": {
+   "anchor_z": 1.27,
+   "collar_h_scale": 0.68,
+   "collar_off": 0.006,
+   "point_len": 0.05,
+   "knot_w": 0.04,
+   "knot_h": 0.038,
+   "blade_w": 0.042,
+   "blade_bot": 0.96,
+   "colors": {
+    "tie": [
+     28,
+     70,
+     44
+    ],
+    "collar": [
+     240,
+     240,
+     236
+    ]
+   },
+   "collar_gap_deg": 2,
+   "fall_frac": 0.72,
+   "knot_down": -0.004,
+   "fall_over": [
+    "waistcoat"
+   ],
+   "knot_t": 0.012,
+   "point_deg": 20,
+   "fall_gap_deg": 11
+  }
+ },
+ "patterns": {
+  "breeches": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    64,
+    48,
+    36
+   ],
+   "light": [
+    108,
+    86,
+    66
+   ],
+   "column": 0.011,
+   "period": 0.006,
+   "contrast": 0.9,
+   "crotch_z": 0.7,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "flecks": [
+    [
+     [
+      122,
+      62,
+      44
+     ],
+     0.006
+    ],
+    [
+     [
+      66,
+      80,
+      58
+     ],
+     0.005
+    ],
+    [
+     [
+      140,
+      124,
+      100
+     ],
+     0.003
+    ]
+   ],
+   "roughness": 0.92,
+   "r0": 0.16
+  },
+  "waistcoat": {
+   "type": "argyle",
+   "tex": 2048,
+   "a": [
+    36,
+    60,
+    42
+   ],
+   "b": [
+    150,
+    110,
+    40
+   ],
+   "c": [
+    214,
+    194,
+    156
+   ],
+   "line": [
+    210,
+    188,
+    150
+   ],
+   "back": [
+    132,
+    94,
+    32
+   ],
+   "diamond_w": 0.12,
+   "diamond_h": 0.165,
+   "z0": 0.9375,
+   "line_w": 0.0012,
+   "centre_y": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "bands": [
+    {
+     "name": "hem",
+     "z_max": 0.9,
+     "width": 0.032,
+     "color": [
+      104,
+      74,
+      26
+     ],
+     "ax": [
+      1,
+      1,
+      0
+     ],
+     "pitch": 0.0045,
+     "rib": "around"
+    },
+    {
+     "name": "edges",
+     "z_min": 0.9,
+     "width": 0.014,
+     "color": [
+      104,
+      74,
+      26
+     ],
+     "ax": [
+      0,
+      0,
+      1
+     ],
+     "pitch": 0.0045,
+     "rib": "z"
+    }
+   ],
+   "roughness": 0.95,
+   "r0": 0.16,
+   "front_margin": -0.025,
+   "detail_gamma": 0.1
+  },
+  "socks": {
+   "type": "rib",
+   "tex": 1024,
+   "color": [
+    34,
+    70,
+    46
+   ],
+   "pitch": 0.0065,
+   "rib_dark": 0.8,
+   "leg_axes": [
+    [
+     0.09,
+     0.04
+    ],
+    [
+     -0.09,
+     0.04
+    ]
+   ],
+   "roughness": 0.95,
+   "r0": 0.0,
+   "detail_gamma": 0.35
+  },
+  "boots": {
+   "type": "brogue",
+   "tex": 1024,
+   "materials": [
+    "boots_leather"
+   ],
+   "leather": [
+    110,
+    56,
+    28
+   ],
+   "seam": [
+    46,
+    26,
+    14
+   ],
+   "centre_x": 0.092,
+   "toe_y": -0.135,
+   "heel_y": 0.097,
+   "top_line": [
+    [
+     0.0,
+     0.096
+    ],
+    [
+     0.15,
+     0.108
+    ],
+    [
+     0.35,
+     0.108
+    ],
+    [
+     0.5,
+     0.096
+    ],
+    [
+     0.7,
+     0.076
+    ],
+    [
+     0.88,
+     0.06
+    ],
+    [
+     1.0,
+     0.05
+    ]
+   ],
+   "wing_c": 0.05,
+   "wing_back": 0.085,
+   "medallion": 0.022,
+   "quarter_t": 0.47,
+   "lace_t": [
+    0.44,
+    0.62
+   ],
+   "roughness": 0.38,
+   "collar_z": 0.104
+  },
+  "hat": {
+   "type": "herringbone",
+   "tex": 1024,
+   "materials": [
+    "hat_tweed"
+   ],
+   "dark": [
+    70,
+    54,
+    40
+   ],
+   "light": [
+    118,
+    96,
+    74
+   ],
+   "column": 0.007,
+   "period": 0.004,
+   "contrast": 0.6,
+   "r0": 0.07,
+   "axes": [
+    [
+     0.0,
+     -0.06
+    ]
+   ],
+   "flecks": [
+    [
+     [
+      130,
+      64,
+      44
+     ],
+     0.006
+    ],
+    [
+     [
+      150,
+      134,
+      108
+     ],
+     0.004
+    ]
+   ],
+   "roughness": 0.92
+  },
+  "necktie": {
+   "type": "rib",
+   "tex": 512,
+   "materials": [
+    "necktie_knot",
+    "necktie_blade"
+   ],
+   "color": [
+    30,
+    66,
+    42
+   ],
+   "pitch": 0.003,
+   "rib_dark": 0.72,
+   "leg_axes": [
+    [
+     0.0,
+     0.0
+    ]
+   ],
+   "r0": 0.0,
+   "horizontal": true,
+   "roughness": 0.95
+  },
+  "gloves": {
+   "type": "glove",
+   "tex": 1024,
+   "leather": [
+    176,
+    128,
+    74
+   ],
+   "strap": [
+    118,
+    80,
+    44
+   ],
+   "stitch": [
+    84,
+    52,
+    30
+   ],
+   "stud": [
+    150,
+    116,
+    66
+   ],
+   "strap_a": [
+    -0.028,
+    -0.01
+   ],
+   "roughness": 0.55
+  }
+ },
+ "accessory_over": {
+  "necktie": [
+   "shirt"
+  ]
+ },
+ "kneestrap": {
+  "z": 0.307,
+  "h": 0.018,
+  "t": 0.003,
+  "off": 0.002,
+  "buckle_az": 70,
+  "buckle_w": 0.02,
+  "buckle_h": 0.022,
+  "buckle_t": 0.0022,
+  "leather": [
+   84,
+   48,
+   26
+  ],
+  "brass": [
+   128,
+   98,
+   54
+  ]
+ },
+ "skin_merge": {
+  "waistcoat": {
+   "UpLeg": "Hips"
+  }
+ },
+ "layer_ignore": {
+  "breeches": [
+   "socks",
+   "boots"
+  ]
+ }
+}

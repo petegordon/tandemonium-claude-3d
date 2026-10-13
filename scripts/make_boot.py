@@ -178,14 +178,19 @@ for p in ob.data.polygons:
 V = np.array([v.co[:] for v in ob.data.vertices])
 for sx in (1, -1):
     low = V[(V[:, 2] < 0.025) & (V[:, 0] * sx > 0)]
-    ys = np.arange(low[:, 1].min(), low[:, 1].max() + 1e-6, 0.005)
-    rings = []
+    ys = np.arange(low[:, 1].min(), low[:, 1].max() + 1e-6, B.get("sole_step", 0.005))
+    prof = []
     for y in ys:
         sl_ = low[np.abs(low[:, 1] - y) < 0.004]
         if len(sl_) < 3:
             continue
-        hw = (sl_[:, 0].max() - sl_[:, 0].min()) / 2 + B.get("welt", 0.003)
-        cxs = (sl_[:, 0].max() + sl_[:, 0].min()) / 2
+        prof.append((y, (sl_[:, 0].max() - sl_[:, 0].min()) / 2, (sl_[:, 0].max() + sl_[:, 0].min()) / 2))
+    prof = np.array(prof)
+    for _ in range(B.get("sole_smooth", 0)):     # (the voxel footprint is noisy: a stepped, toothed sole edge)
+        prof[1:-1, 1:] = 0.25 * prof[:-2, 1:] + 0.5 * prof[1:-1, 1:] + 0.25 * prof[2:, 1:]
+    rings = []
+    for y, hw, cxs in prof:
+        hw += B.get("welt", 0.003)
         x_, z_ = superellipse(NS, hw, B.get("sole_h", 0.012) / 2, 6.0)
         rings.append(np.stack([cxs + x_, np.full(NS, y), z_ + B.get("sole_h", 0.012) / 2 - 0.002], 1))
     so = tube(rings)
