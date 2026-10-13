@@ -56,9 +56,21 @@ def lerp(a, b, u):
 
 # profile, outside then underside then inside: (kind, param, z, curl, material)
 prof = []
-for k_, z_ in ((0.12, ctop), (0.3, ctop - 0.0015), (0.45, ctop - 0.004), (0.58, ctop - 0.0075), (0.7, ctop - 0.013), (0.86, ctop - 0.025), (0.95, ctop - 0.038),
-               (1.0, ctop - 0.052)):
-    prof.append(("crown", k_, z_, 0.0, 0))
+STYLE = H.get("style", "bowler")
+if STYLE == "top":       # top hat: flat top, crisp rounded edge, straight sides flaring slightly to the top
+    flare = H.get("crown_flare", 1.06)
+    for k_, z_ in ((0.12, ctop), (0.6, ctop), (0.92, ctop - 0.001), (0.985, ctop - 0.004), (1.0 * flare, ctop - 0.010),
+                   (0.985 * flare, ctop - 0.03)):
+        prof.append(("crown", k_, z_, 0.0, 0))
+    n_ = 6
+    zb_ = cbase + band_h + 0.004
+    for i in range(1, n_ + 1):
+        t = i / n_
+        prof.append(("crown", flare * (1 - t) * 0.985 + 1.0 * t, ctop - 0.03 - (ctop - 0.03 - zb_) * t, 0.0, 0))
+else:
+    for k_, z_ in ((0.12, ctop), (0.3, ctop - 0.0015), (0.45, ctop - 0.004), (0.58, ctop - 0.0075), (0.7, ctop - 0.013),
+                   (0.86, ctop - 0.025), (0.95, ctop - 0.038), (1.0, ctop - 0.052)):
+        prof.append(("crown", k_, z_, 0.0, 0))
 zb0 = cbase + band_h
 prof.append(("crown", 1.0, zb0 + 0.002, 0.0, 0))
 prof.append(("crown", 1.03, zb0, 0.0, 1))                 # band (slightly proud)
@@ -94,7 +106,43 @@ for k in range(NA):
     bm.faces.new([inner, vs[-1][k], vs[-1][(k + 1) % NA]])
 # brass buckles: small raised rectangles on the band at each side
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-for sg in (1, -1):
+PL = H.get("plume")
+if PL:                    # plume: a curved feather (a tapered, cambered strip with a midrib) on the band's side
+    sg_ = PL.get("side", 1)
+    base = Vector((cc[0] + sg_ * ca[0] * 1.03, cc[1] + PL.get("y", 0.0), cbase + band_h))
+    L_, W_ = PL.get("length", 0.13), PL.get("width", 0.035)
+    lean = math.radians(PL.get("lean_deg", 25))          # back from vertical
+    out = math.radians(PL.get("out_deg", 18))             # out from the crown
+    curl_ = PL.get("curl", 0.35)
+    NL, NW = 18, 5
+    grid = []
+    for i in range(NL + 1):
+        t = i / NL
+        a_ = lean + curl_ * t * t
+        dirv = Vector((sg_ * math.sin(out) * (1 + t), math.sin(a_), math.cos(a_))).normalized()
+        c_ = base + dirv * (L_ * t)
+        hw = W_ * math.sin(math.pi * min(1.0, t * 1.15)) ** 0.7 * (1 - 0.2 * t) / 2
+        side = Vector((math.cos(out), 0, 0)) if sg_ > 0 else Vector((-math.cos(out), 0, 0))
+        side = side.cross(dirv).normalized()
+        row_ = []
+        for j in range(NW):
+            u = j / (NW - 1) * 2 - 1
+            row_.append(bm.verts.new(c_ + side * hw * u + dirv.cross(side).normalized() * (0.004 * (1 - u * u))))
+        grid.append(row_)
+    for i in range(NL):
+        for j in range(NW - 1):
+            f = bm.faces.new((grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]))
+            f.material_index = 3
+    # medallion: a brass disc at the plume's base
+    res = bmesh.ops.create_cone(bm, cap_ends=True, segments=20, radius1=PL.get("medallion_r", 0.014),
+                                radius2=PL.get("medallion_r", 0.014) * 0.9, depth=0.004)
+    nrm = Vector((sg_, 0, 0))
+    rot = Vector((0, 0, 1)).rotation_difference(nrm).to_matrix()
+    for v in res["verts"]:
+        v.co = rot @ v.co + Vector((cc[0] + sg_ * ca[0] * 1.06, cc[1] + PL.get("y", 0.0), cbase + band_h / 2))
+    for f in {f for v in res["verts"] for f in v.link_faces}:
+        f.material_index = 2
+for sg in ((1, -1) if H.get("buckles", True) else ()):
     cx = cc[0] + sg * ca[0] * 1.035
     cy = cc[1]
     cz = cbase + band_h / 2
@@ -108,9 +156,10 @@ bm.to_mesh(me)
 bm.free()
 o = bpy.data.objects.new("hat_shell", me)
 bpy.context.scene.collection.objects.link(o)
-for nm, col, rough, metal in (("felt", H["colors"][next(iter(H["colors"]))], 0.9, 0.0),
+for nm, col, rough, metal in (("felt", H["colors"][next(iter(H["colors"]))], H.get("felt_rough", 0.9), 0.0),
                               ("band", H.get("band_color", [32, 30, 30]), 0.5, 0.0),
-                              ("brass", H.get("brass_color", [176, 132, 62]), 0.3, 1.0)):
+                              ("brass", H.get("brass_color", [176, 132, 62]), 0.3, 1.0),
+                              ("plume", (H.get("plume") or {}).get("color", [200, 140, 60]), 0.7, 0.0)):
     m = bpy.data.materials.new(f"{CHAR}_hat_{nm}")
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]

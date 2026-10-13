@@ -48,6 +48,9 @@ from rig_poses import Poser  # noqa: E402
 argv = sys.argv[sys.argv.index("--") + 1:]
 CHAR = argv[argv.index("--char") + 1]
 POSES_ON = "--no-poses" not in argv
+WITHOUT = set(argv[argv.index("--without") + 1].split(",")) if "--without" in argv else set()   # garments left off
+TAG = argv[argv.index("--tag") + 1] if "--tag" in argv else ""          # outputs <char>_<tag>_dressed.* etc.
+OUTN = f"{CHAR}_{TAG}" if TAG else CHAR
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
@@ -118,6 +121,8 @@ if T and not LATE:
 # ---- shells
 shells = {}
 for f in sorted((D / "shells").glob("*.glb")):
+    if f.stem.split("@")[0] in WITHOUT:
+        continue
     before = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=str(f))
     o = next(x for x in bpy.context.scene.objects if x not in before and x.type == "MESH")
@@ -212,9 +217,17 @@ for i, (p, n) in enumerate(zip(V, NRM)):
     if best:
         hid_by[i].add(best[0])
 dom = np.array(names)[W.argmax(1)]
+ed_ = np.array([e.vertices[:] for e in me.edges])
 for piece, bones in FORCE.items():
     if piece in shells:
-        for i in np.flatnonzero([d.endswith(bones) for d in dom]):
+        sel = np.array([d.endswith(bones) for d in dom])
+        if "Tail" in bones:                  # (the rump feathers around the tail stick out too: 2 more rings)
+            for _ in range(2):
+                nb = sel.copy()
+                nb[ed_[:, 0]] |= sel[ed_[:, 1]]
+                nb[ed_[:, 1]] |= sel[ed_[:, 0]]
+                sel = nb
+        for i in np.flatnonzero(sel):
             hid_by[i].add(piece)
 key_of_face = []
 for p in me.polygons:
@@ -570,7 +583,7 @@ for k in list(designed):
     bm.to_mesh(o.data)
     bm.free()
     print("LAYER", k, {key: fkey.count(key) for key in sorted(set(fkey))})
-(D / f"{CHAR}_cloth_chains.json").write_text(json.dumps(
+(D / f"{OUTN}_cloth_chains.json").write_text(json.dumps(
     {"rule": "chain bone j takes, in armature space, slerp(Hips rotation delta, thigh rotation delta, "
              "follow * drape[j]), root first", "drape": DRAPE, "chains": chains}, indent=1))
 
@@ -629,12 +642,12 @@ if abs(zmin) > 0.002:                                  # soles on the floor
 tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells, **layer_parts}.items()}
 visible = tris.get("body", 0) + sum(tris[k] for k in shells)
 report = {"char": CHAR, "mask_faces": stats, "tris": tris, "tris_dressed_visible": visible}
-(D / f"{CHAR}_dress.json").write_text(json.dumps(report, indent=1))
+(D / f"{OUTN}_dress.json").write_text(json.dumps(report, indent=1))
 print("DRESS", json.dumps({"tris_dressed_visible": visible, "body_visible": tris.get("body", 0)}))
-bpy.ops.wm.save_as_mainfile(filepath=str(D / f"{CHAR}_dressed.blend"))
+bpy.ops.wm.save_as_mainfile(filepath=str(D / f"{OUTN}_dressed.blend"))
 bpy.ops.object.select_all(action="SELECT")
 bpy.context.view_layer.objects.active = rig
-out_glb = D / f"{CHAR}_dressed.glb"
+out_glb = D / f"{OUTN}_dressed.glb"
 bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
                           export_tangents=True, export_animations=True, export_animation_mode="NLA_TRACKS",
                           export_yup=True)                      # same settings as make_anims.py (base goose)
@@ -700,7 +713,7 @@ if POSES_ON:
     h, w_, _ = sheet.shape
     img = bpy.data.images.new("sheet", w_, h)
     img.pixels = np.concatenate([sheet[::-1], np.ones((h, w_, 1))], -1).ravel().tolist()
-    img.filepath_raw = str(ROOT / "renders" / f"{CHAR}_dressed_poses.png")
+    img.filepath_raw = str(ROOT / "renders" / f"{OUTN}_dressed_poses.png")
     img.file_format = "PNG"
     img.save()
     print("RENDER", img.filepath_raw)

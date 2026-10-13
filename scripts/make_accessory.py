@@ -102,13 +102,20 @@ dg = bpy.context.evaluated_depsgraph_get()
 body_bvh = BVHTree.FromObject(body, dg)
 
 # ---- height from the extracted piece: its front-most part (the bow / the brooch)
-old = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
-OP = np.array([old.matrix_world @ v.co for v in old.data.vertices])
-bpy.data.objects.remove(old)
-OP = OP[np.abs(OP[:, 0]) < 0.12]
-front = OP[OP[:, 1] < OP[:, 1].min() + 0.012]
-Z0 = float(np.median(front[:, 2]))
-print("ANCHOR z", round(Z0, 4), "front y", round(float(front[:, 1].min()), 4))
+AD = cfg.get("accessory_design", {}).get(PIECE, {})    # measured from the drawing (outfits drawn per garment)
+if "anchor_z" in AD:
+    Z0 = float(AD["anchor_z"])
+    print("ANCHOR z (recipe)", Z0)
+else:
+    old = next(o for o in load(D / "pieces" / f"{PIECE}.glb") if o.type == "MESH")
+    OP = np.array([old.matrix_world @ v.co for v in old.data.vertices])
+    bpy.data.objects.remove(old)
+    OP = OP[np.abs(OP[:, 0]) < 0.12]
+    front = OP[OP[:, 1] < OP[:, 1].min() + 0.012]
+    Z0 = float(np.median(front[:, 2]))
+    print("ANCHOR z", round(Z0, 4), "front y", round(float(front[:, 1].min()), 4))
+for k_, v_ in AD.get("colors", {}).items():
+    COL[k_] = srgb(v_)
 
 under = [body]                                   # draped parts sit on the outermost of these
 for nm in cfg.get("accessory_over", {}).get(PIECE, []):
@@ -260,7 +267,7 @@ parts = []
 info = {"anchor_z": round(Z0, 4), "neck_base_z": round(ZB, 4), "neck_r_base_mm": round(RMIN * 1000, 1)}
 if PIECE == "bowtie":
     Rs = neck_r(math.pi / 2, ZB + 0.01)
-    Hc = 0.95 * Rs                                   # ref: high shirt collar ~ half the neck width
+    Hc = AD.get("collar_h_scale", 0.95) * Rs         # ref: high shirt collar ~ half the neck width
     z_lo, z_hi = ZB - 0.012, ZB + 0.85 * Hc          # tucked under the coat collar at the base
     Z0 = z_lo + 0.33 * Hc                            # bow centre in the collar's lower half (ref)
     R = neck_r(0.0, Z0)
@@ -269,7 +276,7 @@ if PIECE == "bowtie":
     parts.append(band("collar", z_lo, lambda th: z_hi, 0.004, COL["cream_m"],
                       th_range=(gap, 2 * math.pi - gap), nz=3, wrap=False))
     # neck band (black) along the top edge, behind the bow
-    parts.append(band("neckband", z_hi - 0.004, lambda th: z_hi + 0.002, 0.0065, COL["black"], nz=2, solid=0.0015,
+    parts.append(band("neckband", z_hi - 0.004, lambda th: z_hi + 0.002, 0.0065, COL.get("neckband", COL["black"]), nz=2, solid=0.0015,
                       rough=0.45))
     # wing tips: triangles turned down over the collar front
     for s in (1, -1):
@@ -288,8 +295,8 @@ if PIECE == "bowtie":
                        0.006, COL["cream_m"], nth=15, nd=8))       # a V: follows the waistcoat opening
     # bow: centre in front of the collar; width ~ 0.85 x collar width, height ~ 0.53 x width (ref)
     yc = axis_y(Z0)
-    Wb = 0.85 * 2 * Rs
-    Hb = 0.5 * Wb
+    Wb = AD.get("bow_w", 0.85 * 2 * Rs)
+    Hb = AD.get("bow_h_ratio", 0.5) * Wb
     c0 = np.array([0, yc - R - 0.012, Z0])
     up, out = np.array([0, 0, 1.0]), np.array([0, -1.0, 0])
     k = 0.11 * Wb                                   # knot half width
@@ -302,9 +309,9 @@ if PIECE == "bowtie":
             h = Hb * (0.17 + 0.33 * math.sin(u * math.pi / 2) ** 0.8)   # pinched at the knot, flared tips
             t = 0.0055 + 0.0045 * math.sin(math.pi * min(u * 1.3, 1))
             return h, t, (up, out)
-        parts.append(tube(f"bow_{'L' if s > 0 else 'R'}", path, rad, COL["black"], nseg=14, rough=0.4))
+        parts.append(tube(f"bow_{'L' if s > 0 else 'R'}", path, rad, COL.get("bow", COL["black"]), nseg=14, rough=0.55))
     kpath = [c0 + np.array([x, -0.003, 0]) for x in np.linspace(-k, k, 4)]
-    parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL["black"], nseg=14, rough=0.4))
+    parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=0.55))
     info.update({"neck_r_front_side_mm": [round(R * 1000, 1), round(Rs * 1000, 1)], "collar_h_mm": round(Hc * 1000, 1),
                  "bow_w_h_mm": [round(Wb * 1000, 1), round(Hb * 1000, 1)]})
 elif PIECE == "collar":

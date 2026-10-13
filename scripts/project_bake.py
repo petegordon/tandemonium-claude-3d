@@ -40,6 +40,8 @@ TEX = opt("--tex", 2048)
 TAG = opt("--tag", "v1")
 POWER = opt("--power", 2.0)
 SIDE_W = opt("--side-weight", 0.5)
+MATS = [m for m in opt("--mats", "").split(",") if m]      # only these materials (name substrings) take the albedo
+TILE_ONLY = "--tile-only" in argv                          # fabric tile everywhere (small pieces the views barely see)
 INSTALL = "--no-install" not in argv
 D = ROOT / "out" / f"{CHAR}-goose"
 RD = ROOT / "out" / "outfit_male_victorian" / "dressed" / REF
@@ -162,6 +164,8 @@ nt.links.new(acc_w, gw.inputs[2])
 nt.links.new(gw.outputs[0], sel.inputs[2])
 nt.links.new(sel.outputs[0], em.inputs["Color"])
 old_mats = [s.material for s in gar.material_slots]
+mat_idx = np.empty(len(me.polygons), dtype=np.int32)          # (materials.clear() resets every face to slot 0)
+me.polygons.foreach_get("material_index", mat_idx)
 gar.data.materials.clear()
 gar.data.materials.append(mat)
 tgt = nt.nodes.new("ShaderNodeTexImage")
@@ -279,6 +283,9 @@ if FAB:
     fmean = fab[island].mean(0) if island.any() else fab.reshape(-1, 3).mean(0)
     ratio = np.clip(shade / np.maximum(fmean, 1e-3), 0.6, 1.6)          # per channel: the tile takes the local colour
     fab_shaded = np.clip(fab * ratio, 0, 1)
+    if TILE_ONLY:
+        a_ = a_ * 0
+        fab_shaded = np.clip(fab * np.clip(shade / np.maximum(fmean, 1e-3), 0.85, 1.15), 0, 1) if False else fab
     fill = col * a_ + fab_shaded * (1 - a_)
     print("FABRIC layer", FT.name, "projection share", round(float(a_[island].mean()), 3), flush=True)
 out_img = bpy.data.images.new(f"{PIECE}_{TAG}_albedo", TEX, TEX, alpha=False)
@@ -294,12 +301,16 @@ cov_frac = float(covered.mean())
 gar.data.materials.clear()
 for m in old_mats:
     gar.data.materials.append(m)
+me.polygons.foreach_set("material_index", mat_idx)
+me.update()
 for v in VIEWS:
     me.uv_layers.remove(me.uv_layers[f"pv_{v}"])
     me.color_attributes.remove(me.color_attributes[f"w_{v}"])
 alb = bpy.data.images.load(str(VD / f"{PIECE}_{TAG}_albedo.png"))
 for m in old_mats:
     if not (m and m.use_nodes):
+        continue
+    if MATS and not any(k in m.name for k in MATS):
         continue
     bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if bs is None:
@@ -309,7 +320,8 @@ for m in old_mats:
     t = m.node_tree.nodes.new("ShaderNodeTexImage")
     t.image = alb
     m.node_tree.links.new(t.outputs[0], bs.inputs["Base Color"])
-    break                                           # (first material = the cloth; trims / linings keep theirs)
+    if not MATS:
+        break                                       # (first material = the cloth; trims / linings keep theirs)
 bpy.ops.object.select_all(action="DESELECT")
 gar.select_set(True)
 bpy.context.view_layer.objects.active = gar

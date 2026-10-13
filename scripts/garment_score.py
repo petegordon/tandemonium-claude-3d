@@ -95,7 +95,7 @@ for w in WITH:
     if f.exists():
         others += imp(f)
 bo_ = next(o for o in goose if o.name.startswith("base_goose_game"))     # the body as the dressed goose shows it
-body_cover.remove_faces(bo_, body_cover.covered_faces(bo_, gar + others, hide_tail=bool({PIECE, *WITH} & {"breeches", "coat"}),
+body_cover.remove_faces(bo_, body_cover.covered_faces(bo_, [o for o, nm in zip(gar + others, [PIECE] * len(gar) + ["x"] * len(others)) if nm not in ("hat", "bowtie")], hide_tail=bool({PIECE, *WITH} & {"breeches", "coat"}),
                                                      force=body_cover.force_groups([PIECE, *WITH])))
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"

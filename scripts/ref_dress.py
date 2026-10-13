@@ -42,7 +42,8 @@ REAR_FIX = {"bow_tie"}          # (breeches: the 21:08 sheet's rear -- a closed 
                                  #  placed back buttons are dropped below, the fabric layer fills them)
 DROP_BUTTONS = {("breeches", "rear")}
 SKIP = {"bow_tie": {"rear"}}
-HIDES_TAIL = {"jacket"}     # only where the drawing shows the tail through the garment (the jacket's split tails)     # the bow tie's back is only its collar band: modelled around the neck by the builder
+HIDES_TAIL = {"jacket"}
+FEATHER_FREE = {"jacket"}     # only where the drawing shows the tail through the garment (the jacket's split tails)     # the bow tie's back is only its collar band: modelled around the neck by the builder
 
 
 def src_of(g, view):
@@ -185,6 +186,14 @@ for view in ("front", "left", "rear"):  # (front first: it teaches the garment p
         score = float(out.iou_scores.cpu().numpy().ravel()[0])
     else:
         mask, score = np.zeros_like(rm), 0.0
+    if G in FEATHER_FREE:
+        # goose feathers drawn through the garment (the jacket's split tails): dark brown, hue 12-45 deg -- the
+        # burgundy cloth is hue < 12 or > 330, the gold trim is bright
+        hsv_ = np.asarray(Image.fromarray(ref).convert("HSV")).astype(float)
+        h_, s_, v_ = hsv_[..., 0] * 360 / 255, hsv_[..., 1] / 255, hsv_[..., 2] / 255
+        feather = mask & (h_ > 12) & (h_ < 45) & (v_ < 0.50) & (s_ > 0.25)
+        feather = ndimage.binary_opening(feather, iterations=1)
+        mask = mask & ~ndimage.binary_dilation(feather, iterations=2)
     if (G, view) in DROP_BUTTONS:
         # buttons: SMALL blobs that differ from the fabric's main colour (tan and brass are close in hue)
         fab_c = np.median(ref[mask].astype(float), axis=0) / 255
