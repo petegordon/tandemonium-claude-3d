@@ -31,3 +31,32 @@ several versions per garment, several full-body geese per garment, and three ful
 ## Outfits
 `dress_goose.py` layers and skins the chosen shells (masks hide the body under them, tail hidden under breeches and
 jacket); beauty renders front / side / rear / 3-4 on the naked base goose for each of the three outfits.
+
+## Round 3 (2026-10-13): plume, jacket, bow tie, lighting, shirt
+- **Plume** (`make_hat.py` `hat_design.plume.feathers`): three alpha-cut feathers (procedural texture: rachis,
+  slanted barbs in clumps, ragged ends and splits, downy base, brown -> gold) on curved, twisted, V-folded strips fanning
+  from a rimmed, domed brass medallion on the band (`angle_deg` from the front, `face_front` so they read from the front).
+- **Jacket**: the dark shoulder-blade marks were three stacked faults, found one by one with clay / flat-colour /
+  object-ID / back-face renders --
+  1. `make_garment.py` coat/vest clearance: rays from the back by the armpit hit the shirt *sleeve* and pushed the coat
+     out 8 cm into shards -> a hit counts only on a roughly parallel layer (`under_cos`, default 0.5);
+  2. the sleeve and back sheets crossing in the armpit -> `relax_folds.py` (Taubin relax of flipped faces and of
+     `--spheres` regions, kept clear of the body; `--over ""` -- pushing out onto the lumpy shirt re-crumpled it;
+     dress_goose's layer masks hide what the coat covers anyway);
+  3. the coat's normal map still carried the old crumples -> `clean_normal.py` flattens texels tilted > 25 deg
+     (run on coat, shirt, vest, breeches).
+  Plus: `project_bake.py` pads the UV islands (push-pull) before saving, `--lift` swaps broad painted shadows for the
+  fabric tile, `--speck` refills near-black specks; `add_buttons.py` skips blobs seen through an opening (hit facing
+  away). Stray brass dots at the breeches' crotch / inner thighs removed.
+- **Bow tie** (`make_accessory.py`, `accessory_design.bowtie.bow_texture`): butterfly wings + wrapped knot, front-
+  projected from the 4x product shot (`prep_bow_texture.py` crops it and grows the colours over the grey backdrop); the
+  bow keeps its own UVs through the smart-project. Neck band dropped, collar gap 1.5 deg, collar 6 mm off the neck.
+- **Lighting** (`outfit_beauty.py`): seamless cyclorama turning with each view (no horizon, no blown-out floor), floor
+  0.16 grey, key 450, a low kicker, exposure -0.6, rough non-metal materials' specular 0.2 (`--cloth-spec`; the default
+  0.5 laid a white film over the burgundy: rendered (148,85,87) vs the drawing's (89,35,39)).
+- **Shirt**: bishop sleeves (`ease.puff` 0.05 at 1.55 upper-arm lengths, width 0.45; cuff 6 cm). Under the jacket the
+  slim-sleeved shirt is used: `dress_goose.py --variant jacket` takes shells/variants/jacket/* over shells/*. Tucked
+  in: `tuck.push_in` moves shirt vertices with the breeches just behind them inside the breeches (clean waistline
+  instead of a sawtooth of hidden faces); tuck line z_top 0.968, rise 0.67, margin 0.03.
+
+Outfits: `--tag full --variant jacket`, `--tag nojacket --without coat`, `--tag shirtonly --without coat,waistcoat`.

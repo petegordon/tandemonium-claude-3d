@@ -107,39 +107,30 @@ for k in range(NA):
 # brass buckles: small raised rectangles on the band at each side
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
 PL = H.get("plume")
-if PL:                    # plume: a curved feather (a tapered, cambered strip with a midrib) on the band's side
-    sg_ = PL.get("side", 1)
-    base = Vector((cc[0] + sg_ * ca[0] * 1.03, cc[1] + PL.get("y", 0.0), cbase + band_h))
-    L_, W_ = PL.get("length", 0.13), PL.get("width", 0.035)
-    lean = math.radians(PL.get("lean_deg", 25))          # back from vertical
-    out = math.radians(PL.get("out_deg", 18))             # out from the crown
-    curl_ = PL.get("curl", 0.35)
-    NL, NW = 18, 5
-    grid = []
-    for i in range(NL + 1):
-        t = i / NL
-        a_ = lean + curl_ * t * t
-        dirv = Vector((sg_ * math.sin(out) * (1 + t), math.sin(a_), math.cos(a_))).normalized()
-        c_ = base + dirv * (L_ * t)
-        hw = W_ * math.sin(math.pi * min(1.0, t * 1.15)) ** 0.7 * (1 - 0.2 * t) / 2
-        side = Vector((math.cos(out), 0, 0)) if sg_ > 0 else Vector((-math.cos(out), 0, 0))
-        side = side.cross(dirv).normalized()
-        row_ = []
-        for j in range(NW):
-            u = j / (NW - 1) * 2 - 1
-            row_.append(bm.verts.new(c_ + side * hw * u + dirv.cross(side).normalized() * (0.004 * (1 - u * u))))
-        grid.append(row_)
-    for i in range(NL):
-        for j in range(NW - 1):
-            f = bm.faces.new((grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]))
-            f.material_index = 3
-    # medallion: a brass disc at the plume's base
-    res = bmesh.ops.create_cone(bm, cap_ends=True, segments=20, radius1=PL.get("medallion_r", 0.014),
-                                radius2=PL.get("medallion_r", 0.014) * 0.9, depth=0.004)
-    nrm = Vector((sg_, 0, 0))
-    rot = Vector((0, 0, 1)).rotation_difference(nrm).to_matrix()
+
+
+def band_point(PL_):
+    """Point on the band at PL["angle_deg"] from the front toward PL["side"], and the band's outward normal there."""
+    th = math.radians(PL_.get("angle_deg", 90))
+    sg_ = PL_.get("side", 1)
+    px = Vector((cc[0] + sg_ * math.sin(th) * ca[0] * 1.03, cc[1] - math.cos(th) * ca[1] * 1.03, cbase + band_h / 2))
+    n_ = Vector((sg_ * math.sin(th) / ca[0], -math.cos(th) / ca[1], 0)).normalized()
+    return px, n_
+
+
+if PL:                    # the plume's brass medallion: a rimmed disc with a domed boss, on the band
+    mp, mn = band_point(PL)
+    rot = Vector((0, 0, 1)).rotation_difference(mn).to_matrix()
+    r0 = PL.get("medallion_r", 0.016)
+    for rad1, rad2, dep, off in ((r0, r0 * 0.92, 0.003, 0.0015), (r0 * 0.8, r0 * 0.78, 0.0016, 0.0035)):
+        res = bmesh.ops.create_cone(bm, cap_ends=True, segments=24, radius1=rad1, radius2=rad2, depth=dep)
+        for v in res["verts"]:
+            v.co = rot @ (v.co + Vector((0, 0, off))) + mp
+        for f in {f for v in res["verts"] for f in v.link_faces}:
+            f.material_index = 2
+    res = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=1.0)
     for v in res["verts"]:
-        v.co = rot @ v.co + Vector((cc[0] + sg_ * ca[0] * 1.06, cc[1] + PL.get("y", 0.0), cbase + band_h / 2))
+        v.co = rot @ Vector((v.co.x * r0 * 0.42, v.co.y * r0 * 0.42, v.co.z * 0.004 + 0.0045)) + mp
     for f in {f for v in res["verts"] for f in v.link_faces}:
         f.material_index = 2
 for sg in ((1, -1) if H.get("buckles", True) else ()):
@@ -174,6 +165,119 @@ bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.select_all(action="SELECT")
 bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.01)
 bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def feather_texture(seed, W=256, Hh=640):
+    """RGBA feather (v: base -> tip, u: across, rachis at u=0.5): a tapered vane of slanted barbs in clumps with
+    ragged ends and a few splits, a downy base, a cream rachis; brown near the rachis to gold at the edges."""
+    rng = np.random.default_rng(seed)
+    v = (np.arange(Hh)[:, None] + 0.5) / Hh
+    u = (np.arange(W)[None, :] + 0.5) / W
+    sx = u - 0.5
+    d = np.abs(sx) * 2                                           # 0 at the rachis, 1 at the strip edge
+    hw = 0.96 * np.sin(np.pi * np.clip((v - 0.05) / 1.0, 0, 1)) ** 0.5 * (1 - 0.18 * v)
+    hw = np.where(v < 0.07, 0.0, hw) * np.where(sx < 0, 0.82, 1.0)   # bare quill at the base; asymmetric vane
+    p = v - d * 0.22                                             # barb coordinate (barbs sweep toward the tip)
+    NC = 46
+    ci = np.clip((p * NC).astype(int) + 60, 0, NC + 120)
+    side = (sx > 0).astype(int)
+    reach = rng.uniform(0.72, 1.02, (NC + 121, 2))[ci, side]       # ragged clump ends
+    split = rng.random((NC + 121, 2))[ci, side] < 0.28
+    fr = (p * NC) % 1.0
+    gap = split & (fr < 0.16) & (d > 0.18)
+    a = (d < hw * reach) & ~gap
+    down = (v < 0.16) & (d < hw * 1.1)                            # fluffy afterfeather near the base
+    a = np.where(v < 0.16, down & (rng.random((Hh, W)) < 0.5 + 4.0 * (v - 0.07)), a)
+    t = np.clip(d / np.maximum(hw, 1e-3), 0, 1)
+    brown, gold, pale = np.array([96, 60, 30.0]), np.array([212, 158, 78.0]), np.array([238, 206, 140.0])
+    col = brown + (gold - brown) * (t ** 0.6)[..., None]
+    col = col + (pale - col) * (np.clip((v - 0.55) / 0.45, 0, 1) * 0.55 * t)[..., None]
+    col *= (0.82 + 0.18 * (0.5 + 0.5 * np.sin(p * 2 * np.pi * 260)))[..., None]   # individual barbs
+    col *= rng.uniform(0.86, 1.1, (NC + 121, 2))[ci, side][..., None]
+    rach = np.abs(sx) < 0.016 * (1 - 0.65 * v) + 0.003
+    col = np.where(rach[..., None], np.array([226, 204, 160.0]), col)
+    a = a | (rach & (v < 0.985))
+    rgba = np.concatenate([np.clip(col, 0, 255) / 255.0, a[..., None].astype(float)], -1)
+    im = bpy.data.images.new(f"feather_{seed}", W, Hh, alpha=True)
+    im.pixels = rgba.ravel().tolist()                            # row 0 = v=0 (the base)
+    im.filepath_raw = str(OUT / f"_feather_{seed}.png")
+    im.file_format = "PNG"
+    im.save()
+    im.pack()
+    return im
+
+
+if PL:
+    mp, mn = band_point(PL)
+    up = Vector((0, 0, 1))
+    rear = up.cross(mn).normalized() * PL.get("side", 1)          # along the band, toward the back
+    if rear.y < 0:
+        rear = -rear
+    fm = bpy.data.materials.new(f"{CHAR}_hat_feather")
+    fm.use_nodes = True
+    fm.use_backface_culling = False
+    fm.surface_render_method = "DITHERED"
+    nt = fm.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.62
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = feather_texture(7)
+    rnd = nt.nodes.new("ShaderNodeMath")
+    rnd.operation = "ROUND"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], rnd.inputs[0])
+    nt.links.new(rnd.outputs[0], bsdf.inputs["Alpha"])
+    fb = bmesh.new()
+    uvl = fb.loops.layers.uv.new("UVMap")
+    NL, NW = 28, 7
+    for fi, F in enumerate(PL["feathers"]):
+        L_, W_ = F["length"], F["width"]
+        tilt, curl_ = math.radians(F["tilt_deg"]), math.radians(F["curl_deg"])
+        az = math.radians(F["azimuth_deg"])                     # 0: out from the band, 90: toward the back
+        hdir = (mn * math.cos(az) + rear * math.sin(az)).normalized()
+        base = mp + mn * 0.003 + up * F.get("base_dz", 0.006) + rear * F.get("base_back", 0.0)
+        c_ = base.copy()
+        rows = []
+        for i in range(NL + 1):
+            t = i / NL
+            a_ = tilt + curl_ * t ** 1.6
+            dirv = (up * math.cos(a_) + hdir * math.sin(a_)).normalized()
+            if i:
+                c_ = c_ + dirv * (L_ / NL)
+            face_n = (mn * 0.6 + hdir * 0.4 + Vector((0, -1, 0)) * PL.get("face_front", 0.0)).normalized()
+            sd = dirv.cross(face_n).normalized()
+            tw = math.radians(F.get("twist_deg", 0)) * t
+            sd = (sd * math.cos(tw) + dirv.cross(sd) * math.sin(tw)).normalized()
+            nrm = sd.cross(dirv).normalized()
+            env = 0.35 + 0.65 * min(1.0, t / 0.18)
+            hw = W_ / 2 * env
+            row_ = []
+            for j in range(NW):
+                uu = j / (NW - 1) * 2 - 1
+                fold = F.get("fold", 0.25) * hw * abs(uu) + 0.004 * math.sin(math.pi * t) * uu * uu
+                row_.append((fb.verts.new(c_ + sd * hw * uu + nrm * fold), ((uu + 1) / 2, t)))
+            rows.append(row_)
+        for i in range(NL):
+            for j in range(NW - 1):
+                q = (rows[i][j], rows[i][j + 1], rows[i + 1][j + 1], rows[i + 1][j])
+                f = fb.faces.new([x[0] for x in q])
+                for lp, (_, uv) in zip(f.loops, q):
+                    lp[uvl].uv = uv
+    fme = bpy.data.meshes.new("feathers")
+    fb.to_mesh(fme)
+    fb.free()
+    fme.materials.append(fm)
+    for pg in fme.polygons:
+        pg.use_smooth = True
+    fo = bpy.data.objects.new("feathers", fme)
+    sc0 = bpy.context.scene
+    sc0.collection.objects.link(fo)
+    me.uv_layers[0].name = "UVMap"
+    bpy.ops.object.select_all(action="DESELECT")
+    fo.select_set(True)
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.join()
 tris = sum(len(p.vertices) - 2 for p in me.polygons)
 OUT.mkdir(exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=str(OUT / "hat.glb"), use_selection=True, export_format="GLB")

@@ -40,6 +40,8 @@ TEX = opt("--tex", 2048)
 TAG = opt("--tag", "v1")
 POWER = opt("--power", 2.0)
 SIDE_W = opt("--side-weight", 0.5)
+LIFT = opt("--lift", 0.0)       # > 0: broad areas darker than LIFT x the cloth's median turn to the (median-shaded)
+                                # fabric tile -- shadows painted into the drawing (arm shadow on the flank, shoulder blades)
 MATS = [m for m in opt("--mats", "").split(",") if m]      # only these materials (name substrings) take the albedo
 TILE_ONLY = "--tile-only" in argv                          # fabric tile everywhere (small pieces the views barely see)
 INSTALL = "--no-install" not in argv
@@ -288,6 +290,29 @@ if FAB:
         fab_shaded = np.clip(fab * np.clip(shade / np.maximum(fmean, 1e-3), 0.85, 1.15), 0, 1) if False else fab
     fill = col * a_ + fab_shaded * (1 - a_)
     print("FABRIC layer", FT.name, "projection share", round(float(a_[island].mean()), 3), flush=True)
+    if LIFT > 0:
+        lum = fill @ np.array([0.2126, 0.7152, 0.0722])
+        med = np.median(lum[island])
+        mcol = np.median(fill[island], 0)
+        def box(a, r):                   # separable box blur (an integral image along each axis)
+            for ax in (0, 1):
+                c_ = np.cumsum(np.pad(a, [(r + 1, r) if k == ax else (0, 0) for k in range(a.ndim)], mode="edge"), ax)
+                a = (np.take(c_, range(2 * r + 1, c_.shape[ax]), ax) - np.take(c_, range(0, c_.shape[ax] - 2 * r - 1), ax)) / (2 * r + 1)
+            return a
+        broad = box(box(lum, 6), 6)      # broad darkness only: fine dark lines (embroidery) average out with the gold
+        dark = np.clip((LIFT * med - broad) / (0.25 * LIFT * med), 0, 1) * island
+        dark = box(dark, 4)
+        fab_med = np.clip(fab * (mcol / np.maximum(fmean, 1e-3)), 0, 1)
+        fill = fill * (1 - dark[..., None]) + fab_med * dark[..., None]
+        print("LIFT texels", int((dark > 0.5).sum()), "median lum", round(float(med), 3), flush=True)
+# pad the islands: the texels outside them were black, and texture filtering / mipmaps bled that black into the
+# cloth along every UV seam (dark marks on the jacket's shoulders); push-pull carries the island colours outward
+# near-black specks inside the cloth (shadow pixels of the drawing, unseen texels): holes, refilled from around
+lum_ = fill @ np.array([0.2126, 0.7152, 0.0722])
+specks = island & (lum_ < opt("--speck", 0.2) * np.median(lum_[island]))
+fill = np.where(specks[..., None], pushpull(fill, island & ~specks), fill)
+print("SPECKS filled", int(specks.sum()), flush=True)
+fill = pushpull(fill, island)
 out_img = bpy.data.images.new(f"{PIECE}_{TAG}_albedo", TEX, TEX, alpha=False)
 lin = np.clip(fill, 0, 1)
 srgb = np.where(lin <= 0.0031308, lin * 12.92, 1.055 * lin ** (1 / 2.4) - 0.055)

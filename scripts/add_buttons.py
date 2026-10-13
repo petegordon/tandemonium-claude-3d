@@ -107,7 +107,9 @@ for view in VIEWS:
         rad = math.sqrt(len(comp) / math.pi) / PPM * RSCALE
         p = TGT + R * (xc - W0 / 2) / PPM - U * (yc - H0 / 2) / PPM
         hit = GB.ray_cast(Vector(p + B * 3.0), Vector(-B), 6.0)
-        if hit[0] is None:
+        # a blob seen through an opening (the vest's buttons in the coat's open front) hits the garment's inside
+        # at the back, facing away: not this garment's button
+        if hit[0] is None or np.dot(np.array(hit[1][:]), B) < 0.2:
             continue
         found.append((np.array(hit[0][:]), np.array(hit[1][:]), rad, view))
 for spec in [s for s in opt("--extra", "").split(";") if s]:

@@ -53,7 +53,7 @@
    "back_rise": 0.3,
    "rise_y0": -0.1,
    "tris": 3200,
-   "cuff": 0.05,
+   "cuff": 0.06,
    "wrist_offset": 0.0,
    "cover_margin": 0.012,
    "ease": {
@@ -63,9 +63,10 @@
     "cuff": 0.005,
     "neck": 0.003,
     "hem": 0.003,
-    "puff": 0.0,
-    "puff_at": 0.6,
-    "puff_w": 0.35
+    "puff": 0.05,
+    "puff_at": 1.55,
+    "puff_w": 0.45,
+    "puff_armw": 0.3
    },
    "mottle": 0.05,
    "twill": 0.05,
@@ -90,11 +91,13 @@
    },
    "tuck": {
     "into": "breeches",
-    "z_top": 0.96,
-    "rise": 0.3,
+    "z_top": 0.968,
+    "rise": 0.67,
     "y0": -0.1,
-    "margin": 0.022,
-    "hide": true
+    "margin": 0.03,
+    "hide": true,
+    "push_in": 0.045,
+    "push_depth": 0.004
    },
    "hem_zone": 0.14,
    "cuff_clear": 0.007,
@@ -286,7 +289,8 @@
    "under_max": 0.075,
    "thickness": 0,
    "offset_smooth": 12,
-   "armpit_relax": 0
+   "armpit_relax": 30,
+   "base_smooth": 40
   },
   "gloves": {
    "kind": "glove",
@@ -388,7 +392,7 @@
    0.122
   ],
   "brim_z": 1.632,
-  "curl": 0.02,
+  "curl": 0.03,
   "crown_c": [
    0.0,
    -0.058
@@ -432,25 +436,51 @@
   ],
   "plume": {
    "side": 1,
-   "y": 0.0,
-   "length": 0.16,
-   "width": 0.055,
-   "lean_deg": 20,
-   "out_deg": 12,
-   "curl": 0.5,
-   "color": [
-    205,
-    145,
-    70
+   "angle_deg": 55,
+   "medallion_r": 0.016,
+   "feathers": [
+    {
+     "length": 0.185,
+     "width": 0.064,
+     "tilt_deg": 4,
+     "curl_deg": 30,
+     "azimuth_deg": 70,
+     "twist_deg": 20,
+     "base_dz": 0.006,
+     "fold": 0.3
+    },
+    {
+     "length": 0.165,
+     "width": 0.06,
+     "tilt_deg": 18,
+     "curl_deg": 32,
+     "azimuth_deg": 35,
+     "twist_deg": -15,
+     "base_dz": 0.004,
+     "base_back": 0.003,
+     "fold": 0.28
+    },
+    {
+     "length": 0.15,
+     "width": 0.056,
+     "tilt_deg": 26,
+     "curl_deg": 28,
+     "azimuth_deg": 95,
+     "twist_deg": 10,
+     "base_dz": 0.002,
+     "base_back": 0.006,
+     "fold": 0.25
+    }
    ],
-   "medallion_r": 0.015
+   "face_front": 0.7
   }
  },
  "accessory_clear": {},
  "accessory_split": {},
  "accessory_drop": {
   "bowtie": [
-   "shirtfront"
+   "shirtfront",
+   "neckband"
   ]
  },
  "boot_design": {
@@ -571,7 +601,7 @@
   "bowtie": {
    "anchor_z": 1.265,
    "bow_w": 0.17,
-   "bow_h_ratio": 0.52,
+   "bow_h_ratio": 0.571,
    "collar_h_scale": 1.05,
    "colors": {
     "bow": [
@@ -584,7 +614,13 @@
      54,
      40
     ]
-   }
+   },
+   "bow_texture": "refs/outfit_male_victorian/bow_tie/prepped/bow_texture.png",
+   "knot_w": 0.16,
+   "knot_h": 0.47,
+   "collar_gap_deg": 1.5,
+   "collar_off": 0.006,
+   "bow_rough": 0.72
   }
  }
 }

@@ -51,6 +51,14 @@ POSES_ON = "--no-poses" not in argv
 WITHOUT = set(argv[argv.index("--without") + 1].split(",")) if "--without" in argv else set()   # garments left off
 TAG = argv[argv.index("--tag") + 1] if "--tag" in argv else ""          # outputs <char>_<tag>_dressed.* etc.
 OUTN = f"{CHAR}_{TAG}" if TAG else CHAR
+VARIANT = argv[argv.index("--variant") + 1] if "--variant" in argv else ""   # shells/variants/<name>/ files
+
+
+def SH(name):
+    """A shells/ file, or its override in shells/variants/<VARIANT>/ (e.g. the slim-sleeved shirt under the coat)."""
+    if VARIANT and (D / "shells" / "variants" / VARIANT / name).exists():
+        return D / "shells" / "variants" / VARIANT / name
+    return D / "shells" / name
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "out" / f"{CHAR}-goose"
 MASK_D = 0.06
@@ -120,7 +128,7 @@ if T and not LATE:
 
 # ---- shells
 shells = {}
-for f in sorted((D / "shells").glob("*.glb")):
+for f in [SH(f_.name) for f_ in sorted((D / "shells").glob("*.glb"))]:
     if f.stem.split("@")[0] in WITHOUT:
         continue
     before = set(bpy.context.scene.objects)
@@ -132,7 +140,7 @@ for f in sorted((D / "shells").glob("*.glb")):
     o.name = f.stem
     shells[f.stem] = o
 # modelled accessories (make_accessory.py) clear the old fragments other shells kept around them
-for f in sorted((D / "shells").glob("*.json")):
+for f in [SH(f_.name) for f_ in sorted((D / "shells").glob("*.json"))]:
     spec = json.loads(f.read_text()).get("clear")
     if not spec or f.stem not in shells:
         continue
@@ -181,7 +189,7 @@ hid_by = [set() for _ in range(len(V))]
 # (below the waist line by "margin", arms excluded) and take no part in the ray masks
 designed = {}
 for k in shells:
-    jf = D / "shells" / f"{k}.json"
+    jf = SH(f"{k}.json")
     meta_ = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     if meta_.get("covers_file") or meta_.get("covers"):
         designed[k] = meta_
@@ -189,7 +197,7 @@ domv = np.array(names)[W.argmax(1)]
 armv = np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in domv])
 for k, meta_ in designed.items():
     if meta_.get("covers_file"):                   # exact covered body vertices (by rest position)
-        cp = np.load(D / "shells" / meta_["covers_file"])["pos"]
+        cp = np.load(SH(meta_["covers_file"]))["pos"]
         kdc = KDTree(len(cp))
         for i_, q_ in enumerate(cp):
             kdc.insert(Vector(q_), i_)
@@ -287,10 +295,10 @@ for k, o in shells.items():
     d = np.array([sb.find_nearest(Vector(x))[3] for x in X])
     legw = Wv[:, [names.index(n) for n in leg]].sum(1)
     tl = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
-    jf = D / "shells" / f"{k}.json"
+    jf = SH(f"{k}.json")
     meta = json.loads(jf.read_text(encoding="utf-8")) if jf.exists() else {}
     if meta.get("weights"):          # designed garment: the body's own weights, matched by position
-        wz = np.load(D / "shells" / meta["weights"])
+        wz = np.load(SH(meta["weights"]))
         kdw = KDTree(len(wz["pos"]))
         for i_, q_ in enumerate(wz["pos"]):
             kdw.insert(Vector(q_), i_)
@@ -304,10 +312,10 @@ for k, o in shells.items():
         legw = Wv[:, [names.index(n) for n in leg]].sum(1)
         tl = np.clip((d - LOOSE_D0) / (LOOSE_D1 - LOOSE_D0), 0, 1) * (legw > 0.5) * (k in LOOSE_PIECES)
         tk = meta.get("tuck")
-        if tk and (D / "shells" / f"{tk['into']}_weights.npz").exists():
+        if tk and (SH(f"{tk['into']}_weights.npz")).exists():
             # below the outer garment's waist line the tucked part takes that garment's weights, blended
             # over 4 cm, so the waistband and the tuck move together (riding: no gap, no untucking)
-            wo = np.load(D / "shells" / f"{tk['into']}_weights.npz")
+            wo = np.load(SH(f"{tk['into']}_weights.npz"))
             kdo = KDTree(len(wo["pos"]))
             for i_, q_ in enumerate(wo["pos"]):
                 kdo.insert(Vector(q_), i_)
@@ -323,7 +331,7 @@ for k, o in shells.items():
             Wv /= np.maximum(Wv.sum(1, keepdims=True), 1e-9)
             print("TUCK", k, "->", tk["into"], int((f_ > 0).sum()), "verts")
         for outer in ():                                 # (moved to pass C: final weights)
-            wjf = D / "shells" / f"{outer}_weights.npz"
+            wjf = SH(f"{outer}_weights.npz")
             if outer not in shells or not wjf.exists():
                 continue
             wo = np.load(wjf)
@@ -440,7 +448,7 @@ for k, o in sorted(shells.items(), key=lambda kv: LAYER_RANK.get(kv[0], 9)):
     ed = np.array([e.vertices[:] for e in o.data.edges])
     deg = np.maximum(np.bincount(ed.ravel(), minlength=len(Wv)), 1)[:, None]
     ws = WEIGHT_SMOOTH
-    jf = D / "shells" / f"{k}.json"
+    jf = SH(f"{k}.json")
     if jf.exists():
         ws = json.loads(jf.read_text(encoding="utf-8")).get("weight_smooth", ws)   # designed garments: more
     for _ in range(ws):
@@ -527,6 +535,22 @@ for k in list(designed):
             if b.ray_cast(p_ + n_ * 0.0005, n_, LAYER_D)[0] is not None or                     b.ray_cast(p_ - n_ * 0.0005, -n_, LAYER_IN)[0] is not None:     # (or poking through it)
                 vk[v.index].add(s)
     tk = designed[k].get("tuck")
+    if tk and tk.get("push_in", 0) and tk["into"] in sbvh:
+        # tuck in: below the tuck line (+ push_in above it) a vertex with the outer garment just behind it (the
+        # shirt's back over the breeches' high waist) moves inside it, so the outer garment's clean top edge makes
+        # the waistline instead of a sawtooth cut of hidden faces
+        bo_ = sbvh[tk["into"]]
+        moved_ = 0
+        for v in o.data.vertices:
+            line_ = tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]
+            if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < line_ + tk["push_in"]:
+                n_ = v.normal
+                hit = bo_.ray_cast(v.co + n_ * 0.0005, -n_, 0.03)
+                if hit[0] is not None and hit[1].dot(n_) > 0.3:
+                    v.co = hit[0] - hit[1] * tk.get("push_depth", 0.004)
+                    moved_ += 1
+        o.data.update()
+        print("TUCK IN", k, moved_, "verts inside", tk["into"])
     if tk and tk.get("hide", False) and tk["into"] in shells:   # (off: the tuck moves with the outer garment)
         for v in o.data.vertices:
             if abs(v.co.x) < tk.get("x_max", 0.2) and v.co.z < tk["z_top"] + tk["rise"] * (v.co.y - tk["y0"]) - tk["margin"]:   # torso only (not the hanging sleeves)

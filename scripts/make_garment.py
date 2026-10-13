@@ -1011,7 +1011,9 @@ if KIND == "coat":
         ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
         for i, (p_, n_) in enumerate(zip(P, N)):
             hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.1)
-            if hit[0] is not None:
+            # a layer beneath lies roughly parallel; a hit at a grazing angle is the side of a sleeve (the back by
+            # the armpit pushed out 8 cm into shards)
+            if hit[0] is not None and abs(hit[1].dot(Vector(n_))) > R.get("under_cos", 0.5):
                 under[i] = max(under[i], hit[3] - 0.01)
         bpy.data.objects.remove(uo)
     # (the cap is for the sleeves: rays from the armpit hit the shirt sleeve; the torso takes the full depth)
@@ -1034,7 +1036,9 @@ if KIND == "vest":
         ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
         for i, (p_, n_) in enumerate(zip(P, N)):
             hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.09)
-            if hit[0] is not None:
+            # a layer beneath lies roughly parallel; a hit at a grazing angle is the side of a sleeve (the back by
+            # the armpit pushed out 8 cm into shards)
+            if hit[0] is not None and abs(hit[1].dot(Vector(n_))) > R.get("under_cos", 0.5):
                 under[i] = max(under[i], hit[3] - 0.01)
         bpy.data.objects.remove(uo)
     need = np.minimum(under, E.get("under_max", 0.03)) + E.get("clear", 0.005)   # (rays that hit a sleeve)

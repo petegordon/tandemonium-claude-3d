@@ -251,6 +251,93 @@ def tube(name, path, rad_fn, color, nseg=12, caps=True, **kw):
     return mesh_obj(name, vs, faces, color, **kw)
 
 
+def textured_bow(c0, Wb, Hb, tex_path, AD):
+    """Butterfly bow tie as in the product shot (front view = the texture, 1.75 : 1): two wings, each a slab
+    narrow at the knot (KNOT_H x the height) flaring to the full height at the rounded tips, puffed in the middle
+    and pleated near the knot, the tips bending back toward the neck; a wrapped knot band over the centre. Every
+    vertex's UV is its front-view position in the bow's bounding box (front projection; the backs mirror it)."""
+    up, out = np.array([0, 0, 1.0]), np.array([0, -1.0, 0])
+    KX = AD.get("knot_w", 0.16) / 2 * Wb          # knot half width (texture: 0.42 .. 0.58 of the width)
+    KH = AD.get("knot_h", 0.47)                   # wing height at the knot / full height
+    NU, NS = 22, 28
+    obs = []
+
+    def uv_of(p):
+        return ((p[0] - (c0[0] - Wb / 2)) / Wb, (p[2] - (c0[2] - Hb / 2)) / Hb)
+
+    def section(ra, rb, n=3.0):
+        out_ = []
+        for kk in range(NS):
+            a = 2 * math.pi * kk / NS
+            sa, ca_ = math.sin(a), math.cos(a)
+            out_.append((ra * math.copysign(abs(sa) ** (2 / n), sa), rb * math.copysign(abs(ca_) ** (2 / n), ca_)))
+        return out_
+
+    def build(name, rings, color_tex):
+        vs, faces = [], []
+        for ring in rings:
+            vs.extend(ring)
+        nr = len(rings)
+        for i in range(nr - 1):
+            for kk in range(NS):
+                a, b = i * NS + kk, i * NS + (kk + 1) % NS
+                faces.append((a, b, b + NS, a + NS))
+        for i, rev in ((0, True), (nr - 1, False)):
+            vs.append(np.mean(rings[i], 0))
+            ci = len(vs) - 1
+            for kk in range(NS):
+                a, b = i * NS + kk, i * NS + (kk + 1) % NS
+                faces.append((ci, b, a) if rev else (ci, a, b))
+        o = mesh_obj(name, vs, faces, (0.4, 0.08, 0.08, 1), rough=AD.get("bow_rough", 0.5))
+        me = o.data
+        uvl = me.uv_layers.new(name="UVMap")
+        for lp in me.loops:
+            uvl.data[lp.index].uv = uv_of(me.vertices[lp.vertex_index].co)
+        mat = me.materials[0]
+        nt = mat.node_tree
+        tx = nt.nodes.new("ShaderNodeTexImage")
+        tx.image = color_tex
+        tx.extension = "EXTEND"
+        bs = nt.nodes["Principled BSDF"]
+        nt.links.new(tx.outputs["Color"], bs.inputs["Base Color"])
+        if "Sheen Weight" in bs.inputs:           # silk (a white sheen veiled the burgundy pale pink: keep it low)
+            bs.inputs["Sheen Weight"].default_value = AD.get("bow_sheen", 0.0)
+        return o
+
+    img = bpy.data.images.load(str(tex_path))
+    img.pack()
+    for sgn in (1, -1):
+        rings = []
+        for i in range(NU + 1):
+            u = i / NU
+            x = KX * 0.7 + (Wb / 2 - KX * 0.7) * u
+            # height: pinched at the knot, full at the tip; the last 12 % rounds the tip's corners
+            hh = Hb * (KH + (1 - KH) * u ** 0.85) / 2
+            tipr = 1.0 if u < 0.88 else math.sqrt(max(1 - ((u - 0.88) / 0.12) ** 2, 0.0)) * 0.85 + 0.15
+            tk = (0.006 + 0.007 * math.sin(math.pi * min(u * 1.25, 1.0))) * (0.6 + 0.4 * tipr)
+            zc = c0[2] - 0.06 * Hb * (1 - u)              # the wing centre sits a little low at the knot
+            yc = c0[1] + AD.get("bow_back", 0.012) * u * u + 0.003 * u     # tips bend back toward the neck
+            ring = []
+            for ra, rb in section(hh * (0.75 + 0.25 * tipr) if u >= 0.88 else hh, tk):
+                zz = ra
+                pleat = 0.0022 * (1 - u) ** 1.5 * math.cos(3 * math.pi * zz / max(hh, 1e-6))   # folds at the knot
+                ring.append(np.array([sgn * x, yc - rb - pleat * (rb < 0), zc + zz]))
+            rings.append(ring)
+        if sgn < 0:
+            rings = rings                                     # (faces wind the other way: normals fixed on join)
+        obs.append(build(f"bow_{'L' if sgn > 0 else 'R'}", rings, img))
+    # knot: a wrapped band, a little proud of the wings, rounded front
+    rings = []
+    for i in range(7):
+        x = -KX + 2 * KX * i / 6
+        ring = []
+        for ra, rb in section(Hb * AD.get("knot_band_h", 0.52) / 2, 0.011, n=2.6):
+            ring.append(np.array([x, c0[1] - 0.004 - rb * (1.15 if rb < 0 else 0.6), c0[2] - 0.035 * Hb + ra]))
+        rings.append(ring)
+    obs.append(build("knot", rings, img))
+    return obs
+
+
 def neck_base(z_from):
     """Neck base: lowest height above z_from - 6 cm where the side radius stops flaring, i.e. it
     shrinks by less than 0.4 mm per mm going up (below: the shoulders)."""
@@ -272,8 +359,9 @@ if PIECE == "bowtie":
     Z0 = z_lo + 0.33 * Hc                            # bow centre in the collar's lower half (ref)
     R = neck_r(0.0, Z0)
     gap = math.radians(4)
+    gap = math.radians(AD.get("collar_gap_deg", 4))
     # collar band: open at the front (tips fold down there)
-    parts.append(band("collar", z_lo, lambda th: z_hi, 0.004, COL["cream_m"],
+    parts.append(band("collar", z_lo, lambda th: z_hi, AD.get("collar_off", 0.004), COL["cream_m"],
                       th_range=(gap, 2 * math.pi - gap), nz=3, wrap=False))
     # neck band (black) along the top edge, behind the bow
     parts.append(band("neckband", z_hi - 0.004, lambda th: z_hi + 0.002, 0.0065, COL.get("neckband", COL["black"]), nz=2, solid=0.0015,
@@ -300,7 +388,10 @@ if PIECE == "bowtie":
     c0 = np.array([0, yc - R - 0.012, Z0])
     up, out = np.array([0, 0, 1.0]), np.array([0, -1.0, 0])
     k = 0.11 * Wb                                   # knot half width
-    for s in (1, -1):
+    TEX = AD.get("bow_texture")
+    if TEX:
+        parts.extend(textured_bow(c0, Wb, Hb, ROOT / TEX, AD))
+    for s in (1, -1) if not TEX else ():
         us = np.linspace(0, 1, 9)
         path = [c0 + np.array([s * (k * 0.6 + u * (Wb / 2 - k * 0.6)), 0.004 * u, -0.06 * Hb * u]) for u in us]
 
@@ -311,7 +402,8 @@ if PIECE == "bowtie":
             return h, t, (up, out)
         parts.append(tube(f"bow_{'L' if s > 0 else 'R'}", path, rad, COL.get("bow", COL["black"]), nseg=14, rough=0.55))
     kpath = [c0 + np.array([x, -0.003, 0]) for x in np.linspace(-k, k, 4)]
-    parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=0.55))
+    if not TEX:
+        parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=0.55))
     info.update({"neck_r_front_side_mm": [round(R * 1000, 1), round(Rs * 1000, 1)], "collar_h_mm": round(Hc * 1000, 1),
                  "bow_w_h_mm": [round(Wb * 1000, 1), round(Hb * 1000, 1)]})
 elif PIECE == "collar":
@@ -393,8 +485,20 @@ for g, obs in groups.items():
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    keep_uv = {i for i, m in enumerate(acc.data.materials) if m and m.node_tree and
+               any(n.type == "TEX_IMAGE" for n in m.node_tree.nodes)}          # textured bow: front-projected UVs
+    uvd = acc.data.uv_layers.active.data if acc.data.uv_layers else None
+    saved = {lp: tuple(uvd[lp].uv) for p_ in acc.data.polygons if p_.material_index in keep_uv
+             for lp in p_.loop_indices} if uvd is not None else {}
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.01)
     bpy.ops.object.mode_set(mode="OBJECT")
+    if saved:          # (selecting only the other faces did not hold: put the bow's front projection back)
+        uvd = acc.data.uv_layers.active.data
+        for lp, uv in saved.items():
+            uvd[lp].uv = uv
     tris = sum(len(p_.vertices) - 2 for p_ in acc.data.polygons)
     report = {"char": CHAR, "piece": g, "tris": tris, "source": "make_accessory.py (modelled)", "parts": names_g, **info}
     mine = [n for n in (clear or {}).get("parts", []) if n in names_g]
