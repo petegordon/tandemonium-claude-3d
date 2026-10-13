@@ -2,6 +2,7 @@
 colour, for the image generator to dress ("add the garment; keep the blue body and the background unchanged").
 
   blender -b --factory-startup --python scripts/key_views.py -- [--color 0,0.55,1] [--px 1536] [--out refs/key_views]
+      [--with out/outfit_male-goose/shells/coat.glb,...]   (self-test: known garments over the key body)
 
 Everything that is not the key hue in the dressed image is garment: an exact mask in a calibrated view of OUR body
 (same pose, proportions, cameras), so it projects straight back onto the body, and silhouette-to-silhouette
@@ -45,6 +46,8 @@ body.data.materials.clear()
 body.data.materials.append(mat)
 for p in body.data.polygons:
     p.material_index = 0
+for path in [x for x in opt("--with", "").split(",") if x]:     # self-test: real shells (their own materials)
+    bpy.ops.import_scene.gltf(filepath=str(ROOT / path))
 sc = bpy.context.scene
 sc.render.engine = "BLENDER_EEVEE"
 sc.view_settings.view_transform = "Standard"
