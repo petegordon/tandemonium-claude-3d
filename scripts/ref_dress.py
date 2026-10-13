@@ -39,12 +39,34 @@ G = a.garment
 OUT = g2.ROOT / "out" / "outfit_male_victorian" / "dressed" / G
 OUT.mkdir(parents=True, exist_ok=True)
 REAR_FIX = {"bow_tie", "breeches"}
+SKIP = {"bow_tie": {"rear"}}     # the bow tie's back is only its collar band: modelled around the neck by the builder
 
 
 def src_of(g, view):
     if view == "rear":
         return g2.WORN / g / ("rear_raw.png" if g in REAR_FIX else "rear_v2_raw.png")
     return g2.WORN / g / f"{view}_raw.png"
+
+
+PALETTE = None        # the garment's colours, learned from its front-view mask (k-means), used by the other views
+
+
+def palette_of(img, mask, k=6):
+    px = img[mask].reshape(-1, 3).astype(float) / 255
+    rng = np.random.default_rng(0)
+    if len(px) > 20000:
+        px = px[rng.choice(len(px), 20000, replace=False)]
+    c = px[rng.choice(len(px), k, replace=False)]
+    for _ in range(25):
+        lab = ((px[:, None] - c[None]) ** 2).sum(-1).argmin(1)
+        c = np.array([px[lab == i].mean(0) if (lab == i).any() else c[i] for i in range(k)])
+    w = np.bincount(lab, minlength=k) / len(lab)
+    return c[w > 0.02]
+
+
+def pal_dist(img):
+    px = img.astype(float) / 255
+    return np.sqrt(((px[..., None, :] - PALETTE[None, None]) ** 2).sum(-1)).min(-1)
 
 
 def keep_seeded(mask, seeds):
@@ -61,7 +83,7 @@ model = Sam2Model.from_pretrained(a.model, torch_dtype=torch.float32).to(dev).ev
 
 report = {"garment": G, "views": {}}
 tiles = []
-for view in ("front", "left", "rear"):
+for view in ("front", "left", "rear"):  # (front first: it teaches the garment palette)
     bm = pw.body_model(view)
     s0, tx0, ty0 = bm["cp"]["sim"]
     ref = np.asarray(Image.open(src_of(G, view)).convert("RGB"))
@@ -97,15 +119,29 @@ for view in ("front", "left", "rear"):
     for nlist, lab_ in ((pos, 1), (neg, 0)):
         for n in nlist:
             u, v = view_to_garment(g2.to_px(LM[n][0](g2.J, g2.T), view)[0])
-            if not (0 <= int(v) < rm.shape[0] and 0 <= int(u) < rm.shape[1] and rm[int(v), int(u)]):
+            if lab_ == 1 and PALETTE is not None and view != "front":
+                # positives in the other views snap to the nearest pixel in the GARMENT's colours (a side view's
+                # sleeve can cover the vest; the shirt is not the vest)
+                okc = rm & (pal_dist(ref) < 0.12)
+                cy_, cx_ = np.where(okc)
+                if len(cx_):
+                    d = np.hypot(cx_ - u, cy_ - v)
+                    if d.min() > 30:
+                        continue
+                    u, v = cx_[d.argmin()], cy_[d.argmin()]
+            elif not (0 <= int(v) < rm.shape[0] and 0 <= int(u) < rm.shape[1] and rm[int(v), int(u)]):
                 d = np.hypot(fx - u, fy - v)
                 if d.min() > 15:
                     continue
                 u, v = fx[d.argmin()], fy[d.argmin()]
+            if lab_ == 0 and PALETTE is not None and view != "front" and                     pal_dist(ref[int(v):int(v) + 1, int(u):int(u) + 1])[0, 0] < 0.10:
+                continue                      # a "not garment" point that lands on the garment's colours: drop it
             pts.append([float(u) * up, float(v) * up])
             lbl.append(lab_)
             names.append(n)
     big = Image.fromarray(ref).resize((int(ref.shape[1] * up), int(ref.shape[0] * up)), Image.LANCZOS)
+    if view in SKIP.get(G, ()):
+        lbl = [0] * len(lbl)
     if sum(lbl):
         inputs = proc(images=big, input_points=[[pts]], input_labels=[[lbl]], return_tensors="pt").to(dev)
         with torch.no_grad():
@@ -113,6 +149,20 @@ for view in ("front", "left", "rear"):
         lg = proc.post_process_masks(out.pred_masks.cpu(), inputs["original_sizes"].cpu(), binarize=False)[0][0, 0]
         mask = np.asarray(Image.fromarray(lg.numpy() > 0).resize((ref.shape[1], ref.shape[0]), Image.NEAREST)) & rm
         mask = keep_seeded(mask, [(p[0] / up, p[1] / up) for p, lb in zip(pts, lbl) if lb])
+        # complete garments: SAM leaves brass buttons / studs out as separate objects -> close small bays at the
+        # edges, then fill every enclosed hole (Pete: holes where the buttons are are unacceptable)
+        mask = ndimage.binary_closing(mask, structure=np.ones((3, 3)), iterations=3) & rm
+        mask = ndimage.binary_fill_holes(mask)
+        if view == "front":
+            PALETTE = palette_of(ref, mask)
+        # large blobs far from the garment's colours are not garment (the tail through the breeches' seat: the tail
+        # is hidden, the bake fills it from the cloth around); small ones (buttons, studs) stay
+        foreign = mask & (pal_dist(ref) > 0.20)
+        flab, fn = ndimage.label(foreign)
+        if fn:
+            sizes = ndimage.sum(foreign, flab, range(1, fn + 1))
+            big = np.isin(flab, np.where(sizes > 0.004 * mask.sum() + 60)[0] + 1)
+            mask &= ~big
         score = float(out.iou_scores.cpu().numpy().ravel()[0])
     else:
         mask, score = np.zeros_like(rm), 0.0
@@ -123,8 +173,11 @@ for view in ("front", "left", "rear"):
     comp = man.astype(np.uint8).copy()
     comp[on] = col[on]
     Image.fromarray(comp).save(OUT / f"{view}.png")
+    rgba = np.dstack([col, (on * 255).astype(np.uint8)])          # the garment alone (alpha), for project_bake.py
+    Image.fromarray(rgba).save(OUT / f"{view}_garment.png")
     if view == "left":
         Image.fromarray(comp[:, ::-1]).save(OUT / "right.png")
+        Image.fromarray(rgba[:, ::-1]).save(OUT / "right_garment.png")
     report["views"][view] = {"src": str(src_of(G, view).relative_to(g2.ROOT)), "to_body_model": [round(float(sg), 4),
                              round(float(txg), 1), round(float(tyg), 1)], "trust_iou": round(float(giou), 3),
                              "body_model_iou_global": round(float(bm["cp"]["iou"]), 3),
