@@ -116,6 +116,13 @@ def herringbone(P, N):
         hit = hash01(cell[:, 0], cell[:, 1], cell[:, 2]) < rate
         c = np.where(hit[:, None], rgb(fc)[None], c)
     c *= (0.94 + 0.12 * value_noise(P, 0.03))[:, None]
+    bs = PR.get("back_seam")
+    if bs:      # centre back seam down the seat (it reads the two cheeks apart), shaded a little each side
+        on_ = (P[:, 1] > bs.get("y0", 0.03)) & (P[:, 2] > bs["z0"]) & (P[:, 2] < bs["z1"])
+        ax_ = np.abs(P[:, 0])
+        k_ = np.where(on_ & (ax_ < bs.get("w", 0.0015)), bs.get("dark", 0.55),
+                      np.where(on_, 1 - (1 - bs.get("shade", 0.85)) * np.exp(-(ax_ / 0.012) ** 2), 1.0))
+        c *= k_[:, None]
     return c
 
 

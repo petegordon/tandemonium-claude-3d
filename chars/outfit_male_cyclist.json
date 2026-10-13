@@ -76,7 +76,18 @@
    },
    "outer_smooth": 70,
    "outer_min": 0.005,
-   "base_smooth": 20
+   "base_smooth": 20,
+   "outer_keep_gap": 0.06,
+   "seat_shape": {
+    "cleft": 0.018,
+    "cleft_w": 0.018,
+    "fold": 0.01,
+    "fold_w": 0.016,
+    "fold_rise": 0.015,
+    "y0": 0.03,
+    "z1": 0.83,
+    "fold_x": 0.11
+   }
   },
   "shirt": {
    "kind": "shirt",
@@ -268,10 +279,14 @@
    "push_above": 0.15,
    "top_len": 0.0,
    "top_clear": 0.0,
-   "trim_below": 0.075,
    "normal_tilt": 8,
    "outer_smooth": 30,
-   "outer_min": 0.003
+   "outer_min": 0.003,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": 0.075,
+    "note": "worn with the brogues: the foot is cut off inside the shoe (the webbed foot is wider than the shoe); shells/socks.glb keeps the whole foot for wearing alone"
+   }
   }
  },
  "boot_design": {
@@ -374,8 +389,8 @@
  },
  "cap_design": {
   "note": "tweed flat cap: soft crown on a head band fitted to the head, its top pulled forward and down over a short stiff peak; covered button on top",
-  "band_z": 1.61,
-  "band_tilt": 0.012,
+  "band_z": 1.632,
+  "band_tilt": 0.01,
   "band_off": 0.01,
   "top_back": 0.062,
   "top_front": 0.03,
@@ -483,7 +498,15 @@
     ]
    ],
    "roughness": 0.92,
-   "r0": 0.16
+   "r0": 0.16,
+   "back_seam": {
+    "z0": 0.69,
+    "z1": 0.96,
+    "w": 0.0016,
+    "dark": 0.55,
+    "shade": 0.85,
+    "y0": 0.03
+   }
   },
   "waistcoat": {
    "type": "argyle",

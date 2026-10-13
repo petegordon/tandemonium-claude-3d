@@ -37,7 +37,7 @@ and renders in three.js r161 in every pose. Sheets are in `docs/img/cyclist/`.
      lapels, buttons, pockets or strap) and new `outline.arm_oval` (a clean scooped armhole: an oval in the side view
      plus the arm-weight iso line). It is built over the shirt, breeches and necktie.
    - **gloves**: kind glove with `round` (blunt mitt tips).
-   - **socks**: kind boot, trimmed below 7.5 cm inside the shoe (`trim_below` via `trim_edge.py`).
+   - **socks**: kind boot. `shells/socks.glb` keeps the whole foot, for wearing alone. `shells/variants/withshoes/socks.glb` is trimmed below 7.5 cm inside the shoe; the webbed foot is wider than the shoe and poked out of it.
    - **boots** (brogues): `make_boot.py` with a low top line. New `sole_smooth` / `sole_step` replace the toothed
      voxel sole.
    - **hat** (flat cap): new `make_cap.py`.
@@ -62,7 +62,7 @@ and renders in three.js r161 in every pose. Sheets are in `docs/img/cyclist/`.
    - driving glove: wrist strap with stud, three points, perforated knuckles.
 
    The make_garment detail bake is kept as shading (`detail_gamma`); the colour factor goes white.
-4. **Dressing**: `dress_goose.py --char outfit_male_cyclist --tag full`, with new per-character keys:
+4. **Dressing**: `dress_goose.py --char outfit_male_cyclist --tag full --variant withshoes`, with new per-character keys:
    - `layer_ignore`: the plus-fours' knee band is never hidden by the socks or shoes (that mask tore the hem into a
      sawtooth);
    - `skin_merge`: the vest's hem gives its leg weights to the hips, so it stays flat when seated.
@@ -83,3 +83,16 @@ and renders in three.js r161 in every pose. Sheets are in `docs/img/cyclist/`.
   geometry.
 - Other outfits: write `refs/<outfit>/t2i_prompt.json`, re-stage it in the key cameras, add a recipe, and run
   `build_cyclist.sh` with `C=` changed. (A general per-outfit runner is still on the list.)
+
+## Round 7 (Pete): hat too low, seat not right, garments usable one at a time
+- **Cap:** the head band went up 2.2 cm (`band_z` 1.632), so the peak sits above the eyes.
+- **Seat:** the plus-fours' seat read as one flat panel with the legs splitting low.
+  - `outer_keep_gap` keeps the outer smoothing off the crotch.
+  - `seat_shape` adds a centre cleft and a fold under each cheek.
+  - `patterns.breeches.back_seam` paints a centre back seam.
+- **One garment at a time:** `bash scripts/dress_singles.sh` puts each garment alone on the naked base goose, rigged
+  and skinned with all the clips: `out/outfit_male_cyclist-goose/outfit_male_cyclist_only_<piece>_dressed.glb`
+  (hat, necktie, shirt, waistcoat, gloves, breeches, socks, boots). All of them, and the full outfit, pass the glTF
+  validator with 0 errors and 0 warnings. Sheet: `docs/img/cyclist/cyclist_garments_single.png`.
+- **Unrigged pieces:** the bare garment shells are `shells/<piece>.glb`. Each has `<piece>_weights.npz`, the base
+  body's skin weights per vertex, which dress_goose uses.

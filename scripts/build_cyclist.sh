@@ -24,4 +24,9 @@ for p in $PIECES; do
   esac
   if has_pattern $p; then run scripts/pattern_paint.py -- --char $C --piece $p; fi
   if [ "$p" = breeches ]; then run scripts/add_kneestrap.py -- --char $C; fi
+  if [ "$p" = socks ]; then           # the with-shoes variant: foot trimmed inside the shoe (dress_goose.py --variant withshoes)
+    V=out/$C-goose/shells/variants/withshoes; mkdir -p $V
+    cp out/$C-goose/shells/socks.glb out/$C-goose/shells/socks.json out/$C-goose/shells/socks_weights.npz out/$C-goose/shells/socks_covers.npz $V/
+    run scripts/trim_edge.py -- --char $C --piece socks --z 0.075 --below --glb shells/variants/withshoes/socks.glb --out shells/variants/withshoes/socks.glb
+  fi
 done

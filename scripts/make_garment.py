@@ -1068,6 +1068,25 @@ if R.get("outer_smooth"):
         Pm = Pm - 0.53 * (Pb_ - Pm)
     out_ = ((Pm - P) * N).sum(1)
     Pm = Pm + N * np.maximum(R.get("outer_min", 0.004) - out_, 0)[:, None]
+    if R.get("outer_keep_gap"):
+        # ... but not across the crotch / between the legs: there the smoothing webbed the legs together and the seat
+        # lost its split (blend back to the plain offset where the gap to the other surface is small)
+        wg_ = np.clip((G - 0.02) / R["outer_keep_gap"], 0, 1)[:, None]
+        Pm = (P + N * ease[:, None]) * (1 - wg_) + Pm * wg_
+SEAT = R.get("seat_shape")
+if SEAT:
+    # trouser seat (back, above the crotch): a centre cleft and a soft fold under each cheek, so the seat reads as
+    # two rounded cheeks instead of one flat panel
+    x_, y_, z_ = Pm[:, 0], Pm[:, 1], Pm[:, 2]
+    back_ = np.clip((y_ - SEAT.get("y0", 0.03)) / 0.04, 0, 1)
+    zc0, zc1 = SEAT.get("z0", CROTCH_Z - 0.02), SEAT.get("z1", 0.88)
+    up_ = np.clip((z_ - zc0) / 0.03, 0, 1) * np.clip((zc1 - z_) / 0.08, 0, 1)
+    cleft = SEAT.get("cleft", 0.012) * np.exp(-(x_ / SEAT.get("cleft_w", 0.022)) ** 2) * up_ * back_
+    zf_ = SEAT.get("fold_z", CROTCH_Z + 0.01) + SEAT.get("fold_rise", 0.06) * (np.abs(x_) / 0.12) ** 2
+    fold = SEAT.get("fold", 0.006) * np.exp(-((z_ - zf_) / SEAT.get("fold_w", 0.018)) ** 2) * \
+        np.clip((np.abs(x_) - 0.01) / 0.03, 0, 1) * np.clip((SEAT.get("fold_x", 0.15) - np.abs(x_)) / 0.03, 0, 1) * back_
+    Pm = Pm - N * (cleft + fold)[:, None]
+    log("seat shape: cleft max mm", round(float(cleft.max()) * 1000, 1), "fold max mm", round(float(fold.max()) * 1000, 1))
 if KIND == "boot":
     # boot top = a clean round tube over the breeches cuff (or the leg): per leg, radius about the ring
     # centroid held to at least (breeches / leg radius there + "top_clear"), blended out over "top_len"
