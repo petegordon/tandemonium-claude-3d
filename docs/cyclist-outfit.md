@@ -96,3 +96,16 @@ and renders in three.js r161 in every pose. Sheets are in `docs/img/cyclist/`.
   validator with 0 errors and 0 warnings. Sheet: `docs/img/cyclist/cyclist_garments_single.png`.
 - **Unrigged pieces:** the bare garment shells are `shells/<piece>.glb`. Each has `<piece>_weights.npz`, the base
   body's skin weights per vertex, which dress_goose uses.
+
+## Round 8 (Pete): "seat is still caved in to the body"
+- **Profile:** the seat's side profile followed the hollow under the old tail root, and the round-7 centre cleft
+  deepened it.
+- **Cleft gone:** the painted centre back seam stays.
+- **`seat_shape.bulge`:** fullness over each cheek, along the normal, centred at z 0.80.
+- **`seat_shape.fill`** (on by default): per 2 cm band across the seat, the side profile is filled up to its convex
+  hull. Cloth spans a hollow; it doesn't follow it in.
+- **`seat_shape.relax`:** Taubin smoothing of the reshaped zone.
+- **Fold and fill range:** the under-cheek fold is off, and the fill starts at z 0.74. Below that, the bulge folded a
+  few faces under just above the crotch (dark notch).
+- **Detail shading:** `pattern_paint.py` ignores black texels that the detail bake missed (no dark specks).
+- `relax_folds.py` made this worse, so it is not used.

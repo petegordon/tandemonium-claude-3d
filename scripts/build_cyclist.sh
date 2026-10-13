@@ -17,6 +17,8 @@ for p in $PIECES; do
     hat) run scripts/make_cap.py -- --char $C ;;
     necktie) run scripts/make_accessory.py -- --char $C --piece necktie ;;
     *) run scripts/make_garment.py -- --char $C --piece $p
+       RF=$("$PY" -I -c "import json;print(int(bool(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p'].get('relax_folds'))))")
+       if [ "$RF" = 1 ]; then "$B" -b --factory-startup --python scripts/relax_folds.py -- --piece $p --char $C 2>&1 | grep -iE "crease|Error" || true; fi
        NT=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p'].get('normal_tilt',18))")
        run scripts/clean_normal.py -- --piece $p --char $C --max-tilt $NT
        TB=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['$p'].get('trim_below',''))")

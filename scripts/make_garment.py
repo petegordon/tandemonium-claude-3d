@@ -1085,7 +1085,61 @@ if SEAT:
     zf_ = SEAT.get("fold_z", CROTCH_Z + 0.01) + SEAT.get("fold_rise", 0.06) * (np.abs(x_) / 0.12) ** 2
     fold = SEAT.get("fold", 0.006) * np.exp(-((z_ - zf_) / SEAT.get("fold_w", 0.018)) ** 2) * \
         np.clip((np.abs(x_) - 0.01) / 0.03, 0, 1) * np.clip((SEAT.get("fold_x", 0.15) - np.abs(x_)) / 0.03, 0, 1) * back_
-    Pm = Pm - N * (cleft + fold)[:, None]
+    # fullness: the cloth stands out over each cheek (Pete: the seat was caved in to the body) -- a smooth bulge along
+    # the normal, centred on each cheek, fading toward the side seams, the waistband and the crotch
+    bx, bz = SEAT.get("bulge_x", 0.06), SEAT.get("bulge_z", 0.77)
+    bulge = SEAT.get("bulge", 0.0) * back_ * (np.exp(-((np.abs(x_) - bx) / SEAT.get("bulge_sx", 0.06)) ** 2)) * \
+        np.exp(-((z_ - bz) / SEAT.get("bulge_sz", 0.07)) ** 2)
+    Pm = Pm - N * (cleft + fold - bulge)[:, None]
+    if SEAT.get("fill", True):
+        # convex seat profile: per 2 cm band across x, the back's side profile (max y per 1 cm of height, between the
+        # crotch and the waistband) is filled up to its upper convex hull -- the hollow under the old tail root went
+        # (cloth spans a hollow, it never follows it in); the deficit is smoothed over the mesh and added along +y
+        z_lo, z_hi = SEAT.get("fill_z0", CROTCH_Z - 0.04), SEAT.get("fill_z1", Z_TOP - 0.01)
+        zb = np.arange(z_lo, z_hi + 1e-6, 0.01)
+        xb = np.arange(-0.16, 0.161, 0.02)
+        deficit = np.zeros((len(xb), len(zb)))
+        backm = Pm[:, 1] > SEAT.get("y0", 0.03)
+        for i_, xc in enumerate(xb):
+            sel = backm & (np.abs(Pm[:, 0] - xc) < 0.012)
+            prof = np.full(len(zb), np.nan)
+            for j_, zc in enumerate(zb):
+                s_ = sel & (np.abs(Pm[:, 2] - zc) < 0.006)
+                if s_.any():
+                    prof[j_] = Pm[s_, 1].max()
+            ok_ = ~np.isnan(prof)
+            if ok_.sum() < 3:
+                continue
+            zs_, ys_ = zb[ok_], prof[ok_]
+            hull = []                                   # upper hull (y as a function of z, bulging to +y)
+            for pt in zip(zs_, ys_):
+                while len(hull) >= 2 and ((hull[-1][0] - hull[-2][0]) * (pt[1] - hull[-2][1]) -
+                                          (hull[-1][1] - hull[-2][1]) * (pt[0] - hull[-2][0])) >= 0:
+                    hull.pop()
+                hull.append(pt)
+            hz, hy = np.array(hull).T
+            deficit[i_, ok_] = np.interp(zs_, hz, hy) - ys_
+        for _ in range(2):                              # (no scipy in Blender: a small box blur)
+            dp_ = np.pad(deficit, 1, mode="edge")
+            deficit = (dp_[1:-1, 1:-1] * 2 + dp_[:-2, 1:-1] + dp_[2:, 1:-1] + dp_[1:-1, :-2] + dp_[1:-1, 2:]) / 6
+        ix = np.clip((Pm[:, 0] - xb[0]) / 0.02, 0, len(xb) - 1.001)
+        iz = np.clip((Pm[:, 2] - zb[0]) / 0.01, 0, len(zb) - 1.001)
+        i0, j0 = ix.astype(int), iz.astype(int)
+        fx, fz = ix - i0, iz - j0
+        dv_ = (deficit[i0, j0] * (1 - fx) * (1 - fz) + deficit[i0 + 1, j0] * fx * (1 - fz) +
+               deficit[i0, j0 + 1] * (1 - fx) * fz + deficit[i0 + 1, j0 + 1] * fx * fz)
+        inz = (Pm[:, 2] > z_lo) & (Pm[:, 2] < z_hi)
+        dv_ = np.where(backm & inz, dv_, 0.0) * np.clip((Pm[:, 1] - SEAT.get("y0", 0.03)) / 0.04, 0, 1)
+        dv_ = smooth_field(dv_, ed, 6)
+        Pm[:, 1] += dv_
+        log("seat fill: max mm", round(float(dv_.max()) * 1000, 1))
+    # relax the reshaped seat (the fold + fill crumpled a few small faces over just above the crotch)
+    zone_ = (Pm[:, 1] > SEAT.get("y0", 0.03) - 0.02) & (Pm[:, 2] > CROTCH_Z - 0.08) & (Pm[:, 2] < Z_TOP - 0.03)
+    pin_ = boundary | ~zone_
+    for _ in range(SEAT.get("relax", 10)):
+        Pm = smooth_field(Pm, ed, 1, pin=pin_)
+        Pb_ = smooth_field(Pm, ed, 1, pin=pin_)
+        Pm = Pm - 0.53 * (Pb_ - Pm)
     log("seat shape: cleft max mm", round(float(cleft.max()) * 1000, 1), "fold max mm", round(float(fold.max()) * 1000, 1))
 if KIND == "boot":
     # boot top = a clean round tube over the breeches cuff (or the leg): per leg, radius about the ring

@@ -420,6 +420,7 @@ dx = np.clip((xs + 0.5) * SW / TEX, 0, SW - 1).astype(int)
 dl = detail[dy, dx].mean(1)
 dmean = float(np.median(dl[dl > 0.05])) if (dl > 0.05).any() else 1.0
 shade = np.clip(dl / dmean, 0.55, 1.25) ** PR.get("detail_gamma", 1.0)
+shade = np.where(dl < 0.25 * dmean, 1.0, shade)        # (texels the detail bake missed are black: no shading, not a dark spot)
 col = np.clip(col * shade[:, None], 0, 1)
 img = np.zeros((TEX, TEX, 3), np.float32)
 img[mask] = col

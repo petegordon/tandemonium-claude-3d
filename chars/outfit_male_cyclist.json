@@ -79,15 +79,24 @@
    "base_smooth": 20,
    "outer_keep_gap": 0.06,
    "seat_shape": {
-    "cleft": 0.018,
+    "cleft": 0.0,
     "cleft_w": 0.018,
-    "fold": 0.01,
+    "fold": 0.0,
     "fold_w": 0.016,
     "fold_rise": 0.015,
     "y0": 0.03,
     "z1": 0.83,
-    "fold_x": 0.11
-   }
+    "fold_x": 0.11,
+    "bulge": 0.022,
+    "bulge_x": 0.06,
+    "bulge_z": 0.8,
+    "bulge_sx": 0.065,
+    "bulge_sz": 0.06,
+    "fill_z0": 0.74,
+    "relax": 14
+   },
+   "normal_tilt": 10,
+   "relax_folds": false
   },
   "shirt": {
    "kind": "shirt",
@@ -506,7 +515,8 @@
     "dark": 0.55,
     "shade": 0.85,
     "y0": 0.03
-   }
+   },
+   "detail_gamma": 0.5
   },
   "waistcoat": {
    "type": "argyle",
