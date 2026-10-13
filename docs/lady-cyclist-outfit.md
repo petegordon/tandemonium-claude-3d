@@ -86,3 +86,11 @@ This is the partner to [cyclist-outfit.md](cyclist-outfit.md). Pete picked the 1
   radius now runs up past the knee and `outer_smooth` is 90, so the goose's knobbly knee no longer shows through.
 - **Hat:** band 1.2 cm higher (`band_z` 1.64). The new `tilt_back_deg` (9 deg) in `make_cloche.py` tips it back:
   the front of the brim rises, pivoting about the band centre.
+
+## Seated skirt drape (Pete: "when riding why is the skirt up high and not down on the legs?")
+- **Cause:** every skirt chain bone took about 95% of the thigh's rotation down to the hem. Seated, the whole skirt,
+  hem included, swung forward and up with the thighs, and the side panels stuck out like wings.
+- **Fix:** `chain_follow` / `chain_drape` now drape. The front follows the thigh to the knee, then the hem hangs
+  (1.0 / [1.0, 1.0, 0.5]). The sides follow 0.9 with [1.0, 0.8, 0.45]. The back follows 0.85 with
+  [1.0, 0.85, 0.55], so it rests on the seat instead of hanging through the saddle.
+- Sheet: `docs/img/cyclist/lady_seated_drape.png`. `POSE_RES=w,h` makes dress_goose render larger pose sheets.

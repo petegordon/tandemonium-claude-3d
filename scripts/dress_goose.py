@@ -83,7 +83,7 @@ FOLLOW = {"F": 1.0, "S": 0.85, "B": 0.0}   # front panels lie on the thighs (sea
 DRAPE_BY = {"F": [1.0, 0.9, 0.75], "S": [1.0, 0.8, 0.6]}   # per chain kind; default DRAPE
 DRAPE = [1.0, 0.45, 0.15]   # share of the follow per chain bone (root, mid, tip): fabric bends at the knee   # only hanging cloth rides the pelvis (boots / baggy breeches tore in riding)
 FORCE = {"gloves": ("Hand",), "boots": ("Foot", "ToeBase"), "coat": ("Tail",), "breeches": ("Tail",), "dress": ("Tail", "UpLeg", "Leg")}   # long skirt hangs > MASK_D off the legs
-RES_W, RES_H = 420, 560
+RES_W, RES_H = (int(x) for x in __import__("os").environ.get("POSE_RES", "420,560").split(","))
 
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "out" / "base-goose" / "base_goose.blend"))
 body = bpy.data.objects["base_goose_game"]
