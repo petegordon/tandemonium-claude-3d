@@ -280,9 +280,9 @@
     "waist_z": 0.93,
     "cuff_band": 0.065,
     "tails": {
-     "z_top": 0.88,
-     "w_bot": 0.075,
-     "pow": 1.2
+     "z_top": 0.7,
+     "w_bot": 0.03,
+     "pow": 2.0
     }
    },
    "ease": {

@@ -423,7 +423,15 @@ allnames = names + cnames
 print("CHAINS", [(c["piece"], c["tag"]) for c in chains])
 
 # pass C: weights = body weights x (1 - loose) + chain weights x loose; smooth; 4 influences
-LAYER_RANK = {"coat": 0, "waistcoat": 1, "shirt": 2}
+LAYER_RANK = {"breeches": -1, "coat": 0, "waistcoat": 1, "shirt": 2}   # (breeches first: the coat skirt follows them)
+# outer garment pieces lying over an inner one take the inner one's FINAL weights there, so the two move together:
+# the coat's skirt over the breeches (seated / riding, the thigh came through the skirt panels); not the back tails,
+# which hang (azimuth falloff), and only below the hips (the torso keeps its own weights)
+FOLLOW_INNER = {"coat": ("breeches",)}
+INNER_D = (0.06, 0.12)          # full within / none beyond this distance to the inner garment
+INNER_SMOOTH = 14
+INNER_TOP = 0.12                 # up to this far above the hip joint (fading over 10 cm): the hip crease
+INNER_AZ = (170.0, 181.0)        # |azimuth| from the front: full up to / none beyond (the back tails)
 FINAL = {}
 for k, o in sorted(shells.items(), key=lambda kv: LAYER_RANK.get(kv[0], 9)):
     Wv, X, tl = skin[k]
@@ -486,6 +494,31 @@ for k, o in sorted(shells.items(), key=lambda kv: LAYER_RANK.get(kv[0], 9)):
     lim = np.zeros_like(Wv)
     np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)
     Wv = lim / np.maximum(lim.sum(1, keepdims=True), 1e-9)
+    for inner in FOLLOW_INNER.get(k, ()):
+        if inner not in FINAL:
+            continue
+        Xi, Wi_, bi = FINAL[inner]
+        kdi = KDTree(len(Xi))
+        for i_, q_ in enumerate(Xi):
+            kdi.insert(Vector(q_), i_)
+        kdi.balance()
+        hitd = np.array([bi.find_nearest(Vector(x))[3] for x in X])
+        az_ = np.abs(np.degrees(np.arctan2(X[:, 0] - hips_h[0], -(X[:, 1] - hips_h[1]))))
+        f_ = (np.clip((INNER_D[1] - hitd) / (INNER_D[1] - INNER_D[0]), 0, 1)
+              * np.clip((INNER_AZ[1] - az_) / (INNER_AZ[1] - INNER_AZ[0]), 0, 1)
+              * np.clip((hips_h[2] + INNER_TOP - X[:, 2]) / 0.1, 0, 1))
+        for _ in range(INNER_SMOOTH):                        # soft edge (no tear along the blend's border)
+            acc = np.zeros(len(f_))
+            np.add.at(acc, ed[:, 0], f_[ed[:, 1]])
+            np.add.at(acc, ed[:, 1], f_[ed[:, 0]])
+            f_ = 0.5 * f_ + 0.5 * acc / deg[:, 0]
+        io = np.array([kdi.find(Vector(x))[1] for x in X])
+        Wv = (1 - f_)[:, None] * Wv + f_[:, None] * Wi_[io]
+        keep = np.argsort(-Wv, 1)[:, :4]
+        lim = np.zeros_like(Wv)
+        np.put_along_axis(lim, keep, np.take_along_axis(Wv, keep, 1), 1)
+        Wv = lim / np.maximum(lim.sum(1, keepdims=True), 1e-9)
+        print("FOLLOW INNER", k, "->", inner, int((f_ > 0.5).sum()), "verts")
     # inner layers take the outer layer's FINAL weights where they lie under it (outermost wins), so
     # they move exactly together in every pose (arm raised: no shirt through the jacket)
     for outer in FOLLOW_OUTER.get(k, ()):

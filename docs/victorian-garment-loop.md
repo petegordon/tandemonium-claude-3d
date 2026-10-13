@@ -119,3 +119,13 @@ Outfits: `--tag full --variant jacket`, `--tag nojacket --variant vest --without
 - **Shirt variants**: `shells/variants/jacket/` (slim sleeves, under the coat) and `shells/variants/vest/` (pin-tucks
   only where the vest leaves the shirt visible: `add_pleats.py --clear-of waistcoat` -- they poked through the vest).
   Outfits: `--tag full --variant jacket`, `--tag nojacket --variant vest --without coat`, `--tag shirtonly --without coat,waistcoat`.
+
+## Round 7 (2026-10-13, final): riding pose, back vent + tab, front buttons, lapels
+- **Riding / seated**: the coat's skirt over the breeches takes the breeches' FINAL skin weights (`FOLLOW_INNER` in
+  dress_goose.py, breeches skinned first via `LAYER_RANK`): within 6 cm full, fading to 12 cm, all round, up to 12 cm
+  above the hip joint, the blend's edge smoothed 14 rings. The thigh no longer comes through the skirt; far tail tips
+  keep their hanging chains. (Front chains follow 1.0 / sides 0.85 from round 6 still apply to what is left.)
+- **Back**: vent narrowed (`outline.tails` z_top 0.70, w_bot 0.03, pow 2.0); half-belt tab with gold piping and two
+  domed buttons (`add_back_tab.py`).
+- **Front**: buttons 17 mm, two columns of three nearer the opening; lapels wider (`--lapel` w 0.035 -> 0.10).
+- Chain: `bash scripts/build_victorian_coat.sh <tag>`; outfits as in round 6.
