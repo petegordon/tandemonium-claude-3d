@@ -1,0 +1,16 @@
+{
+ "char": "outfit_female_cyclist",
+ "notes": "Pete 2026-10-13: 1920s lady cyclist from text (t2i on the naked FEMALE goose: the shared base mesh with the outfit_female body sliders), partner to outfit_male_cyclist. Garments designed on her shaped body; patterns painted in 3D.",
+ "body_shape": "sliders",
+ "shape": {
+  "arm_girth": 0.58,
+  "torso_girth": 0.85,
+  "hip_girth": 0.95,
+  "leg_girth": 0.7,
+  "leg_length": 1.15,
+  "height": 1.0,
+  "leg_pitch": 3.0
+ },
+ "garment_design": {},
+ "patterns": {}
+}

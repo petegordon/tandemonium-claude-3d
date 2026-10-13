@@ -1,0 +1,29 @@
+{
+ "seed": 21,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-13: female goose outfit by text-to-image (1920s lady cyclist chosen), partner to outfit_male_cyclist: same palette (brown herringbone, mustard, dark green, cream).",
+  "outfit": "a 1920s lady cyclist's outfit -- a close-fitting bell-shaped cloche hat in dark green felt with a mustard grosgrain ribbon band and a small flat bow on one side; a cream blouse with a rounded Peter Pan collar and a small dark green ribbon bow at the throat; a fitted long-sleeved cardigan in mustard ribbed knit, buttoned down the front with small brown buttons, a ribbed hem at the hips and ribbed cuffs; a knee-length knife-pleated skirt in brown herringbone tweed with a waistband; knee-high argyle socks in dark green and cream; brown leather T-bar shoes with a low block heel and a buckle; short cream cotton gloves at the wrists",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the hat's back with the ribbon, the cardigan's plain knitted back, the skirt's pleats all round, the backs of the socks and shoes.",
+   "left": "Side profile: the cloche hat's brim in profile. The skirt hangs straight down from the hips with pleats, no bustle behind. Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the cloche hat's brim in profile. The skirt hangs straight down from the hips with pleats, no bustle behind. Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "left": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s lady cyclist's outfit -- a close-fitting bell-shaped cloche hat in dark green felt with a mustard grosgrain ribbon band and a small flat bow on one side; a cream blouse with a rounded Peter Pan collar and a small dark green ribbon bow at the throat; a fitted long-sleeved cardigan in mustard ribbed knit, buttoned down the front with small brown buttons, a ribbed hem at the hips and ribbed cuffs; a knee-length knife-pleated skirt in brown herringbone tweed with a waistband; knee-high argyle socks in dark green and cream; brown leather T-bar shoes with a low block heel and a buckle; short cream cotton gloves at the wrists). Picture 1 is the side view, facing left: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Side profile: the cloche hat's brim in profile. The skirt hangs straight down from the hips with pleats, no bustle behind. Keep the feet and legs exactly where they are in picture 1.",
+   "seconds": 72,
+   "peak_gb": 10.0
+  },
+  "rear": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a 1920s lady cyclist's outfit -- a close-fitting bell-shaped cloche hat in dark green felt with a mustard grosgrain ribbon band and a small flat bow on one side; a cream blouse with a rounded Peter Pan collar and a small dark green ribbon bow at the throat; a fitted long-sleeved cardigan in mustard ribbed knit, buttoned down the front with small brown buttons, a ribbed hem at the hips and ribbed cuffs; a knee-length knife-pleated skirt in brown herringbone tweed with a waistband; knee-high argyle socks in dark green and cream; brown leather T-bar shoes with a low block heel and a buckle; short cream cotton gloves at the wrists). Picture 1 is the back view: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean tailoring, every garment complete and well fitted to the goose's body. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. From the back: the hat's back with the ribbon, the cardigan's plain knitted back, the skirt's pleats all round, the backs of the socks and shoes.",
+   "seconds": 72,
+   "peak_gb": 10.0
+  }
+ }
+}
