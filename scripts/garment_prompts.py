@@ -44,6 +44,7 @@ for _s in ("Left", "Right"):
         f"shin_{_k}": (lambda J, T, s=_s: (J[f"{s}Leg"] + J[f"{s}Foot"]) / 2, ("shin",)),
         f"ankle_{_k}": (lambda J, T, s=_s: J[f"{s}Leg"] + 0.9 * (J[f"{s}Foot"] - J[f"{s}Leg"]), ("shin", "foot")),
         f"foot_{_k}": (lambda J, T, s=_s: (J[f"{s}Foot"] + J[f"{s}ToeBase"]) / 2, ("foot",)),
+        f"thigh_front_{_k}": (lambda J, T, s=_s: (J[f"{s}UpLeg"] + J[f"{s}Leg"]) / 2 + np.array([0, -0.07, 0.05]), ("thigh",)),
     })
 
 
@@ -53,9 +54,19 @@ def both(*names):
 
 PROMPTS = {
     "hat": (["head_top"], ["bill", "neck", "chest"]),
-    "bow_tie": (["neck_low"], ["head", "neck", "chest", "belly"]),
-    "shirt": (["chest", "belly"] + both("upper_arm", "forearm"), ["head", "neck"] + both("thigh", "hand")),
-    "vest": (["chest", "belly", "chest_L", "chest_R"], ["head", "neck"] + both("upper_arm", "forearm", "thigh")),
+    "bow_tie": {"front": (["neck_low"], ["head", "neck", "chest", "belly"]),
+                "side": (["neck_low"], ["head", "neck", "chest", "belly"]),
+                "rear": (["neck_low"], ["head", "neck", "back", "back_low"] + both("upper_arm"))},
+    "shirt": {"front": (["chest", "belly"] + both("upper_arm", "forearm"), ["head", "neck"] + both("thigh", "hand")),
+              # side: the near sleeve covers the torso's middle -- seed its front and back edges instead
+              "side": (["chest_front", "belly_front", "back"] + both("upper_arm", "forearm"),
+                       ["head", "neck"] + both("thigh", "hand")),
+              "rear": (["chest", "belly", "back"] + both("upper_arm", "forearm"), ["head", "neck"] + both("thigh", "hand"))},
+    "vest": {"front": (["chest_L", "chest_R", "belly_L", "belly_R", "belly"],
+                       ["head", "neck", "neck_low"] + both("upper_arm", "forearm", "thigh")),
+             "side": (["chest_front", "belly_front", "back", "back_low"],
+                      ["head", "neck", "neck_low"] + both("upper_arm", "forearm", "thigh")),
+             "rear": (["chest", "belly", "chest_L", "chest_R"], ["head", "neck"] + both("upper_arm", "forearm", "thigh"))},
     # the jacket panel also wears the vest, shirt and bow tie: the open front (centre chest / belly) is NOT jacket
     "jacket": {"front": (["chest_L", "chest_R", "belly_L", "belly_R", "skirt_L", "skirt_R"] + both("upper_arm", "forearm"),
                          ["head", "neck", "chest", "belly"] + both("knee", "shin", "hand")),
@@ -64,7 +75,10 @@ PROMPTS = {
                "rear": (["back", "back_low", "chest_L", "chest_R", "skirt_L", "skirt_R"] + both("upper_arm", "forearm"),
                         ["head", "neck", "tail"] + both("knee", "shin", "hand"))},
     "glove": (both("hand", "wrist"), ["chest"] + both("forearm_hi", "upper_arm", "thigh")),
-    "breeches": (["hips"] + both("thigh"), ["chest", "belly", "head"] + both("shin", "foot")),
+    "breeches": {"front": (["hips"] + both("thigh"), ["chest", "belly", "head"] + both("shin", "foot")),
+                 # side: the drawn hand lies over the thigh -- seed the thigh's front and the seat, the hand negative
+                 "side": (["seat"] + both("thigh_front"), ["chest", "belly_front", "head"] + both("shin", "foot", "hand")),
+                 "rear": (["hips"] + both("thigh"), ["chest", "belly", "head"] + both("shin", "foot"))},
     "boots": (both("shin", "ankle", "foot"), ["chest", "hips"] + both("thigh")),
 }
 

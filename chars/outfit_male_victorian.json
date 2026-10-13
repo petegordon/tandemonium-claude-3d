@@ -1,0 +1,447 @@
+{
+ "char": "outfit_male_victorian",
+ "sheet": "refs/outfit_male_victorian/sheet.png",
+ "worn_sheets": [
+  "refs/outfit_male_victorian/worn/sheet_front_side.png",
+  "refs/outfit_male_victorian/worn/sheet_rear_right_v2.png",
+  "refs/outfit_male_victorian/worn/sheet_fix_bowtie_breeches.png"
+ ],
+ "notes": "Pete's Victorian garment set (2026-10-12). Garments are DESIGNED from the base body (make_garment / make_hat / make_accessory) from recipes whose edges, ease and colours were MEASURED from Pete's drawings: body parts named on the naked base goose (draw_parts.py), part-to-part warp (part_warp.py), SAM garment masks on the drawings composited onto the blue key mannequin (ref_dress.py), key_measure.py -> out/outfit_male_victorian/keyed/. Tail hidden under breeches and jacket (Pete). Shirt: male chest (no bust).",
+ "body_shape": "sliders",
+ "shape": {
+  "leg_length": 1.15
+ },
+ "shells_on_base": true,
+ "garment_design": {
+  "breeches": {
+   "z_top": 0.98,
+   "z_bot": 0.37,
+   "tris": 2600,
+   "ease_min": 0.008,
+   "ease_max": 0.045,
+   "colors": {
+    "tan": [
+     175,
+     137,
+     100
+    ],
+    "olive": [
+     92,
+     98,
+     62
+    ],
+    "navy": [
+     44,
+     56,
+     88
+    ]
+   },
+   "back_rise": 0.3,
+   "rise_y0": -0.1,
+   "band_ease": 0.006,
+   "kneeband": 0.06,
+   "ease_npz": "out/outfit_male_victorian/keyed/breeches_coverage.npz"
+  },
+  "shirt": {
+   "kind": "shirt",
+   "z_neck": 1.28,
+   "z_top": 0.85,
+   "z_bot": 0.85,
+   "back_rise": 0.3,
+   "rise_y0": -0.1,
+   "tris": 3200,
+   "cuff": 0.045,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.007,
+    "sleeve": 0.011,
+    "blouse": 0.006,
+    "cuff": 0.005,
+    "neck": 0.003,
+    "hem": 0.003
+   },
+   "mottle": 0.05,
+   "twill": 0.05,
+   "twill_scale": 520.0,
+   "roughness": 0.75,
+   "colors": {
+    "cream": [
+     240,
+     226,
+     204
+    ],
+    "white": [
+     238,
+     238,
+     234
+    ],
+    "blue": [
+     188,
+     206,
+     228
+    ]
+   },
+   "tuck": {
+    "into": "breeches",
+    "z_top": 0.91,
+    "rise": 0.3,
+    "y0": -0.1,
+    "margin": 0.012,
+    "hide": false
+   },
+   "hem_zone": 0.14,
+   "cuff_clear": 0.007,
+   "armpit_relax": 0
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "z_neck": 1.265,
+   "z_top": 0.9,
+   "z_bot": 0.8,
+   "tris": 2600,
+   "cover_margin": 0.03,
+   "outline": {
+    "z_notch": 0.868,
+    "z_point": 0.842,
+    "z_side": 0.888,
+    "z_back": 0.888,
+    "point_x": 0.032,
+    "side_x": 0.13,
+    "z_vbot": 1.075,
+    "v_top_w": 0.062,
+    "v_pow": 0.9,
+    "arm_r": 0.088,
+    "arm_off": [
+     -0.005,
+     0.0,
+     -0.04
+    ],
+    "lapel_w": 0.022,
+    "notch_down": 0.05,
+    "pocket": [
+     0.085,
+     0.965
+    ],
+    "pocket_tilt": 8,
+    "pocket_w": 0.034,
+    "strap_z": 0.94,
+    "strap_x": 0.09
+   },
+   "ease": {
+    "torso": 0.014,
+    "lapel": 0.004,
+    "clear": 0.005
+   },
+   "over": [
+    "shirt",
+    "breeches"
+   ],
+   "mottle": 0.18,
+   "twill": 0.08,
+   "roughness": 0.85,
+   "lining_color": [
+    88,
+    76,
+    64
+   ],
+   "lining_roughness": 0.65,
+   "colors": {
+    "burgundy": [
+     112,
+     42,
+     50
+    ],
+    "tan": [
+     128,
+     106,
+     82
+    ],
+    "grey": [
+     96,
+     96,
+     100
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "offset_smooth": 12
+  },
+  "coat": {
+   "kind": "coat",
+   "z_neck": 1.275,
+   "z_top": 0.9,
+   "z_bot": 0.8,
+   "tris": 6000,
+   "cover_margin": 0.07,
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "wrist_offset": -0.03,
+   "outline": {
+    "z_front": 0.725,
+    "z_back": 0.725,
+    "z_break": 0.99,
+    "z_notch": 1.19,
+    "lapel_w": 0.05,
+    "open": [
+     [
+      0.6,
+      0.12
+     ],
+     [
+      0.7,
+      0.11
+     ],
+     [
+      0.86,
+      0.05
+     ],
+     [
+      0.97,
+      0.03
+     ],
+     [
+      1.0,
+      0.03
+     ],
+     [
+      1.19,
+      0.075
+     ],
+     [
+      1.28,
+      0.06
+     ],
+     [
+      1.4,
+      0.06
+     ]
+    ],
+    "hang_top": 0.95,
+    "hang_az": 70,
+    "buttons_z": [
+     0.985,
+     0.92,
+     0.855
+    ],
+    "pocket_z": 0.8,
+    "vent_h": 0.17,
+    "waist_z": 0.93,
+    "cuff_band": 0.065
+   },
+   "ease": {
+    "torso": 0.024,
+    "sleeve": 0.016,
+    "lapel": 0.006,
+    "collar": 0.012,
+    "clear": 0.006,
+    "under_max": 0.03,
+    "waist": 0.01,
+    "skirt": 0.026
+   },
+   "over": [
+    "shirt",
+    "shirt@collar",
+    "waistcoat",
+    "breeches"
+   ],
+   "mottle": 0.2,
+   "twill": 0.08,
+   "roughness": 0.85,
+   "colors": {
+    "brown": [
+     74,
+     50,
+     35
+    ],
+    "navy": [
+     38,
+     46,
+     68
+    ],
+    "grey": [
+     80,
+     80,
+     84
+    ]
+   },
+   "seat_fit": true,
+   "under_max": 0.03,
+   "thickness": 0,
+   "offset_smooth": 12,
+   "armpit_relax": 0
+  },
+  "gloves": {
+   "kind": "glove",
+   "z_top": 0.9,
+   "z_bot": 0.8,
+   "tris": 1600,
+   "cover_margin": 0.008,
+   "wrist_offset": -0.058,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "base_smooth": 24,
+   "ease": {
+    "hand": 0.0025,
+    "cuff": 0.002
+   },
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.45,
+   "weight_smooth": 6,
+   "colors": {
+    "black": [
+     34,
+     31,
+     30
+    ],
+    "brown": [
+     92,
+     60,
+     40
+    ],
+    "grey": [
+     120,
+     116,
+     110
+    ]
+   },
+   "plain_smooth": 70,
+   "top_r": 0.033,
+   "top_len": 0.1
+  },
+  "boots": {
+   "kind": "boot",
+   "z_top": 0.46,
+   "z_bot": -1.0,
+   "tris": 1600,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_min": 0.004,
+   "ease_max": 0.09,
+   "ease_reach": 0.1,
+   "ease_smooth": 40,
+   "boot_smooth": 4,
+   "seat_fit": false,
+   "over": [
+    "breeches"
+   ],
+   "ease": {
+    "boot": 0.004,
+    "clear": 0.005
+   },
+   "sole_z": 0.022,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.6,
+   "colors": {
+    "black": [
+     28,
+     26,
+     26
+    ],
+    "brown": [
+     70,
+     44,
+     28
+    ],
+    "oxblood": [
+     72,
+     26,
+     24
+    ]
+   },
+   "foot_top": 0.16,
+   "boot_voxel": 0.014,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.2,
+   "top_clear": 0.007
+  }
+ },
+ "hat_design": {
+  "brim_c": [
+   0.0,
+   -0.074
+  ],
+  "brim_ax": [
+   0.106,
+   0.124
+  ],
+  "brim_z": 1.612,
+  "curl": 0.016,
+  "crown_c": [
+   0.0,
+   -0.062
+  ],
+  "crown_ax": [
+   0.063,
+   0.088
+  ],
+  "crown_base": 1.618,
+  "crown_top": 1.697,
+  "band_h": 0.016,
+  "colors": {
+   "brown": [
+    96,
+    64,
+    46
+   ],
+   "black": [
+    36,
+    34,
+    34
+   ],
+   "grey": [
+    110,
+    106,
+    100
+   ]
+  },
+  "band_color": [
+   30,
+   28,
+   28
+  ],
+  "brass_color": [
+   176,
+   132,
+   62
+  ]
+ },
+ "accessory_clear": {
+  "bowtie": {
+   "pieces": [],
+   "parts": [
+    "bow_L",
+    "bow_R",
+    "knot",
+    "collar",
+    "wing_L",
+    "wing_R"
+   ]
+  }
+ },
+ "accessory_split": {
+  "bowtie": {
+   "shirt@collar": [
+    "collar",
+    "wing_L",
+    "wing_R"
+   ]
+  }
+ },
+ "accessory_drop": {
+  "bowtie": [
+   "shirtfront",
+   "neckband"
+  ]
+ }
+}

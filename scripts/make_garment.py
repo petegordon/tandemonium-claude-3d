@@ -125,7 +125,8 @@ for v in body.data.vertices:
     for g in v.groups:
         Wb[v.index, g.group] = g.weight
 Wb /= np.maximum(Wb.sum(1, keepdims=True), 1e-9)
-T = bodyshape.body_transforms(ROOT, CHAR, arm) if cfg.get("body_shape", "base") != "base" else None
+# shells_on_base: the garments are built on the BASE body; dress_goose.py applies the shape last (as it does)
+T = bodyshape.body_transforms(ROOT, CHAR, arm) if cfg.get("body_shape", "base") != "base" and     not cfg.get("shells_on_base") else None
 if T:
     V0 = np.array([v.co[:] for v in body.data.vertices])
     body.data.vertices.foreach_set("co", bodyshape.deform(V0, Wb, gn, arm, T).ravel())
@@ -855,22 +856,39 @@ if KIND in ("shirt", "coat", "glove"):
         dwr = np.where(on, np.minimum(dwr, -((P - co) @ dd)), dwr)
     dneck = Z_NECK - P[:, 2]
     dhem = P[:, 2] - ztop(P[:, 1]) + (Z_TOP - Z_BOT)   # height above the (tilted) hem
-piece = next(o for o in load(D / "pieces" / f"{R.get('guide', PIECE)}.glb") if o.type == "MESH")
-only_select(piece)
-bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 REACH = R.get("ease_reach", 0.08)
 ease = np.full(len(P), np.nan)
-if KIND in ("shirt", "vest", "coat", "glove", "boot"):
-    pb = None
+piece_f = D / "pieces" / f"{R.get('guide', PIECE)}.glb"
+pb = piece = None
+if KIND not in ("shirt", "vest", "coat", "glove", "boot") and piece_f.exists():   # (outfits drawn per garment
+    piece = next(o for o in load(piece_f) if o.type == "MESH")                     #  have no extracted piece)
+    only_select(piece)
+    bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    pb = BVHTree.FromObject(piece, bpy.context.evaluated_depsgraph_get())
 for i, (p, n) in enumerate(zip(P, N)):
     if pb is None:
         break
     hit = pb.ray_cast(Vector(p + n * REACH), Vector(-n), REACH)     # outermost surface of the piece
     if hit[0] is not None:
         ease[i] = REACH - hit[3]
-bpy.data.objects.remove(piece)
+if piece is not None:
+    bpy.data.objects.remove(piece)
+if R.get("ease_npz") and KIND not in ("shirt", "vest", "coat", "glove", "boot"):
+    # measured ease (key_measure.py on the dressed key mannequin): per base-body vertex, NaN where not measured;
+    # each region vertex takes its nearest body vertex's value
+    EZ = np.load(ROOT / R["ease_npz"])["ease"]
+    # (the measured field lives on base_goose.blend's game mesh; its vertex positions are in the worn set's
+    #  _regions.npz -- the rigged GLB splits vertices at UV seams, so look up by position)
+    EZco = np.load(ROOT / "out" / "outfit_male_victorian" / "worn" / "_regions.npz")["co"]
+    kde = KDTree(len(EZco))
+    for i, v in enumerate(EZco):
+        kde.insert(v, i)
+    kde.balance()
+    for i, p in enumerate(P):
+        _, j, d = kde.find(p)
+        if d < 0.03 and not np.isnan(EZ[j]):
+            ease[i] = EZ[j]
 wb, kb = R.get("waistband", 0.04), R.get("kneeband", 0.035)
 if KIND == "shirt":
     # torso close, sleeves fuller and bloused above a snug cuff, snug at the neck and the tucked hem
