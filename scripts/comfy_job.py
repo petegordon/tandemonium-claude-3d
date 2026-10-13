@@ -300,7 +300,7 @@ def cmd_prep(a):
     outs, dt, peak = run(g_prep(names, f"claude3d_{safe(a.char)}_prep"))
     files = collect(outs, src / "prepped")
     for f in files:  # strip ComfyUI counters: front_black_00001_.png -> front_black.png
-        f.rename(f.with_name(f.name.split("_000")[0] + ".png"))
+        f.replace(f.with_name(f.name.split("_000")[0] + ".png"))   # replace: re-preps overwrite (rename fails on Windows)
     print("prepped:", sorted(p.name for p in (src / "prepped").glob("*.png")))
 
 
