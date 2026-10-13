@@ -1,7 +1,7 @@
 """Add Pete's cream turn-back cuffs (with a brass button) to the built gloves.
 
   blender -b --factory-startup --python scripts/make_glove_cuff.py -- [--char outfit_male_victorian]
-      [--height 0.03] [--below 0.006] [--ease 0.004] [--flare 0.004] [--glb shells/gloves.glb]
+      [--height 0.03] [--below 0.006] [--ease 0.004] [--flare 0.004] [--button-r 0.0065] [--glb shells/gloves.glb]
 
 Per hand: rings around the forearm axis (ForeArm -> Hand joints) from --below past the wrist joint up --height toward
 the elbow; each ring's radius per angle = the glove (or, above it, the forearm body) under it + --ease, flaring by
@@ -31,6 +31,8 @@ CHAR = opt("--char", "outfit_male_victorian")
 D = ROOT / "out" / f"{CHAR}-goose"
 GLB = D / opt("--glb", "shells/gloves.glb")
 HT, BELOW, EASE, FLARE = opt("--height", 0.03), opt("--below", 0.006), opt("--ease", 0.004), opt("--flare", 0.004)
+BR = opt("--button-r", 0.0065)       # brass button radius
+BFRONT = opt("--button-front", 0.0)  # 0: on the outer side; 1: halfway round to the front
 JS = json.loads((ROOT / "refs" / "key_views" / "joints.json").read_text(encoding="utf-8"))
 J = {k: np.array(v["head"]) for k, v in JS.items()}
 NA, NR = 48, 7
@@ -78,7 +80,8 @@ for side, sx in (("Left", 1), ("Right", -1)):
         for i in range(NA):
             bm.faces.new((r0[i], r0[(i + 1) % NA], r1[(i + 1) % NA], r1[i]))
     # button: outer side (away from the body, +x for the left hand), mid-band
-    out_dir = np.array([sx * 1.0, 0, 0]) - up * (up[0] * sx)
+    out_dir = np.array([sx * 1.0, -BFRONT, 0])          # outer side, turned toward the front (ref)
+    out_dir = out_dir - up * (up @ out_dir)
     out_dir /= np.linalg.norm(out_dir)
     c = w + up * (HT / 2 - BELOW / 2)
     h = GB.ray_cast(Vector(c + out_dir * 0.12), Vector(-out_dir), 0.12)
@@ -102,7 +105,7 @@ cm = bpy.data.materials.new("gloves_cuff_cream")
 cm.use_nodes = True
 nt = cm.node_tree
 bs = nt.nodes["Principled BSDF"]
-bs.inputs["Base Color"].default_value = (0.86, 0.79, 0.66, 1)
+bs.inputs["Base Color"].default_value = (0.62, 0.50, 0.33, 1)     # cream (linear; the old value rendered white)
 bs.inputs["Roughness"].default_value = 0.75
 wv = nt.nodes.new("ShaderNodeTexWave")
 wv.inputs["Scale"].default_value = 400.0
@@ -115,7 +118,7 @@ bmb = bmesh.new()
 for p, n in buttons:
     g = bmesh.ops.create_uvsphere(bmb, u_segments=12, v_segments=8, radius=1.0)
     rot = Vector((0, 0, 1)).rotation_difference(Vector(n)).to_matrix().to_4x4()
-    M = Matrix.Translation(Vector(p)) @ rot @ Matrix.Diagonal((0.0065, 0.0065, 0.003, 1.0))
+    M = Matrix.Translation(Vector(p)) @ rot @ Matrix.Diagonal((BR, BR, BR * 0.45, 1.0))
     bmesh.ops.transform(bmb, matrix=M, verts=g["verts"])
 bme = bpy.data.meshes.new("cuff_buttons")
 bmb.to_mesh(bme)

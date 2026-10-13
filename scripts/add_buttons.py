@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHAR = opt("--char", "outfit_male_victorian")
 PIECE = opt("--piece", "boots")
 REF = opt("--ref", {"waistcoat": "vest", "coat": "jacket", "gloves": "glove", "bowtie": "bow_tie"}.get(PIECE, PIECE))
-VIEWS = opt("--views", "front,left,rear,right").split(",")
+VIEWS = [] if "--extra-only" in argv else opt("--views", "front,left,rear,right").split(",")   # --extra-only: just the --extra spots
 MINPX, MAXPX = opt("--min-px", 4), opt("--max-px", 260)
 EXTEND = opt("--extend", 0)       # continue each side's button line this many steps further down
 DRIFT = opt("--extend-drift", 0.0)  # metres per step toward the toe (-y): the line curves onto the instep
@@ -114,8 +114,13 @@ for view in VIEWS:
         found.append((np.array(hit[0][:]), np.array(hit[1][:]), rad, view))
 for spec in [s for s in opt("--extra", "").split(";") if s]:
     p = np.array([float(x) for x in spec.split(",")])
-    loc, nrm, _, _ = GB.find_nearest(Vector(p))
-    found.append((np.array(loc[:]), np.array(nrm[:]), 0.007, "extra"))
+    if "--extra-ray" in argv:     # first surface straight behind the spot (+y), seen from the front
+        loc, nrm, _, _ = GB.ray_cast(Vector(p), Vector((0, 1, 0)), 1.0)
+        if loc is None:
+            continue
+    else:
+        loc, nrm, _, _ = GB.find_nearest(Vector(p))
+    found.append((np.array(loc[:]), np.array(nrm[:]), opt("--extra-r", 0.007), "extra"))
 # merge duplicates seen from several views (keep the most frontal: largest radius estimate)
 found.sort(key=lambda t: -t[2])
 buttons = []

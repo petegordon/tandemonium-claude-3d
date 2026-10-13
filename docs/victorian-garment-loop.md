@@ -60,3 +60,20 @@ jacket); beauty renders front / side / rear / 3-4 on the naked base goose for ea
   instead of a sawtooth of hidden faces); tuck line z_top 0.968, rise 0.67, margin 0.03.
 
 Outfits: `--tag full --variant jacket`, `--tag nojacket --without coat`, `--tag shirtonly --without coat,waistcoat`.
+
+## Round 4 (2026-10-13): reviewer's round-3 defects
+- **Jacket hem** was sawtoothed by the late body shape: a tail vertex weighted mostly to its cloth chain kept a
+  sliver of leg weight, renormalised into noise. `dress_goose.py` now smooths each garment's late-shape displacement
+  over the mesh (`--late-smooth`, 30 passes; body-weighted vertices hold their own move more).
+- **Jacket tails** to the knee (`outline.z_back` 0.45), **gold piping** on every open edge (`add_piping.py`: boundary
+  edges found by position, since the glTF stays split along UV seams), **brown lining** (`add_lining.py`: inset,
+  flipped copy of the cloth). Built over the SLIM shirt (`shells/variants/jacket/shirt.glb`), not the bishop one.
+  **12 front buttons** in 2 x 3 per panel at the drawing's spots (`add_buttons.py --extra-only --extra-ray`).
+- **Gloves**: the base goose's hand is a fused mitt, as in Pete's worn reference -- no fingers invented. The cuff is
+  what reads: taller (5 cm), flared, cream (it rendered white), button 12 mm turned to the front
+  (`make_glove_cuff.py --button-r --button-front`); leather left plain (the bake put a tan tip on it).
+- **Breeches**: level waistband (`back_rise` 0, as the drawing), fabric tile only (no painted blobs / crotch shadow),
+  12 modelled gold buttons (2 x 3 by each side seam, front and back) + the knee pair. Shirt tuck line follows (rise 0).
+- **Boots**: the calf poked through the shaft's back -> every body vertex below the boot rim is hidden.
+- Vest back stays brocade (Pete's rear reference has it); the pale flap was the old glove cuff, gone.
+- Hat medallion larger (21 mm) and turned toward the front.

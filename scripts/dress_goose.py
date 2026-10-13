@@ -237,6 +237,14 @@ for piece, bones in FORCE.items():
                 sel = nb
         for i in np.flatnonzero(sel):
             hid_by[i].add(piece)
+# closed tubes: everything of the body below a boot's top rim is inside it (rays from the calf's back slipped past the
+# shaft and left feather shards poking through)
+if "boots" in shells:
+    bz_ = np.array([(shells["boots"].matrix_world @ v.co)[:] for v in shells["boots"].data.vertices])
+    z_rim = float(bz_[:, 2].max()) - 0.012
+    for i in np.flatnonzero(V[:, 2] < z_rim):
+        hid_by[i].add("boots")
+    print("BOOT RIM z", round(z_rim, 3))
 key_of_face = []
 for p in me.polygons:
     vs = list(p.vertices)
@@ -638,6 +646,7 @@ def move_rest(fn_mesh, fn_bones):
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
+LATE_SMOOTH = int(argv[argv.index("--late-smooth") + 1]) if "--late-smooth" in argv else 30
 if LATE:
     def late_mesh(o, Xw):
         Wm = np.zeros((len(Xw), len(names)))
@@ -646,8 +655,38 @@ if LATE:
                 nm = o.vertex_groups[g.group].name
                 if nm in names:
                     Wm[v.index, names.index(nm)] = g.weight
+        own = Wm.sum(1)                    # the share of the vertex's weight on body bones (the rest: cloth chains)
         Wm /= np.maximum(Wm.sum(1, keepdims=True), 1e-9)
-        return bodyshape.deform(Xw, Wm, names, rig, T)
+        Xn = bodyshape.deform(Xw, Wm, names, rig, T)
+        if o.name.split("__")[0] == "body" or not len(o.data.edges):
+            return Xn
+        # garments: smooth the displacement over the mesh. A skirt / tail vertex weighted mostly to its cloth chain
+        # kept only a sliver of leg weight, renormalised into noise: neighbours moved differently and the jacket's hem
+        # came out sawtoothed. Low body-weight vertices take their neighbours' displacement more strongly.
+        Dd = Xn - Xw
+        _, grp = np.unique(np.round(Xw, 5), axis=0, return_inverse=True)
+        grp = grp.ravel()
+        ng = grp.max() + 1
+        ea = np.array([e.vertices[:] for e in o.data.edges])
+        ga, gb = grp[ea[:, 0]], grp[ea[:, 1]]
+        keep = ga != gb
+        ga, gb = ga[keep], gb[keep]
+        cnt = np.bincount(grp, minlength=ng).astype(float)
+        G = np.zeros((ng, 3))
+        np.add.at(G, grp, Dd)
+        G /= np.maximum(cnt, 1)[:, None]
+        trust = np.zeros(ng)
+        np.add.at(trust, grp, np.clip(own, 0, 1))
+        trust /= np.maximum(cnt, 1)
+        stiff = np.clip((trust - 0.5) / 0.4, 0.0, 1.0)  # body-weighted vertices keep their own move (layers stay together); cloth-chain ones smooth
+        deg = np.bincount(ga, minlength=ng) + np.bincount(gb, minlength=ng)
+        for _ in range(LATE_SMOOTH):
+            acc = np.zeros_like(G)
+            np.add.at(acc, ga, G[gb])
+            np.add.at(acc, gb, G[ga])
+            avg = np.where(deg[:, None] > 0, acc / np.maximum(deg, 1)[:, None], G)
+            G = G * stiff[:, None] + avg * (1 - stiff[:, None])
+        return Xw + G[grp]
 
     def late_bones(n, h, t):
         if n not in T:
@@ -697,6 +736,9 @@ if POSES_ON:
                 pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ rest.to_3x3().to_4x4()
                 bpy.context.view_layer.update()
     poses = [("rest", None), ("a_pose", poser.a_pose), ("riding", poser.riding), ("neck_curve", poser.neck_curve)]
+    for o in bpy.data.objects:          # as the game (and outfit_beauty.py): layered sub-meshes under an outer piece
+        if o.type == "MESH" and "__" in o.name:
+            o.hide_render = True
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
     sc.render.resolution_x, sc.render.resolution_y = RES_W, RES_H

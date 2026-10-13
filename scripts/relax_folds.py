@@ -128,7 +128,7 @@ OVER = [k for k in opt("--over", ",".join(cfg_.get("garment_design", {}).get(PIE
 OVER_CLEAR = opt("--over-clear", 0.005)
 under_bvh = []
 for nm in OVER:
-    f_ = D / "shells" / f"{nm}.glb"
+    f_ = D / "shells" / (f"variants/{opt('--variant', '')}/{nm}.glb" if "--variant" in argv and (D / "shells" / "variants" / opt("--variant", "") / f"{nm}.glb").exists() else f"{nm}.glb")
     if not f_.exists():
         continue
     seen = set(bpy.data.objects)
