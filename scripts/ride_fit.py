@@ -16,6 +16,7 @@ Crank angle --theta (rad, the bike's Pedal clip convention; 0 = captain left ped
   a bike scale too big for them ("auto": just enough for LEG_REACH). --standing also renders the goose
   standing, unstretched vs stretched (what permanently longer legs would look like off the bike).
 --bike <tag>: seat on out/bike/bike_rigged_<tag>.blend (make_bike.py --tag, e.g. goosefit24) instead of the P4.1 bike.
+--dressed-tag <t>: seat out/<char>-goose/<char>_<t>_dressed.blend (dress_goose --tag t) instead of <char>_dressed.
 --base <blend>: start from an earlier fit scene (e.g. the captain's), so both geese ride in the renders.
 --clips (P5.1-P5.4; one scale): bake the riding clips by the same IK and export out/<char>-goose/<char>_rider.glb
   (the dressed goose + its old clips + these; armature space, so the game places the goose by its hips on the socket):
@@ -58,6 +59,8 @@ TAG = arg("--tag", "fit")
 BIKE_TAG = arg("--bike", "")
 BIKE_SFX = f"_{BIKE_TAG}" if BIKE_TAG else ""
 BASE = arg("--base", "")
+DTAG = arg("--dressed-tag", "")   # dress_goose --tag (e.g. "full"): <char>_<tag>_dressed.blend + _cloth_chains.json
+DPRE = f"{CHAR}_{DTAG}" if DTAG else CHAR
 STRETCH_ARG = arg("--stretch", "1")
 STANDING = "--standing" in argv
 VIEWS = (("side", 90, 0), ("front", 0, 0), ("q34", 40, 15), ("rq34", 215, 20), ("top", 120, 55))
@@ -88,7 +91,7 @@ TMP.mkdir(parents=True, exist_ok=True)
 
 # ---- scene: bike + goose -----------------------------------------------------------------------------
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / BASE) if BASE else str(OUT / f"bike_rigged{BIKE_SFX}.blend"))
-with bpy.data.libraries.load(str(ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_dressed.blend")) as (src, dst):
+with bpy.data.libraries.load(str(ROOT / "out" / f"{CHAR}-goose" / f"{DPRE}_dressed.blend")) as (src, dst):
     dst.objects = list(src.objects)
 goose_objs = [o for o in dst.objects if o is not None and o.type in ("MESH", "ARMATURE")]
 for o in goose_objs:
@@ -145,7 +148,7 @@ def add_bustle_bone():
 if BUSTLE is not None:
     add_bustle_bone()
 bike = bpy.data.objects["bike_rig"]
-chains = json.loads((ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_cloth_chains.json").read_text(encoding="utf-8"))
+chains = json.loads((ROOT / "out" / f"{CHAR}-goose" / f"{DPRE}_cloth_chains.json").read_text(encoding="utf-8"))
 DRAPE = chains["drape"]
 pbs = rig.pose.bones
 bones = rig.data.bones

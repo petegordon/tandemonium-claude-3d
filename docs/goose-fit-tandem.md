@@ -234,3 +234,26 @@ Open items:
 - **Re-baked:** captain `--side-lean 35 --hand-pitch 35 --elbow-out 0.3`; stoker `--side-lean 30 --riding-hem 0.70,0.82,0.92` (hand 45°). 0 mm contact in every frame, lean included.
 - **Game:** PR #406, commit 6225e75.
 - **Sheets:** `docs/img/p57_hands_on_grips.png` (before/after) and `docs/img/p57_male_arm_options.png`.
+
+## 12. Outfit pairings on the tandem (2026-10-13)
+
+Pete asked for an in-game choice of three pairings:
+
+| setting | captain | stoker |
+|---|---|---|
+| Original | `outfit_male` (P5) | `outfit_female` (P5) |
+| Cyclist | `outfit_male_cyclist` | `outfit_female_cyclist` |
+| Fancy | `outfit_male_victorian` (jacket outfit) | `outfit_female` (P5) |
+
+**Clips:** `ride_fit.py` takes `--dressed-tag full`, so it seats `<char>_full_dressed.blend`, which is what the newer outfits write.
+- Captains: `--seat Captain --bike goosefit26 --max-bar-raise 0 --scales 1.0 --side-lean 35 --hand-pitch 35 --elbow-out 0.3 --clips`.
+- Lady cyclist: `--seat Stoker --side-lean 30 --riding-hem 1,1,1 --clips --base out/bike/fit_outfit_male_cyclist_Captain_rideC.blend`. The `--riding-hem 1,1,1` only turns on the wheel report. Her knee-length pleated skirt touches the rear wheel's disc at no more than 8 vertices, so it needs no riding hem.
+- Contact error is 0 mm in every frame for all three.
+
+**Delivery:** `glb_pack_images.py` gives `goose_captain_cyclist.glb` (7.6 MB), `goose_stoker_cyclist.glb` (7.8 MB) and `goose_captain_fancy.glb` (8.2 MB). The validator reports 0 errors, with the same warnings as the P5 riders.
+
+**Game:** PR #406, commit f421442, Options > Goose Outfits.
+
+**Sheet:** `docs/img/outfit_lineup.jpg`, built by `scripts/outfit_lineup_sheet.py`:
+- the five dressed geese, front and 3/4 (`outfit_beauty.py --views front:0,q34:35`);
+- the three pairings on the tandem (ride_fit renders).
