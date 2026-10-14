@@ -257,3 +257,31 @@ Pete asked for an in-game choice of three pairings:
 **Sheet:** `docs/img/outfit_lineup.jpg`, built by `scripts/outfit_lineup_sheet.py`:
 - the five dressed geese, front and 3/4 (`outfit_beauty.py --views front:0,q34:35`);
 - the three pairings on the tandem (ride_fit renders).
+
+## 13. In-game review of every rider + colourways (2026-10-13)
+
+**Pete:** "the fancy female on the bike in game the back looks wild wrong, and the fancy male may also be off ... test and review all views while in the bike for each of the characters".
+
+**How it was checked:** tandemonium `scripts/goose-views.mjs` renders, inside the real game (headless Chrome):
+- every Goose Outfits pair, from 8 directions, at two crank angles;
+- three framings: the pair, a captain close-up and a stoker close-up;
+- only the bike is shown (the world is hidden).
+
+Contact sheets come from `scripts/goose-views-sheet.py`. Results: `docs/img/riders/riders_inbike_review.jpg` and `fancy_before_after.jpg`.
+
+**Found and fixed, in `ride_fit.py`:**
+- **Drape profiles were ignored.** The riding bake applied the global drape to every chain, so the skirts ballooned over the thighs (all ladies). Each chain now uses its own `drape`.
+- **Riding hem.**
+  - Problem: scaling each chain root on all axes shrank every back panel toward its own root, leaving a crease and a lump down the back of the red-dress lady.
+  - Fix: new `--hem-axis y` shortens the chains along their length only.
+  - Fancy lady: `--bustle 0.3` folds the bustle flatter.
+- **Elbows:** the stokers' elbows stuck out sideways from behind. All stokers now use `--elbow-out 0.35`.
+- **Seams cracked open.** Vertices sharing a position had different skin weights, so the coat opened along seams when seated (light streaks). Fix: their weights are unified before export.
+- **Linings poked through.** The Fancy gent's coat lining showed through the outer coat as tan patches. Fix: lining vertices take the weights of the nearest outer-cloth vertex.
+- **Coat sides:** `--follow S=1.0,B=0.15` makes the coat sides follow the thighs fully while riding and the tails slightly (Fancy gent and original male).
+- **Re-bake:** all six riders, with the final settings in `scripts/bake_riders.sh`. Contact error 0 mm; validator 0 errors.
+
+**Colourways in the game:**
+- `scripts/recolour.py` holds the shared hue / saturation / value remap. It feeds both `outfit_beauty.py --recolour` and `scripts/colourway_params.py`, which writes `tandemonium/js/goose-colourways-data.js` from the delivered GLBs.
+- The game's `js/goose-colourways.js` mirrors Blender's Hue/Saturation node in the material shader.
+- In-game check: `docs/img/riders/ingame_colourways.jpg`.

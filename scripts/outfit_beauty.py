@@ -65,72 +65,19 @@ if HIDE:
 # ("coat") or piece:material-substring ("hat:band"); the more specific key wins; targets are sRGB [r, g, b].
 RC = opt("--recolour", "")
 if RC:
-    import colorsys
     import json as json_
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import recolour  # noqa: E402
     rc_file, rc_way, rc_seat = RC.split(":")
-    WAY = json_.loads((ROOT / rc_file).read_text(encoding="utf-8"))
-    WAY = next(p_ for p_ in WAY["pairs"].values() if rc_way in p_["ways"])["ways"][rc_way].get(rc_seat, {})
-
-    def lin(c_):
-        c_ = np.asarray(c_, float) / 255.0
-        return np.where(c_ > 0.04045, ((c_ + 0.055) / 1.055) ** 2.4, c_ / 12.92)
-
-    def target_for(piece_, mat_):
-        hit_ = [k_ for k_ in WAY if ":" in k_ and k_.split(":")[0] == piece_ and k_.split(":")[1] in mat_]
-        return WAY[hit_[0]] if hit_ else WAY.get(piece_)
-
-    done_ = set()                      # a material shared by several objects (sub-meshes, variants) is remapped once
+    TG = recolour.way_targets(json_.loads((ROOT / rc_file).read_text(encoding="utf-8")), rc_way, rc_seat)
+    mats_ = {}
     for o_ in meshes:
-        piece_ = o_.name.split(".")[0].split("__")[0]
         for m_ in o_.data.materials:
-            tgt_ = target_for(piece_, m_.name) if m_ else None
-            if tgt_ is None or not m_.node_tree or m_.name in done_:
-                continue
-            done_.add(m_.name)
-            nt_ = m_.node_tree
-            bs_ = next((n for n in nt_.nodes if n.type == "BSDF_PRINCIPLED"), None)
-            link_ = next((l_ for l_ in nt_.links if l_.to_socket == bs_.inputs["Base Color"]), None) if bs_ else None
-            tl_ = lin(tgt_)
-            if link_ is None:          # flat colour: set it
-                bs_.inputs["Base Color"].default_value = (*tl_, 1.0)
-                continue
-            # albedo = texture (x baseColorFactor: glTF import makes that a MULTIPLY mix with the factor in B)
-            src_, fac_ = link_.from_node, np.ones(3)
-            if src_.type == "MIX":
-                ins_ = [i_ for i_ in src_.inputs if i_.enabled and i_.name in ("A", "B")]
-                lk_ = next((i_ for i_ in ins_ if i_.is_linked), None)
-                un_ = next((i_ for i_ in ins_ if not i_.is_linked), None)
-                if un_ is not None:
-                    fac_ = np.array(un_.default_value[:3])
-                src_ = lk_.links[0].from_node if lk_ is not None else None
-            tex_ = src_ if (src_ is not None and src_.type == "TEX_IMAGE" and src_.image) else None
-            if tex_ is None:
-                continue
-            # the garment's own colour: texels under its UVs only (atlases carry fill / other pieces elsewhere)
-            iw_, ih_ = tex_.image.size
-            img_ = np.array(tex_.image.pixels[:]).reshape(ih_, iw_, 4)
-            mi_ = list(o_.data.materials).index(m_)
-            uvl_ = o_.data.uv_layers.active.data
-            uv_ = np.array([uvl_[li_].uv[:] for p_ in o_.data.polygons if p_.material_index == mi_
-                            for li_ in p_.loop_indices][::3])
-            if not len(uv_):
-                continue
-            xs_ = np.clip((uv_[:, 0] % 1.0) * iw_, 0, iw_ - 1).astype(int)
-            ys_ = np.clip((uv_[:, 1] % 1.0) * ih_, 0, ih_ - 1).astype(int)
-            px_ = img_[ys_, xs_]
-            px_ = px_[px_[:, 3] > 0.5][:, :3]
-            if tex_.image.colorspace_settings.name == "sRGB":
-                px_ = np.where(px_ > 0.04045, ((px_ + 0.055) / 1.055) ** 2.4, px_ / 12.92)
-            mean_ = np.median(px_, 0) * fac_
-            mh_, ms_, mv_ = colorsys.rgb_to_hsv(*np.clip(mean_, 1e-4, 1))
-            th_, ts_, tv_ = colorsys.rgb_to_hsv(*np.clip(tl_, 1e-4, 1))
-            hsv_ = nt_.nodes.new("ShaderNodeHueSaturation")
-            hsv_.inputs["Hue"].default_value = (0.5 + th_ - mh_) % 1.0
-            hsv_.inputs["Saturation"].default_value = float(np.clip(ts_ / max(ms_, 0.02), 0, 4))
-            hsv_.inputs["Value"].default_value = float(np.clip(tv_ / max(mv_, 1e-3), 0, 6))
-            nt_.links.new(link_.from_socket, hsv_.inputs["Color"])
-            nt_.links.new(hsv_.outputs["Color"], bs_.inputs["Base Color"])
-            print("RECOLOUR", piece_, m_.name, [round(x_, 3) for x_ in mean_], "->", tgt_)
+            if m_:
+                mats_.setdefault(recolour.gltf_name(m_), []).append(m_)
+    for name_, p_ in recolour.recolour_objects(meshes, TG).items():
+        for m_ in {id(x): x for x in mats_[name_]}.values():
+            recolour.apply_params(m_, p_)
 # wool / felt / silk read matte: the default specular (0.5) laid a white film over the dark cloth (the burgundy
 # rendered salmon); rough non-metal materials take --cloth-spec
 CLOTH_SPEC = opt("--cloth-spec", 0.2)

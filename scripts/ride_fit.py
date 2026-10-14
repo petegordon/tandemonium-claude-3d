@@ -73,8 +73,14 @@ TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
 SIDE_LEAN = arg("--side-lean", 35.0)   # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
 CLIPS = "--clips" in argv
 HEM = [float(x) for x in arg("--riding-hem", "").split(",")] if "--riding-hem" in argv else None
+# --hem-axis y: the riding hem shortens each chain along its length only (bone Y) -- the panels keep their width, so
+# neighbouring chains don't pull apart (scaling all axes shrank each back panel toward its own root: a crease + lump)
+HEM_Y = arg("--hem-axis", "xyz") == "y"
 BUSTLE = arg("--bustle", 0.0) if "--bustle" in argv else None
 BUSTLE_BONE = "Cloth_skirt_bustle"
+# --follow F=1,S=1,B=0.2: riding-only override of the cloth chains' thigh follow by sector (the chains json keeps the
+# standing values); each chain also keeps its own drape profile (chains json "drape" per chain, else the global one)
+FOLLOW_OVR = {kv.split("=")[0]: float(kv.split("=")[1]) for kv in arg("--follow", "").split(",") if kv}
 BUSTLE_RAMP = 0.08     # m behind the waistband's back over which the skirt passes from Hips to the bustle bone
 NCLIP = 24
 HAND_CURL = 10.0       # deg: hand tip turned inward, under the grip (handshake grip, palm inward)
@@ -215,7 +221,7 @@ def apply_follow():
         tq = (pbs[c["thigh"]].matrix.to_3x3().normalized() @
               bones[c["thigh"]].matrix_local.to_3x3().inverted()).to_quaternion()
         for j, bn in enumerate(c["bones"]):
-            q = hq.slerp(tq, c["follow"] * DRAPE[j])
+            q = hq.slerp(tq, FOLLOW_OVR.get(c.get("tag", "?")[0], c["follow"]) * c.get("drape", DRAPE)[j])
             pb = pbs[bn]
             head = pb.matrix.to_translation()
             pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ bones[bn].matrix_local.to_3x3().to_4x4()
@@ -224,7 +230,7 @@ def apply_follow():
         for c in chains["chains"]:
             if c["piece"] in ("skirt", "dress"):
                 f = HEM["BSF".index(c["tag"][0])]
-                pbs[c["bones"][0]].scale = (f, f, f)
+                pbs[c["bones"][0]].scale = (1.0, f, 1.0) if HEM_Y else (f, f, f)
         upd()
     if BUSTLE is not None:
         pbs[BUSTLE_BONE].scale = (1.0, BUSTLE, 1.0)     # bone Y points back: fold the bustle's depth only
@@ -670,6 +676,61 @@ if CLIPS:
     report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN,
                        "riding_hem": HEM, "bustle": BUSTLE, f"skirt_verts_in_{'front' if SEAT == 'Captain' else 'rear'}_wheel": [skirt_rep[f] for f in range(NCLIP + 1)]}
     print("CLIPS", json.dumps(report["clips"]))
+    # seams: vertices that share a position (UV / material splits) must share their skin weights, or the posed
+    # mesh cracks open along them (thin light streaks and holes in the Fancy gent's coat when seated)
+    sealed = 0
+    for o in goose_objs:
+        if o.type != "MESH" or not o.vertex_groups:
+            continue
+        groups = {}
+        for v in o.data.vertices:
+            groups.setdefault(tuple(round(c, 5) for c in v.co), []).append(v)
+        for vs in groups.values():
+            if len(vs) < 2:
+                continue
+            acc = {}
+            for v in vs:
+                for g in v.groups:
+                    acc[g.group] = acc.get(g.group, 0.0) + g.weight / len(vs)
+            if all({g.group: g.weight for g in v.groups} == acc for v in vs):
+                continue
+            for v in vs:
+                have = {g.group for g in v.groups}
+                for gi, w in acc.items():
+                    o.vertex_groups[gi].add([v.index], w, "REPLACE")
+                for gi in have - set(acc):
+                    o.vertex_groups[gi].remove([v.index])
+            sealed += 1
+    print("SEAMS sealed", sealed, "position groups")
+    # linings: the inner layer takes the skin weights of the nearest outer-cloth vertex, so the two layers move as
+    # one (skinned on their own, the coat lining poked through the outer coat as tan patches when seated)
+    from mathutils.kdtree import KDTree
+    for o in goose_objs:
+        if o.type != "MESH" or not o.vertex_groups:
+            continue
+        lin_m = {i for i, m in enumerate(o.data.materials) if m and "lining" in m.name}
+        if not lin_m:
+            continue
+        lin_v, out_v = set(), set()
+        for p in o.data.polygons:
+            (lin_v if p.material_index in lin_m else out_v).update(p.vertices)
+        lin_v -= out_v
+        outs = sorted(out_v)
+        if not outs or not lin_v:
+            continue
+        kd = KDTree(len(outs))
+        for k_, vi in enumerate(outs):
+            kd.insert(o.data.vertices[vi].co, k_)
+        kd.balance()
+        for vi in lin_v:
+            src = o.data.vertices[outs[kd.find(o.data.vertices[vi].co)[1]]]
+            want = {g.group: g.weight for g in src.groups}
+            for g in list(o.data.vertices[vi].groups):
+                if g.group not in want:
+                    o.vertex_groups[g.group].remove([vi])
+            for gi, w in want.items():
+                o.vertex_groups[gi].add([vi], w, "REPLACE")
+        print("LINING", o.name, len(lin_v), "verts follow the outer cloth")
     # export the goose alone: rig back at the origin, rest pose, all pieces (layered ones too)
     sc.frame_end = NCLIP
     rig.location = (0, 0, 0)
