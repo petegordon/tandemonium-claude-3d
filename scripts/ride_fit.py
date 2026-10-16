@@ -228,7 +228,7 @@ def apply_follow():
             upd()
     if HEM:
         for c in chains["chains"]:
-            if c["piece"] in ("skirt", "dress"):
+            if c["piece"] in ("skirt", "dress", "petticoat"):          # (a petticoat under an open gown rides up too)
                 f = HEM["BSF".index(c["tag"][0])]
                 pbs[c["bones"][0]].scale = (1.0, f, 1.0) if HEM_Y else (f, f, f)
         upd()

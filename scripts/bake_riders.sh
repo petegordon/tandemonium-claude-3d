@@ -17,6 +17,8 @@ declare -A ARGS=(
   [goose_captain_fancy]="--char outfit_male_victorian --dressed-tag full $CAP --follow S=1.0,B=0.15 --tag rideC"
   [goose_stoker_victorian]="--char outfit_female_victorian --dressed-tag full $STO --riding-hem 0.8,0.9,0.96 --hem-axis y --tag vicS --base out/bike/fit_outfit_male_Captain_hpC.blend"
   [goose_stoker_cyclist]="--char outfit_female_cyclist --dressed-tag full $STO --riding-hem 1,1,1 --tag rideS --base out/bike/fit_outfit_male_cyclist_Captain_rideC.blend"
+  [goose_captain_georgian]="--char outfit_male_georgian --dressed-tag full $CAP --follow S=1.0,B=0.15 --tag geoC"
+  [goose_stoker_georgian]="--char outfit_female_georgian --dressed-tag full $STO --riding-hem 0.38,0.55,0.62 --hem-axis y --tag geoS --base out/bike/fit_outfit_male_georgian_Captain_geoC.blend"
   [goose_stoker]="--char outfit_female $STO --riding-hem 0.72,0.84,0.94 --hem-axis y --bustle 0.3 --tag fancyS --base out/bike/fit_outfit_male_victorian_Captain_rideC.blend"
 )
 NAMES="${*:-goose_captain goose_captain_cyclist goose_captain_fancy goose_stoker_victorian goose_stoker_cyclist goose_stoker}"

@@ -11,6 +11,8 @@ declare -A ARGS=(
   [goose_stoker_victorian]="--char outfit_female_victorian --dressed-tag full"
   [goose_stoker_cyclist]="--char outfit_female_cyclist --dressed-tag full"
   [goose_stoker]="--char outfit_female"
+  [goose_captain_georgian]="--char outfit_male_georgian --dressed-tag full"
+  [goose_stoker_georgian]="--char outfit_female_georgian --dressed-tag full"
 )
 NAMES=(); EXTRA=()
 while [ $# -gt 0 ]; do [ "$1" = "--" ] && { shift; EXTRA=("$@"); break; }; NAMES+=("$1"); shift; done
