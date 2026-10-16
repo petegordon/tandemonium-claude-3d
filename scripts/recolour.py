@@ -19,7 +19,11 @@ def way_targets(W, way, seat):
 
 
 def target_for(targets, piece, mat):
-    hit = [k for k in targets if ":" in k and k.split(":")[0] == piece and k.split(":")[1] in mat]
+    """'piece:sub' matches a material whose name contains sub; 'piece:=name' only the material named exactly that
+    (the Georgian coat's braid, collar and lining all start with the coat's own name)."""
+    nm = re.sub(r"\.\d{3}$", "", mat)
+    hit = [k for k in targets if ":" in k and k.split(":")[0] == piece and
+           (nm == k.split(":", 1)[1][1:] if k.split(":", 1)[1].startswith("=") else k.split(":", 1)[1] in mat)]
     return targets[hit[0]] if hit else targets.get(piece)
 
 

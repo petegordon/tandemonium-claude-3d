@@ -589,6 +589,289 @@
      }
     }
    }
+  },
+  "georgian": {
+   "label": "Georgian",
+   "captain": "outfit_male_georgian",
+   "stoker": "outfit_female_georgian",
+   "ways": {
+    "g_claret": {
+     "label": "Claret + rose",
+     "captain": {
+      "coat:=outfit_male_georgian_coat": [
+       112,
+       28,
+       40
+      ],
+      "coat:=outfit_male_georgian_coat_collar": [
+       112,
+       28,
+       40
+      ],
+      "coatskirt:=outfit_male_georgian_coatskirt": [
+       112,
+       28,
+       40
+      ],
+      "breeches:=outfit_male_georgian_breeches": [
+       112,
+       28,
+       40
+      ]
+     },
+     "stoker": {
+      "jacket:=outfit_female_georgian_jacket": [
+       196,
+       120,
+       132
+      ],
+      "skirt:=outfit_female_georgian_skirt": [
+       196,
+       120,
+       132
+      ],
+      "jacket:=outfit_female_georgian_jacket_bow_satin": [
+       176,
+       84,
+       100
+      ],
+      "hat:=outfit_female_georgian_hat_band": [
+       176,
+       84,
+       100
+      ],
+      "cuffs:=outfit_female_georgian_cuffs_lace": [
+       196,
+       120,
+       132
+      ],
+      "boots:=boots_leather": [
+       176,
+       84,
+       100
+      ],
+      "boots:=outfit_female_georgian_boots_buckle_strap": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_neckband": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_L": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_R": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_knot": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_L": [
+       176,
+       84,
+       100
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_R": [
+       176,
+       84,
+       100
+      ]
+     }
+    },
+    "g_green": {
+     "label": "Bottle green + sage",
+     "captain": {
+      "coat:=outfit_male_georgian_coat": [
+       36,
+       70,
+       50
+      ],
+      "coat:=outfit_male_georgian_coat_collar": [
+       36,
+       70,
+       50
+      ],
+      "coatskirt:=outfit_male_georgian_coatskirt": [
+       36,
+       70,
+       50
+      ],
+      "breeches:=outfit_male_georgian_breeches": [
+       36,
+       70,
+       50
+      ]
+     },
+     "stoker": {
+      "jacket:=outfit_female_georgian_jacket": [
+       126,
+       156,
+       118
+      ],
+      "skirt:=outfit_female_georgian_skirt": [
+       126,
+       156,
+       118
+      ],
+      "jacket:=outfit_female_georgian_jacket_bow_satin": [
+       84,
+       120,
+       82
+      ],
+      "hat:=outfit_female_georgian_hat_band": [
+       84,
+       120,
+       82
+      ],
+      "cuffs:=outfit_female_georgian_cuffs_lace": [
+       126,
+       156,
+       118
+      ],
+      "boots:=boots_leather": [
+       84,
+       120,
+       82
+      ],
+      "boots:=outfit_female_georgian_boots_buckle_strap": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_neckband": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_L": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_R": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_knot": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_L": [
+       84,
+       120,
+       82
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_R": [
+       84,
+       120,
+       82
+      ]
+     }
+    },
+    "g_grey": {
+     "label": "Dove grey + lilac",
+     "captain": {
+      "coat:=outfit_male_georgian_coat": [
+       92,
+       94,
+       104
+      ],
+      "coat:=outfit_male_georgian_coat_collar": [
+       92,
+       94,
+       104
+      ],
+      "coatskirt:=outfit_male_georgian_coatskirt": [
+       92,
+       94,
+       104
+      ],
+      "breeches:=outfit_male_georgian_breeches": [
+       92,
+       94,
+       104
+      ]
+     },
+     "stoker": {
+      "jacket:=outfit_female_georgian_jacket": [
+       156,
+       134,
+       186
+      ],
+      "skirt:=outfit_female_georgian_skirt": [
+       156,
+       134,
+       186
+      ],
+      "jacket:=outfit_female_georgian_jacket_bow_satin": [
+       124,
+       100,
+       160
+      ],
+      "hat:=outfit_female_georgian_hat_band": [
+       124,
+       100,
+       160
+      ],
+      "cuffs:=outfit_female_georgian_cuffs_lace": [
+       156,
+       134,
+       186
+      ],
+      "boots:=boots_leather": [
+       124,
+       100,
+       160
+      ],
+      "boots:=outfit_female_georgian_boots_buckle_strap": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_neckband": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_L": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_bow_R": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_knot": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_L": [
+       124,
+       100,
+       160
+      ],
+      "bowtie:=outfit_female_georgian_bowtie_tail_R": [
+       124,
+       100,
+       160
+      ]
+     }
+    }
+   }
   }
  }
 }
