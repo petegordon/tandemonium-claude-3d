@@ -1,0 +1,982 @@
+{
+ "char": "outfit_male_georgian",
+ "notes": "Pete 2026-10-15: 18th-century English gentleman (1770s) from his references (refs/outfit_male_georgian/pete_refs: Poldark tricorne + museum suits) via t2i views (refs/outfit_male_georgian/t2i). Navy frock coat with gold braid + deep cuffs, ivory embroidered waistcoat, lace jabot, navy knee breeches with buckles, white stockings, black buckle shoes, black tricorne. Started from the cyclist recipe (same base body + leg slider).",
+ "body_shape": "sliders",
+ "shape": {
+  "leg_length": 1.15
+ },
+ "shells_on_base": true,
+ "accessory_drop": {},
+ "garment_design": {
+  "breeches": {
+   "kind": "breeches",
+   "note": "navy wool knee breeches, close fitting, buckled band just below the knee",
+   "z_top": 0.95,
+   "z_bot": 0.37,
+   "tris": 3600,
+   "ease_min": 0.006,
+   "ease_max": 0.03,
+   "ease_z": [
+    [
+     0.95,
+     0.008
+    ],
+    [
+     0.86,
+     0.012
+    ],
+    [
+     0.74,
+     0.013
+    ],
+    [
+     0.62,
+     0.014
+    ],
+    [
+     0.52,
+     0.016
+    ],
+    [
+     0.44,
+     0.016
+    ],
+    [
+     0.4,
+     0.012
+    ],
+    [
+     0.38,
+     0.008
+    ]
+   ],
+   "ease_smooth": 30,
+   "ease_post_smooth": 10,
+   "knee_ramp": 0.0,
+   "kneeband": 0.028,
+   "waistband": 0.035,
+   "band_ease": 0.005,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "seat_bump": 0.004,
+   "fly_len": 0.12,
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "colors": {
+    "navy": [
+     255,
+     255,
+     255
+    ]
+   },
+   "outer_smooth": 70,
+   "outer_min": 0.005,
+   "base_smooth": 20,
+   "outer_keep_gap": 0.06,
+   "seat_shape": {
+    "cleft": 0.0,
+    "cleft_w": 0.018,
+    "fold": 0.0,
+    "fold_w": 0.016,
+    "fold_rise": 0.015,
+    "y0": 0.03,
+    "z1": 0.83,
+    "fold_x": 0.11,
+    "bulge": 0.022,
+    "bulge_x": 0.06,
+    "bulge_z": 0.8,
+    "bulge_sx": 0.065,
+    "bulge_sz": 0.06,
+    "fill_z0": 0.74,
+    "relax": 14
+   },
+   "normal_tilt": 10,
+   "relax_folds": false
+  },
+  "shirt": {
+   "kind": "shirt",
+   "z_neck": 1.29,
+   "z_top": 0.88,
+   "z_bot": 0.88,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 7000,
+   "cuff": 0.05,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.008,
+    "sleeve": 0.016,
+    "blouse": 0.012,
+    "cuff": 0.005,
+    "neck": 0.003,
+    "hem": 0.003
+   },
+   "mottle": 0.04,
+   "twill": 0.05,
+   "twill_scale": 520.0,
+   "roughness": 0.75,
+   "colors": {
+    "white": [
+     240,
+     240,
+     236
+    ]
+   },
+   "tuck": {
+    "into": "breeches",
+    "z_top": 0.93,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.005,
+    "hide": true,
+    "push_in": 0.045,
+    "push_depth": 0.004,
+    "push_above": 0.02
+   },
+   "hem_zone": 0.14,
+   "cuff_clear": 0.007,
+   "armpit_relax": 0,
+   "ease_post_smooth": 20,
+   "note": "white linen shirt (shows only at the neck and wrists)"
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "knit": false,
+   "note": "ivory silk waistcoat to the hips, gold flower sprigs, gilt buttons up the front, pocket flaps",
+   "z_neck": 1.3,
+   "z_top": 0.9,
+   "z_bot": 0.7,
+   "tris": 3200,
+   "cover_margin": 0.02,
+   "outline": {
+    "z_notch": 0.72,
+    "z_point": 0.7,
+    "z_side": 0.77,
+    "z_back": 0.82,
+    "point_x": 0.05,
+    "side_x": 0.13,
+    "z_vbot": 1.2,
+    "v_top_w": 0.06,
+    "v_pow": 0.85,
+    "arm_r": 0.095,
+    "arm_off": [
+     -0.002,
+     0.0,
+     -0.03
+    ],
+    "lapel_w": 0.001,
+    "notch_down": 0.0,
+    "arm_iso": 0.88,
+    "arm_oval": [
+     1.155,
+     0.005,
+     0.105,
+     0.068,
+     0.112
+    ],
+    "pocket": [
+     0.085,
+     0.8
+    ],
+    "pocket_tilt": 0,
+    "pocket_w": 0.04
+   },
+   "ease": {
+    "torso": 0.012,
+    "lapel": 0.0,
+    "clear": 0.007
+   },
+   "over": [
+    "shirt",
+    "breeches"
+   ],
+   "mottle": 0.06,
+   "twill": 0.0,
+   "roughness": 0.6,
+   "lining_color": [
+    226,
+    214,
+    186
+   ],
+   "lining_roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "offset_smooth": 30,
+   "normal_tilt": 8,
+   "outer_smooth": 25,
+   "outer_min": 0.009,
+   "buttons": 10,
+   "button_top": 1.19,
+   "button_step": 0.045
+  },
+  "coat": {
+   "kind": "coat",
+   "z_neck": 1.275,
+   "z_top": 0.9,
+   "z_bot": 0.6,
+   "tris": 6000,
+   "cover_margin": 0.07,
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "wrist_offset": 0.02,
+   "outline": {
+    "z_front": 0.8,
+    "z_back": 0.8,
+    "z_break": 1.3,
+    "z_notch": 1.32,
+    "lapel_w": 0.004,
+    "open": [
+     [
+      0.78,
+      0.1
+     ],
+     [
+      0.97,
+      0.085
+     ],
+     [
+      1.1,
+      0.08
+     ],
+     [
+      1.2,
+      0.075
+     ],
+     [
+      1.28,
+      0.06
+     ],
+     [
+      1.4,
+      0.06
+     ]
+    ],
+    "hang_top": 0.9,
+    "hang_az": 70,
+    "buttons_z": [],
+    "pocket_z": 0.835,
+    "vent_h": 0.3,
+    "waist_z": 0.93,
+    "cuff_band": 0.09
+   },
+   "ease": {
+    "torso": 0.012,
+    "sleeve": 0.007,
+    "lapel": 0.006,
+    "collar": 0.012,
+    "clear": 0.006,
+    "under_max": 0.05,
+    "waist": 0.004,
+    "skirt": 0.012
+   },
+   "over": [
+    "shirt",
+    "waistcoat",
+    "breeches"
+   ],
+   "mottle": 0.04,
+   "twill": 0.05,
+   "roughness": 0.85,
+   "colors": {
+    "navy": [
+     255,
+     255,
+     255
+    ]
+   },
+   "seat_fit": true,
+   "under_max": 0.05,
+   "thickness": 0,
+   "offset_smooth": 12,
+   "armpit_relax": 30,
+   "base_smooth": 10,
+   "note": "frock coat BODY to the hips (the skirts are 'coatskirt', make_skirt.py, sewn at the waist like the real thing)"
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "white silk stockings from under the breeches' knee band down over the foot",
+   "z_top": 0.375,
+   "z_bot": -1.0,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.004,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "white": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "normal_tilt": 8,
+   "outer_smooth": 30,
+   "outer_min": 0.003,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": 0.075,
+    "note": "worn with the brogues: the foot is cut off inside the shoe (the webbed foot is wider than the shoe); shells/socks.glb keeps the whole foot for wearing alone"
+   }
+  },
+  "coatskirt": {
+   "kind": "skirt",
+   "note": "the frock coat's skirts: from the waist seam to the knee, open at the front (cutaway), centre back vent (parts over the saddle)",
+   "guide": null,
+   "z_top": 0.86,
+   "z_hem": 0.33,
+   "z_bot": 0.33,
+   "na": 96,
+   "nz": 28,
+   "hi_up": 6,
+   "clear": 0.024,
+   "waist_clear": 0.02,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.86,
+     0.8,
+     0.7,
+     0.6,
+     0.5,
+     0.4,
+     0.33
+    ],
+    "front": [
+     0.0,
+     0.003,
+     0.006,
+     0.01,
+     0.013,
+     0.016,
+     0.018
+    ],
+    "side": [
+     0.0,
+     0.005,
+     0.012,
+     0.02,
+     0.027,
+     0.033,
+     0.037
+    ],
+    "back": [
+     0.0,
+     0.004,
+     0.01,
+     0.016,
+     0.022,
+     0.027,
+     0.03
+    ]
+   },
+   "opening": {
+    "front": [
+     [
+      0.33,
+      60
+     ],
+     [
+      0.6,
+      48
+     ],
+     [
+      0.8,
+      36
+     ],
+     [
+      0.86,
+      34
+     ]
+    ],
+    "vent": {
+     "z_top": 0.66,
+     "half_az": 3
+    }
+   },
+   "soft_folds": 0.0012,
+   "under": [
+    "coat"
+   ],
+   "under_gap": 0.004,
+   "tex": 2048,
+   "mottle": 0.04,
+   "twill": 0.05,
+   "roughness": 0.85,
+   "weight_smooth": 12,
+   "colors": {
+    "navy": [
+     255,
+     255,
+     255
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true
+  }
+ },
+ "boot_design": {
+  "note": "black leather buckle shoes: low vamp with a tongue, low heel, square silver buckle (add_shoe_buckle)",
+  "centre_x": 0.092,
+  "toe_y": -0.135,
+  "heel_y": 0.097,
+  "sole_w": [
+   [
+    0.0,
+    0.032
+   ],
+   [
+    0.25,
+    0.038
+   ],
+   [
+    0.55,
+    0.044
+   ],
+   [
+    0.8,
+    0.041
+   ],
+   [
+    1.0,
+    0.032
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.096
+   ],
+   [
+    0.15,
+    0.108
+   ],
+   [
+    0.35,
+    0.108
+   ],
+   [
+    0.5,
+    0.096
+   ],
+   [
+    0.7,
+    0.076
+   ],
+   [
+    0.88,
+    0.06
+   ],
+   [
+    1.0,
+    0.05
+   ]
+  ],
+  "shaft": [
+   [
+    0.08,
+    0.041,
+    0.05,
+    0.045
+   ],
+   [
+    0.1,
+    0.036,
+    0.043,
+    0.043
+   ],
+   [
+    0.112,
+    0.033,
+    0.039,
+    0.042
+   ]
+  ],
+  "heel_h": 0.028,
+  "heel_len": 0.042,
+  "power": 2.6,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.35,
+  "toe_cap": 0.04,
+  "toe_narrow": 1.3,
+  "toe_up": 0.01,
+  "sole_h": 0.011,
+  "welt": 0.002,
+  "heel_round": 0.018,
+  "leather_rgb": [
+   0.02,
+   0.018,
+   0.018
+  ],
+  "sole_smooth": 4,
+  "sole_step": 0.003
+ },
+ "accessory_design": {},
+ "patterns": {
+  "breeches": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    26,
+    32,
+    62
+   ],
+   "light": [
+    34,
+    42,
+    78
+   ],
+   "column": 0.006,
+   "period": 0.003,
+   "contrast": 0.25,
+   "crotch_z": 0.7,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "roughness": 0.85,
+   "r0": 0.16,
+   "detail_gamma": 0.5,
+   "back_seam": {
+    "z0": 0.69,
+    "z1": 0.96,
+    "w": 0.0016,
+    "dark": 0.55,
+    "shade": 0.85,
+    "y0": 0.03
+   }
+  },
+  "waistcoat": {
+   "type": "sprig",
+   "tex": 2048,
+   "ground": [
+    222,
+    206,
+    168
+   ],
+   "flower": [
+    206,
+    160,
+    64
+   ],
+   "centre": [
+    170,
+    120,
+    40
+   ],
+   "leaf": [
+    184,
+    148,
+    70
+   ],
+   "cell": 0.034,
+   "size": 0.0095,
+   "fill": 1.0,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "r0": 0.16,
+   "roughness": 0.6,
+   "detail_gamma": 0.5,
+   "buttons": {
+    "color": [
+     214,
+     170,
+     80
+    ],
+    "r": 0.0065
+   },
+   "region": {
+    "z_max": 0.785
+   }
+  },
+  "coat": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    24,
+    30,
+    60
+   ],
+   "light": [
+    32,
+    40,
+    76
+   ],
+   "column": 0.006,
+   "period": 0.003,
+   "contrast": 0.25,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "arms": true,
+   "roughness": 0.85,
+   "r0": 0.16,
+   "detail_gamma": 0.5
+  },
+  "socks": {
+   "type": "rib",
+   "tex": 1024,
+   "color": [
+    236,
+    234,
+    226
+   ],
+   "pitch": 0.0025,
+   "rib_dark": 0.9,
+   "leg_axes": [
+    [
+     0.09,
+     0.04
+    ],
+    [
+     -0.09,
+     0.04
+    ]
+   ],
+   "roughness": 0.6,
+   "r0": 0.0,
+   "detail_gamma": 0.35
+  },
+  "boots": {
+   "type": "brogue",
+   "tex": 1024,
+   "materials": [
+    "boots_leather"
+   ],
+   "leather": [
+    20,
+    19,
+    19
+   ],
+   "seam": [
+    8,
+    8,
+    8
+   ],
+   "centre_x": 0.092,
+   "toe_y": -0.135,
+   "heel_y": 0.097,
+   "top_line": [
+    [
+     0.0,
+     0.096
+    ],
+    [
+     0.15,
+     0.108
+    ],
+    [
+     0.35,
+     0.108
+    ],
+    [
+     0.5,
+     0.096
+    ],
+    [
+     0.7,
+     0.076
+    ],
+    [
+     0.88,
+     0.06
+    ],
+    [
+     1.0,
+     0.05
+    ]
+   ],
+   "wing_c": 0.0,
+   "wing_back": 0.085,
+   "medallion": 0.0,
+   "quarter_t": 0.47,
+   "lace_t": [
+    0.44,
+    0.62
+   ],
+   "roughness": 0.25,
+   "collar_z": 0.104,
+   "wing": false,
+   "medallion_on": false,
+   "laces": false
+  },
+  "coatskirt": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    24,
+    30,
+    60
+   ],
+   "light": [
+    32,
+    40,
+    76
+   ],
+   "column": 0.006,
+   "period": 0.003,
+   "contrast": 0.25,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "roughness": 0.85,
+   "r0": 0.16,
+   "detail_gamma": 0.5
+  }
+ },
+ "accessory_over": {},
+ "kneestrap": {
+  "z": 0.375,
+  "h": 0.016,
+  "t": 0.003,
+  "off": 0.002,
+  "buckle_az": 70,
+  "buckle_w": 0.02,
+  "buckle_h": 0.022,
+  "buckle_t": 0.0022,
+  "leather": [
+   30,
+   36,
+   68
+  ],
+  "brass": [
+   200,
+   160,
+   80
+  ]
+ },
+ "skin_merge": {
+  "waistcoat": {
+   "UpLeg": "Hips"
+  },
+  "coat": {
+   "UpLeg": "Hips"
+  }
+ },
+ "layer_ignore": {
+  "breeches": [
+   "socks",
+   "boots"
+  ],
+  "coatskirt": [
+   "socks",
+   "boots",
+   "breeches",
+   "waistcoat"
+  ],
+  "coat": [
+   "coatskirt"
+  ]
+ },
+ "hat_design": {
+  "style": "bowler",
+  "tricorne": {
+   "angle_deg": 75,
+   "chord": 0.5,
+   "edge_braid": true,
+   "angle_back_deg": 52
+  },
+  "brim_c": [
+   0.0,
+   -0.066
+  ],
+  "brim_ax": [
+   0.17,
+   0.18
+  ],
+  "brim_z": 1.628,
+  "curl": 0.0,
+  "crown_c": [
+   0.0,
+   -0.062
+  ],
+  "crown_ax": [
+   0.066,
+   0.09
+  ],
+  "crown_base": 1.632,
+  "crown_top": 1.7,
+  "band_h": 0.004,
+  "buckles": false,
+  "felt_rough": 0.85,
+  "colors": {
+   "black": [
+    26,
+    25,
+    25
+   ]
+  },
+  "band_color": [
+   40,
+   38,
+   38
+  ],
+  "brass_color": [
+   206,
+   160,
+   70
+  ],
+  "segments": 144,
+  "cockade": {
+   "theta_deg": 60,
+   "u": 0.82,
+   "r": 0.022,
+   "pleats": 12,
+   "button_r": 0.007,
+   "loop": true
+  }
+ },
+ "force_hide": {
+  "coatskirt": [
+   "Tail"
+  ],
+  "breeches": [
+   "Tail"
+  ]
+ },
+ "chain_follow": {
+  "F": 0.7,
+  "S": 0.35,
+  "B": 0.0
+ },
+ "cuff_design": {
+  "note": "white lace ruffles at the wrists, out of the coat cuffs",
+  "length": 0.03,
+  "flare": 1.45,
+  "scallop": 0.004,
+  "n_sc": 14,
+  "wave": 0.004,
+  "n_wave": 20,
+  "color": [
+   244,
+   242,
+   236
+  ],
+  "na": 28,
+  "nu": 4
+ },
+ "jabot_design": {
+  "note": "white linen stock + lace jabot in three gathered tiers falling from the throat over the waistcoat",
+  "stock": {
+   "z0": 1.285,
+   "z1": 1.335,
+   "ease": 0.005
+  },
+  "tiers": [
+   {
+    "z_top": 1.26,
+    "h": 0.065,
+    "w_top": 0.03,
+    "w_bot": 0.05,
+    "off": 0.02,
+    "amp": 0.009,
+    "n": 3
+   },
+   {
+    "z_top": 1.225,
+    "h": 0.07,
+    "w_top": 0.032,
+    "w_bot": 0.054,
+    "off": 0.014,
+    "amp": 0.01,
+    "n": 3.5
+   },
+   {
+    "z_top": 1.19,
+    "h": 0.075,
+    "w_top": 0.034,
+    "w_bot": 0.058,
+    "off": 0.008,
+    "amp": 0.01,
+    "n": 4
+   }
+  ],
+  "over": [
+   "waistcoat",
+   "shirt"
+  ],
+  "colors": {
+   "lace": [
+    246,
+    244,
+    238
+   ],
+   "linen": [
+    240,
+    238,
+    232
+   ]
+  },
+  "subdiv": 1,
+  "hem_out": 0.006,
+  "net_dark": 0.74,
+  "motif_dark": 0.66
+ },
+ "no_mask": [
+  "jabot",
+  "cuffs"
+ ],
+ "loose_pieces": [
+  "coatskirt"
+ ],
+ "shoe_buckle": {
+  "note": "square silver buckle on a strap across the instep",
+  "w": 0.046,
+  "h": 0.034,
+  "bar": 0.0055,
+  "color": [
+   236,
+   238,
+   242
+  ]
+ }
+}

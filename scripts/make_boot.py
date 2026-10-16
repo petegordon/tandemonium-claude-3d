@@ -74,6 +74,21 @@ def tube(sections):
     return o
 
 
+ARCH = B.get("arch")       # Louis heel: {"h": lift under the arch, "t0", "t1": where along the foot (0 heel .. 1 toe)}
+
+
+def arch(t):
+    if not ARCH:
+        return 0.0
+    t0, t1 = ARCH.get("t0", 0.2), ARCH.get("t1", 0.58)
+    if t >= t1:
+        return 0.0
+    if t <= t0:                                    # the back of the shoe rides on the heel
+        return ARCH["h"]
+    u = (t - t0) / (t1 - t0)
+    return ARCH["h"] * (0.5 + 0.5 * math.cos(math.pi * u))       # down the arch to the ball of the foot
+
+
 def boot(sx):
     cx = B["centre_x"] * sx
     p = B.get("power", 2.4)
@@ -85,6 +100,9 @@ def boot(sx):
         top = interp(B["top_line"], t)
         x_, z_ = superellipse(NS, hw, top / 2, p)
         z_ = np.maximum(z_ + top / 2, 0.0) + 0.0005
+        lift = arch(t)
+        if lift > 0:                               # a raised arch: the bottom half of the section is pushed up
+            z_ = np.where(z_ < top / 2, lift + (z_) * (1 - lift / max(top, 1e-3)), z_)
         foot.append(np.stack([cx + x_, np.full(NS, y), z_], 1))
     # rounded heel: a quarter ellipse BEHIND the first section (the flat back read as a slab)
     first = foot[0].copy()
@@ -94,7 +112,8 @@ def boot(sx):
         f = math.sqrt(max(1 - u * u, 0.0)) * 0.9 + 0.1
         r = first.copy()
         r[:, 0] = first[:, 0].mean() + (r[:, 0] - first[:, 0].mean()) * f ** 0.7
-        r[:, 2] = r[:, 2] * f ** 0.35
+        hb = arch(0.0)                             # (scaled about the lifted bottom: the heel cup stays on the heel)
+        r[:, 2] = hb + (r[:, 2] - hb) * f ** 0.35
         r[:, 1] = first[0, 1] - np.sign(B["toe_y"] - B["heel_y"]) * B.get("heel_round", 0.022) * u
         back.append(r)
     foot = back[::-1] + foot
@@ -118,9 +137,20 @@ def boot(sx):
         shaft.append(np.stack([cx + x_, cy + y_, np.full(NS, z)], 1))
     heel = []
     hl, hh = B.get("heel_len", 0.07), B.get("heel_h", 0.03)
-    for y in np.linspace(B["heel_y"] - 0.004, B["heel_y"] - hl, 6):
-        x_, z_ = superellipse(NS, interp(B["sole_w"], 0.05) * 0.85, hh / 2, 4.0)
-        heel.append(np.stack([cx + x_, np.full(NS, y), z_ + hh / 2 - 0.004], 1))
+    if ARCH:                                       # Louis heel: horizontal sections up from the floor, waisted
+        fwd_ = np.sign(B["toe_y"] - B["heel_y"])
+        y0 = B["heel_y"] + fwd_ * 0.004
+        for zz in np.linspace(0.0, ARCH["h"] + 0.006, 7):
+            u = zz / (ARCH["h"] + 0.006)
+            waist = 1 - ARCH.get("waist", 0.35) * math.sin(math.pi * min(u * 1.2, 1.0))
+            hw = interp(B["sole_w"], 0.08) * ARCH.get("heel_w", 0.8) * waist
+            L = ARCH.get("heel_len", 0.035) * (0.7 + 0.3 * u) * waist
+            x_, y_ = superellipse(NS, hw, L / 2, 2.6)
+            heel.append(np.stack([cx + x_, y0 + fwd_ * (L / 2 + 0.002 * u) + y_, np.full(NS, zz)], 1))
+    else:
+        for y in np.linspace(B["heel_y"] - 0.004, B["heel_y"] - hl, 6):
+            x_, z_ = superellipse(NS, interp(B["sole_w"], 0.05) * 0.85, hh / 2, 4.0)
+            heel.append(np.stack([cx + x_, np.full(NS, y), z_ + hh / 2 - 0.004], 1))
     sole = []
     for t in np.linspace(0, 1, 24):
         y = B["heel_y"] + (B["toe_y"] - B["heel_y"]) * t
@@ -188,14 +218,21 @@ for sx in (1, -1):
     prof = np.array(prof)
     for _ in range(B.get("sole_smooth", 0)):     # (the voxel footprint is noisy: a stepped, toothed sole edge)
         prof[1:-1, 1:] = 0.25 * prof[:-2, 1:] + 0.5 * prof[1:-1, 1:] + 0.25 * prof[2:, 1:]
-    rings = []
+    runs = [[]]
     for y, hw, cxs in prof:
+        if ARCH:                                   # no sole under the arch or the heel (the heel is its own block)
+            t_ = (y - B["heel_y"]) / (B["toe_y"] - B["heel_y"])
+            if t_ < ARCH.get("t1", 0.58) - 0.04:
+                if runs[-1]:
+                    runs.append([])
+                continue
         hw += B.get("welt", 0.003)
         x_, z_ = superellipse(NS, hw, B.get("sole_h", 0.012) / 2, 6.0)
-        rings.append(np.stack([cxs + x_, np.full(NS, y), z_ + B.get("sole_h", 0.012) / 2 - 0.002], 1))
-    so = tube(rings)
-    so.name = "sole"
-    soles.append(so)
+        runs[-1].append(np.stack([cxs + x_, np.full(NS, y), z_ + B.get("sole_h", 0.012) / 2 - 0.002], 1))
+    for rings in [r_ for r_ in runs if len(r_) > 1]:
+        so = tube(rings)
+        so.name = "sole"
+        soles.append(so)
 mat = bpy.data.materials.new("boots_leather")
 mat.use_nodes = True
 nt = mat.node_tree

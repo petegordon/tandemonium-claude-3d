@@ -16,7 +16,7 @@ from pathlib import Path
 import bmesh
 import bpy
 import numpy as np
-from mathutils import Euler, Vector
+from mathutils import Euler, Matrix, Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 CHAR = argv[argv.index("--char") + 1] if "--char" in argv else "outfit_male"
@@ -84,9 +84,46 @@ prof.append(("crown", 0.92, ctop - 0.03, 0.0, 0))
 prof.append(("crown", 0.5, ctop - 0.01, 0.0, 0))
 
 rings = []
+TRI = H.get("tricorne")
+
+
+def ring_tri(u, dz):
+    """Tricorne brim ring: the flat brim is cocked up along three STRAIGHT fold lines (the sides of a triangle with
+    its corners at the front and back-left / back-right, at "chord" x the mean brim radius from the crown centre).
+    Brim beyond a fold line rotates up about it by "angle_deg" (fold perpendicular to that line, so two walls meet
+    in a sharp point at each corner). dz (the profile's thickness offset) follows the folded surface's normal."""
+    ang0 = math.radians(TRI.get("angle_deg", 78))
+    R = float(np.mean(ba))
+    dch = TRI.get("chord", 0.5) * R
+    out = []
+    for k in range(NA):
+        th = 2 * math.pi * k / NA
+        pc = np.array((cc[0] + ca[0] * math.sin(th), cc[1] - ca[1] * math.cos(th)))
+        pb = np.array((bc[0] + ba[0] * math.sin(th), bc[1] - ba[1] * math.cos(th)))
+        P = pc + (pb - pc) * u
+        q = P - np.array(cc)
+        # the sector's edge: normals at 60, 180, 300 deg from the front (theta measured like ring())
+        thp = math.atan2(q[0], -q[1]) % (2 * math.pi)
+        mid = (math.floor(thp / (2 * math.pi / 3)) * 2 * math.pi / 3) + math.pi / 3
+        n = np.array((math.sin(mid), -math.cos(mid)))
+        back = abs(mid - math.pi) < 0.1                  # the back wall: its own fold line and (leaned-out) angle
+        h = float(q @ n) - (TRI.get("chord_back", TRI.get("chord", 0.5)) * R if back else dch)
+        ang = math.radians(TRI.get("angle_back_deg", TRI.get("angle_deg", 78))) if back else ang0
+        if h > 0:
+            xy = P - n * h * (1 - math.cos(ang))
+            z_ = bz + h * math.sin(ang)
+            nrm = (-n[0] * math.sin(ang), -n[1] * math.sin(ang), math.cos(ang))
+        else:
+            xy, z_, nrm = P, bz, (0.0, 0.0, 1.0)
+        out.append((xy[0] + nrm[0] * dz, xy[1] + nrm[1] * dz, z_ + nrm[2] * dz))
+    return out
+
+
 for kind, u, z, cu, mat in prof:
     if kind == "crown":
         rings.append((ring(cc, ca * u, z), mat))
+    elif TRI:
+        rings.append((ring_tri(u, z - bz), 1 if (u >= 0.98 and TRI.get("edge_braid", True)) else mat))
     else:
         rings.append((ring(lerp(cc, bc, u), lerp(ca, ba, u), z, curl * cu), mat))
 
@@ -142,6 +179,100 @@ for sg in ((1, -1) if H.get("buckles", True) else ()):
         v.co = Vector((cx + v.co.x * 0.004, cy + v.co.y * 0.018, cz + v.co.z * 0.014))
     for f in {f for v in res["verts"] for f in v.link_faces}:
         f.material_index = 2
+RB = H.get("ribbon_bow")      # a ribbon bow on the band (straw hat): two loops, a knot and two tails, band material
+if RB:
+    bp, bn = band_point(RB)
+    up_ = Vector((0, 0, 1))
+    sd_ = bn.cross(up_).normalized()
+    W_, H_, rw = RB.get("w", 0.06), RB.get("h", 0.032), RB.get("ribbon_w", 0.014)
+    out0 = bp + bn * 0.004
+
+    def strip(path, widths, wdir, thick=0.0012):
+        """A ribbon: path points, half widths, width direction per point; a thin closed box section."""
+        n_ = len(path)
+        rows = []
+        for i in range(n_):
+            w_ = widths[i]
+            a = path[i] + wdir[i] * w_
+            b = path[i] - wdir[i] * w_
+            # thickness along the path's normal (cross of tangent and width)
+            t_ = (path[min(i + 1, n_ - 1)] - path[max(i - 1, 0)]).normalized()
+            nn = t_.cross(wdir[i]).normalized() * thick
+            rows.append([bm.verts.new(a + nn), bm.verts.new(b + nn), bm.verts.new(b - nn), bm.verts.new(a - nn)])
+        for i in range(n_ - 1):
+            for k in range(4):
+                f = bm.faces.new([rows[i][k], rows[i][(k + 1) % 4], rows[i + 1][(k + 1) % 4], rows[i + 1][k]])
+                f.material_index = 1
+        for r_ in (rows[0], rows[-1][::-1]):
+            f = bm.faces.new(r_)
+            f.material_index = 1
+
+    NS = 28
+    for k in (1, -1):                                   # loops: out from the knot and back, puffed toward the viewer
+        path, wd, ws = [], [], []
+        for i in range(NS + 1):
+            t = 2 * math.pi * i / NS
+            c = out0 + sd_ * k * W_ / 4 + bn * 0.004
+            # the loop runs out sideways and curls back toward the hat (path in the side / out plane), the ribbon's
+            # face outward so the loops read as wide puffed bands from the front, pinched at the knot
+            pnt = c + sd_ * (-k * W_ / 4 * math.cos(t)) + bn * (RB.get("puff", 0.012) * math.sin(t) + 0.006)
+            path.append(pnt)
+            wd.append(up_)
+            ws.append(H_ / 2 * (0.45 + 0.55 * math.sin(t / 2) ** 2))
+        strip(path, ws, wd)
+    tds = RB.get("tail_degs", [RB.get("tail_deg", 18), -RB.get("tail_deg", 18)])   # tails hanging down, splayed
+    for k, ang in zip((1, -1), tds):
+        L_ = RB.get("tail_len", 0.08) * (1.0 if k > 0 else 0.85)
+        a_ = math.radians(ang)
+        dirv_ = (-up_ * math.cos(a_) + sd_ * math.sin(a_)).normalized()
+        path = [out0 + bn * 0.002 + dirv_ * (L_ * i / 10) + bn * (0.006 * (i / 10) ** 2) for i in range(11)]
+        strip(path, [rw / 2 * (1 + 0.15 * i / 10) for i in range(11)], [bn.cross(dirv_).normalized() for _ in range(11)])
+    kn = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0)   # the knot
+    for v in kn["verts"]:
+        v.co = out0 + bn * 0.006 + sd_ * v.co.x * rw * 0.55 + up_ * v.co.z * rw * 0.7 + bn * v.co.y * 0.005
+    for f in {f for v in kn["verts"] for f in v.link_faces}:
+        f.material_index = 1
+CK = H.get("cockade")         # tricorne cockade: a pleated ribbon rosette + gilt button on the wearer's left wall
+if CK and TRI:
+    th_ = math.radians(CK.get("theta_deg", 60))
+    k_ = int(round(th_ / (2 * math.pi) * NA)) % NA
+    pc_ = Vector(ring_tri(CK.get("u", 0.8), 0.0)[k_])
+    mid_ = math.radians(60) if CK.get("theta_deg", 60) < 120 else math.radians(300)
+    ang_ = math.radians(TRI.get("angle_deg", 78))
+    nout = Vector((math.sin(mid_) * math.sin(ang_), -math.cos(mid_) * math.sin(ang_), -math.cos(ang_))).normalized()
+    tz = Vector((0, 0, 1))
+    a1 = nout.cross(tz).normalized()
+    a2 = a1.cross(nout).normalized()
+    if a2.z < 0:
+        a2 = -a2
+    cen = pc_ + nout * CK.get("out", 0.013)          # (the folded wall's outer face is its underside: ~1 cm out)
+    rr, NR_, NT_ = CK.get("r", 0.022), 3, 48
+    rows = []
+    for i in range(NR_ + 1):
+        t = i / NR_
+        row = []
+        for j in range(NT_):
+            ph = 2 * math.pi * j / NT_
+            rad = rr * (0.2 + 0.8 * t)
+            pleat = 0.0025 * t * math.sin(ph * CK.get("pleats", 12))
+            row.append(bm.verts.new(cen + a1 * rad * math.cos(ph) + a2 * rad * math.sin(ph) + nout * (pleat + 0.003 * (1 - t))))
+        rows.append(row)
+    for i in range(NR_):
+        for j in range(NT_):
+            f = bm.faces.new([rows[i][j], rows[i][(j + 1) % NT_], rows[i + 1][(j + 1) % NT_], rows[i + 1][j]])
+            f.material_index = 1
+    btn = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=1.0)
+    br_ = CK.get("button_r", 0.007)
+    for v in btn["verts"]:
+        v.co = cen + nout * (0.0045 + max(v.co.z, -0.2) * 0.003) + a1 * v.co.x * br_ + a2 * v.co.y * br_
+    for f in {f for v in btn["verts"] for f in v.link_faces}:
+        f.material_index = 2
+    if CK.get("loop", True):     # the gold loop from the button up over the wall's edge (Poldark)
+        res = bmesh.ops.create_cube(bm, size=1.0)
+        for v in res["verts"]:
+            v.co = cen + nout * 0.0042 + a2 * (rr * 0.6 + v.co.z * rr * 1.2 + rr * 0.0) + a1 * v.co.x * 0.0035 + nout * v.co.y * 0.0016
+        for f in {f for v in res["verts"] for f in v.link_faces}:
+            f.material_index = 2
 me = bpy.data.meshes.new("hat_shell")
 bm.to_mesh(me)
 bm.free()
@@ -280,6 +411,13 @@ if PL:
     o.select_set(True)
     bpy.context.view_layer.objects.active = o
     bpy.ops.object.join()
+TILT = H.get("tilt_deg", 0.0)          # tipped forward (a bergere hat worn over the brow): about x through the crown base
+TILT_S = H.get("tilt_side_deg", 0.0)    # ... and cocked to one side (rotation about y)
+if TILT or TILT_S:
+    piv = Vector((cc[0], cc[1], cbase))
+    R_ = Matrix.Translation(piv) @ Matrix.Rotation(math.radians(TILT_S), 4, "Y") @         Matrix.Rotation(math.radians(TILT), 4, "X") @ Matrix.Translation(-piv)
+    for v in me.vertices:
+        v.co = R_ @ v.co
 tris = sum(len(p.vertices) - 2 for p in me.polygons)
 OUT.mkdir(exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=str(OUT / "hat.glb"), use_selection=True, export_format="GLB")

@@ -1,0 +1,11 @@
+{
+ "note": "Pete 2026-10-15: new 18th-century male + female outfits from his references (refs/*/pete_refs: museum grid of 1740s-1770s English robes a l'anglaise / sack-back gowns -- pale blue silk damask, yellow floral brocade, red with a cream petticoat). Partner to outfit_male_georgian (navy frock coat, ivory waistcoat, black tricorne).",
+ "outfit": "an 18th-century English lady's gown of the 1770s, a robe a l'anglaise -- a wide-brimmed flat straw hat (a bergere hat) tilted slightly forward, trimmed with a pale blue silk ribbon tied in a bow; a gown of pale blue silk damask with a subtle self-coloured floral pattern: a closely fitted bodice with a low square neckline filled with a white sheer muslin kerchief (fichu) crossed over the chest, a stiff flat front panel (stomacher) trimmed with a ladder of small pale blue ribbon bows, elbow-length fitted sleeves finished with a pale blue ruched cuff and two tiers of white lace ruffles; the gown's skirt opens at the front over a cream silk petticoat; the skirt is full and rounded over the hips and falls to the ankles, hem edged with a pale blue ruched ribbon; white stockings; pale blue silk shoes with a small heel and a small silver buckle",
+ "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period dressmaking, every garment complete and well fitted to the goose's body. Elegant but not a costume-party exaggeration: no wig, no fan, no wide side hoops. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+ "view_hint": {
+  "front": "Keep the arms and legs exactly where they are in picture 1.",
+  "rear": "From the back: the straw hat's brim and ribbon ends, the fitted bodice back with its seams, the full skirt falling smoothly to the ankles with no train, the heels of the shoes.",
+  "left": "Side profile: the straw hat's brim in profile. The skirt is rounded over the hips and falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1.",
+  "right": "Side profile: the straw hat's brim in profile. The skirt is rounded over the hips and falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1."
+ }
+}

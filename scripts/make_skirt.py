@@ -109,6 +109,9 @@ st = lambda z, z0: np.clip((z0 - z) / 0.015, 0, 1)  # noqa: E731
 if F_:
     z1, z2 = Z_HEM + F_["h"], Z_HEM + 2 * F_["h"]
     r = r + F_["out"] * st(ZZ, z2) * 0.6 + F_["out"] * st(ZZ, z1) * 0.6
+    if F_.get("geo_amp"):              # the gathered flounce in the silhouette too (game mesh), growing to the hem
+        gz = np.clip((z2 - ZZ) / max(z2 - Z_HEM, 1e-3), 0, 1)
+        r = r + F_["geo_amp"] * gz * np.sin(TT * F_.get("geo_n", 24))
 # apron: front panel over the skirt down to a curved hem rising to the hips
 A_ = S.get("apron")
 if A_:
@@ -130,7 +133,7 @@ def tier_fields(az_deg, zz):
     add = np.zeros_like(zz)
     edges = []
     for tr in TIERS:
-        wa = np.exp(-((np.abs(az_deg) - 180) / tr["daz"]) ** 2)
+        wa = (np.abs(az_deg) > 180 - tr["span_deg"]).astype(float) if tr.get("uniform") else             np.exp(-((np.abs(az_deg) - 180) / tr["daz"]) ** 2)
         zbe = tr["z_bot"] + tr.get("v", 0.0) * (1 - np.abs(np.abs(az_deg) - 180) / 180) ** 0 * 0 +             tr.get("scallop", 0.02) * np.sin(np.radians(az_deg) * tr.get("n_sc", 3)) ** 2
         zbe = zbe - tr.get("v", 0.0) * np.exp(-((np.abs(az_deg) - 180) / (tr["daz"] * 0.6)) ** 2)   # dips at the centre back
         inside = (zz <= tr["z_top"]) & (zz >= zbe)
@@ -150,6 +153,15 @@ for nm in S.get("under", []):           # tucked under these (bodice): stay insi
     lim = np.minimum(lim, np.roll(lim, 1, 0)); lim = np.minimum(lim, np.roll(lim, -1, 0))
     r = np.minimum(r, np.maximum(lim, rb + 0.001))
     log("tucked under", nm, int((~np.isnan(ru)).sum()), "grid points")
+for nm in S.get("over", []):            # worn over these (a gown over its bodice's hem): stay outside them where they reach
+    uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+    ru = radius_field(BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get()), THS, ZS, YC)
+    bpy.data.objects.remove(uo)
+    lo_ = np.where(np.isnan(ru), 0.0, ru + S.get("over_gap", 0.005))
+    lo_ = np.maximum(lo_, np.roll(lo_, 1, 0)); lo_ = np.maximum(lo_, np.roll(lo_, -1, 0))
+    lo_ = np.maximum.accumulate(lo_, axis=1)          # (hangs: what clears the hem above stays out below)
+    r = np.maximum(r, lo_)
+    log("over", nm, int((~np.isnan(ru)).sum()), "grid points")
 PL_ = S.get("pleats")
 if PL_:
     ramp_ = np.clip((PL_.get("z_stitch", Z_TOP - 0.08) - ZZ) / PL_.get("open", 0.12), 0, 1) ** 0.8
@@ -169,13 +181,41 @@ def loft(ths, zs, Rg, ycs):
     return P_
 
 
+def open_remap(P_, ycs):
+    """Opening: respace every row round the body from the front edge a(z) to 2 pi - a(z) (clean front edges, no
+    stair steps); the radius at each new azimuth is the row's own, interpolated."""
+    OP_ = S.get("opening")
+    if not OP_:
+        return P_
+    na = P_.shape[0]
+    fz, fw = zip(*OP_["front"])
+    Q = P_.copy()
+    th0 = 2 * np.pi * np.arange(na) / na
+    for j in range(P_.shape[1]):
+        z_ = float(P_[0, j, 2])
+        yc_ = float(ycs[j])
+        rr = np.hypot(P_[:, j, 0], P_[:, j, 1] - yc_)
+        a_ = math.radians(float(np.interp(z_, fz, fw)))
+        thn = a_ + th0 * (2 * np.pi - 2 * a_) / (2 * np.pi * (na - 1) / na)
+        rn = np.interp(thn, np.r_[th0, 2 * np.pi], np.r_[rr, rr[0]])
+        Q[:, j, 0] = np.sin(thn) * rn
+        Q[:, j, 1] = yc_ - np.cos(thn) * rn
+    return Q
+
+
 def grid_mesh(name, P_, wrap=True):
     na, nz = P_.shape[:2]
     me = bpy.data.meshes.new(name)
     faces = []
+    OP_ = S.get("opening")              # open front (coat skirts): no faces across the front; back vent left out
+    VT = (OP_ or {}).get("vent")
     for i in range(na):
         i2 = (i + 1) % na
+        if OP_ and i == na - 1:
+            continue
         for j in range(nz - 1):
+            if VT and abs((i + 0.5) / na - 0.5) * 360 < VT["half_az"] and                     float(P_[i, j, 2] + P_[i, j + 1, 2]) / 2 < VT["z_top"]:
+                continue
             faces.append((i * nz + j, i * nz + j + 1, i2 * nz + j + 1, i2 * nz + j))
     me.from_pydata([tuple(p) for p in P_.reshape(-1, 3)], [], faces)
     me.validate()
@@ -185,6 +225,7 @@ def grid_mesh(name, P_, wrap=True):
 
 
 Plo = loft(THS, ZS, r, YC)
+Plo = open_remap(Plo, YC)
 lo = grid_mesh(f"{PIECE}_shell", Plo)
 # hi: interpolated loft + detail displacement along the radial direction
 THh = np.linspace(0, 2 * math.pi, NA * UP, endpoint=False)
@@ -270,10 +311,25 @@ occm = np.where((bah > 0.25) & (Zh < zbe) & (Zh > zbe - 0.012) & (B_.get("r", 0.
 # long soft folds on the under-skirt
 disp += S.get("soft_folds", 0.0018) * np.sin(Th * 11 + 0.8 * np.sin(Zh * 9)) * np.clip((Z_TOP - 0.15 - Zh) / 0.3, 0, 1) * ~apr
 Phi = loft(THh, ZSh, rh + disp, ych)
+Phi = open_remap(Phi, ych)
 hi = grid_mesh(f"{PIECE}_hi", Phi)
 occ = np.clip((1 + disp / 0.0012 * 0.18) * occm, 0.6, 1.08).ravel()
 col = hi.data.color_attributes.new("occ", "FLOAT_COLOR", "POINT")
 col.data.foreach_set("color", np.repeat(occ[:, None], 4, 1).astype(np.float32).ravel())
+
+
+def drop_loose(o_):
+    """Vertices only the opening's left-out faces used (after per-point attributes are set on the full grid)."""
+    bm_ = bmesh.new()
+    bm_.from_mesh(o_.data)
+    bmesh.ops.delete(bm_, geom=[v for v in bm_.verts if not v.link_faces], context="VERTS")
+    bm_.to_mesh(o_.data)
+    bm_.free()
+
+
+if S.get("opening"):
+    drop_loose(hi)
+    drop_loose(lo)
 
 
 def r_at(th, z):
@@ -291,10 +347,10 @@ def r_at(th, z):
 
 
 def tier_panel(tr, na, nu, detail):
-    span = math.radians(tr["daz"] * tr.get("span", 2.2))
+    span = math.radians(tr["span_deg"]) if "span_deg" in tr else math.radians(tr["daz"] * tr.get("span", 2.2))
     ths = math.pi + np.linspace(-span, span, na)
     azd = np.degrees((ths + math.pi) % (2 * math.pi) - math.pi)
-    wa = np.exp(-((np.abs(azd) - 180) / tr["daz"]) ** 2)
+    wa = np.ones(na) if tr.get("uniform") else np.exp(-((np.abs(azd) - 180) / tr["daz"]) ** 2)   # (a hem flounce: all round)
     zbe = tr["z_bot"] + tr.get("scallop", 0.02) * np.sin(np.radians(azd) * tr.get("n_sc", 3)) ** 2 \
         - tr.get("v", 0.0) * np.exp(-((np.abs(azd) - 180) / (tr["daz"] * 0.6)) ** 2)
     zb_eff = tr["z_top"] - (tr["z_top"] - zbe) * np.clip(wa, 0, 1) ** 0.5     # ends taper into the skirt

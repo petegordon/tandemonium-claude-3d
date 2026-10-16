@@ -4,7 +4,7 @@ piping along its top edge, a burgundy rim at the bottom.
 
   blender -b --factory-startup --python scripts/add_coat_cuffs.py -- [--piece coat] [--char outfit_male_victorian]
       [--h 0.055] [--ease 0.004] [--tex refs/outfit_male_victorian/jacket/prepped/cuff_texture.png] [--repeat 2]
-      [--glb shells/coat.glb] [--out shells/coat.glb]
+      [--rim-color 92,30,34] [--glb shells/coat.glb] [--out shells/coat.glb]
 
 Per arm: the sleeve end = the farthest point of the coat along the forearm axis (ForeArm -> Hand joints) near that
 hand; rings around the axis from the end up --h; each ring's radius per angle = the coat under it (ray from the axis)
@@ -145,7 +145,7 @@ b1.inputs["Roughness"].default_value = 0.35
 m2 = bpy.data.materials.new(f"{CHAR}_{PIECE}_cuff_rim")
 m2.use_nodes = True
 b2 = m2.node_tree.nodes["Principled BSDF"]
-b2.inputs["Base Color"].default_value = lin([92, 30, 34])
+b2.inputs["Base Color"].default_value = lin([int(c_) for c_ in opt("--rim-color", "92,30,34").split(",")])
 b2.inputs["Roughness"].default_value = 0.85
 for m in (m0, m1, m2):
     me.materials.append(m)

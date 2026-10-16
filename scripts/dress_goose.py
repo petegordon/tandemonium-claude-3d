@@ -102,6 +102,9 @@ FOLLOW.update(cfg.get("chain_follow", {}))          # chars json: per-character 
 DRAPE_BY.update(cfg.get("chain_drape", {}))          # female cyclist's skirt rides the thighs seated, back too)
 for k_, v_ in cfg.get("force_hide", {}).items():     # chars json "force_hide" {piece: [bone substrings]} (skirt: Tail)
     FORCE[k_] = tuple(FORCE.get(k_, ())) + tuple(v_)
+LOOSE_PIECES |= set(cfg.get("loose_pieces", []))    # chars json: extra hanging pieces on cloth chains (a coat's skirts)
+NO_MASK |= set(cfg.get("no_mask", []))              # ... pieces that never mask the body (lace, jabot)
+RIGID.update(cfg.get("rigid", {}))                  # ... accessories on one bone
 names = [g.name for g in body.vertex_groups]
 me = body.data
 V = np.array([v.co[:] for v in me.vertices])

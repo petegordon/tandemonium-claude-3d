@@ -366,7 +366,8 @@ if PIECE == "bowtie":
     parts.append(band("collar", z_lo, lambda th: z_hi, AD.get("collar_off", 0.004), COL["cream_m"],
                       th_range=(gap, 2 * math.pi - gap), nz=3, wrap=False))
     # neck band (black) along the top edge, behind the bow
-    parts.append(band("neckband", z_hi - 0.004, lambda th: z_hi + 0.002, 0.0065, COL.get("neckband", COL["black"]), nz=2, solid=0.0015,
+    parts.append(band("neckband", z_hi - AD.get("neckband_h", 0.006) * 2 / 3, lambda th: z_hi + AD.get("neckband_h", 0.006) / 3,
+                      AD.get("neckband_off", 0.0065), COL.get("neckband", COL["black"]), nz=2 if AD.get("neckband_h", 0.006) < 0.01 else 4, solid=0.0015,
                       rough=0.45))
     # wing tips: triangles turned down over the collar front
     for s in (1, -1):
@@ -402,10 +403,44 @@ if PIECE == "bowtie":
             h = Hb * (0.17 + 0.33 * math.sin(u * math.pi / 2) ** 0.8)   # pinched at the knot, flared tips
             t = 0.0055 + 0.0045 * math.sin(math.pi * min(u * 1.3, 1))
             return h, t, (up, out)
-        parts.append(tube(f"bow_{'L' if s > 0 else 'R'}", path, rad, COL.get("bow", COL["black"]), nseg=14, rough=0.55))
+        parts.append(tube(f"bow_{'L' if s > 0 else 'R'}", path, rad, COL.get("bow", COL["black"]), nseg=14, rough=AD.get("bow_rough", 0.55)))
     kpath = [c0 + np.array([x, -0.003, 0]) for x in np.linspace(-k, k, 4)]
     if not TEX:
-        parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=0.55))
+        parts.append(tube("knot", kpath, lambda i: (0.24 * Hb, 0.0085, (up, out)), COL.get("bow", COL["black"]), nseg=14, rough=AD.get("bow_rough", 0.55)))
+    for s in (1, -1) if AD.get("tails") else ():      # ribbon tails hanging from the knot, splayed
+        TL = AD["tails"]
+        a_ = math.radians(TL.get("splay_deg", 16)) * s
+        dv_ = np.array([math.sin(a_), 0.0, -math.cos(a_)])
+        tp = [c0 + np.array([0, -0.002, 0]) + dv_ * TL.get("len", 0.05) * u + out * 0.004 * u * u for u in np.linspace(0, 1, 8)]
+        parts.append(tube(f"tail_{'L' if s > 0 else 'R'}", tp, lambda i, TL=TL: (TL.get("w", 0.012) / 2 * (1 + 0.3 * i / 7), 0.0012,
+                          (np.cross(out, dv_) / np.linalg.norm(np.cross(out, dv_)), out)), COL.get("bow", COL["black"]),
+                          nseg=8, rough=AD.get("bow_rough", 0.55)))
+    JW = AD.get("jewel")
+    if JW:                           # a jewel on the knot in a gilt setting, and an optional drop pendant below it
+        def ellipsoid(name, c, r3, color, rough, metal, nu=10, nv=6, smooth=False):
+            vs_, fs_ = [], []
+            for i in range(nv + 1):
+                ph = math.pi * i / nv - math.pi / 2
+                for k_ in range(nu):
+                    th = 2 * math.pi * k_ / nu
+                    vs_.append(c + np.array([r3[0] * math.cos(ph) * math.cos(th), r3[1] * math.cos(ph) * math.sin(th), r3[2] * math.sin(ph)]))
+            for i in range(nv):
+                for k_ in range(nu):
+                    a, b = i * nu + k_, i * nu + (k_ + 1) % nu
+                    fs_.append((a, b, b + nu, a + nu))
+            return mesh_obj(name, vs_, fs_, srgb(color), rough=rough, metal=metal, smooth=smooth)
+        jr = JW.get("r", 0.008)
+        jc = c0 + out * (0.0085 + jr * 0.35)
+        parts.append(ellipsoid("setting", jc - out * 0.001, (jr * 1.35, jr * 0.5, jr * 1.35), JW.get("setting", [206, 166, 84]), 0.25, 1.0, 16, 6, True))
+        parts.append(ellipsoid("jewel", jc + out * jr * 0.15, (jr, jr * 0.6, jr), JW.get("color", [226, 232, 244]), JW.get("rough", 0.06),
+                               JW.get("metal", 0.6), 8, 4, False))          # faceted (flat shaded): catches the light
+        if JW.get("drop"):
+            DR = JW["drop"]
+            dc = jc - up * (jr * 1.35 + DR.get("hang", 0.012) + DR.get("r", 0.006) * 1.3) + out * 0.002
+            parts.append(ellipsoid("drop_link", jc - up * (jr * 1.35 + DR.get("hang", 0.012) / 2), (0.0012, 0.0012, DR.get("hang", 0.012) / 2),
+                                   JW.get("setting", [206, 166, 84]), 0.25, 1.0, 8, 4, True))
+            parts.append(ellipsoid("drop", dc, (DR.get("r", 0.006), DR.get("r", 0.006) * 0.9, DR.get("r", 0.006) * 1.35),
+                                   DR.get("color", [236, 232, 222]), DR.get("rough", 0.18), DR.get("metal", 0.0), 14, 8, True))
     if AD.get("collar_studs"):
         # gold studs on the collar front, one each side of the opening above the bow (ref: shirt + worn shirt)
         sr = AD.get("stud_r", 0.0055)

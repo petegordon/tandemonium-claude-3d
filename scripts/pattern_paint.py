@@ -358,7 +358,91 @@ def glove(P, N):
     return c
 
 
-PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove}
+def sprig(P, N):
+    """Silk with scattered flower sprigs (18th-century damask / embroidered waistcoat): a plain fine-weave ground in
+    "ground", and on a staggered lattice ("cell" m, round the body like the tweeds) a five-petal flower of "size" m in
+    "flower" with a "centre" dot and two leaves in "leaf", each turned and nudged at random; "fill" = share of lattice
+    cells with a sprig. "region" {z_min, z_max, front_only, abs_x_min} limits where sprigs go. Damask = flower /
+    leaf colours a little lighter than the ground (self-coloured)."""
+    u, v = around(P, N, PR.get("axes", [[0.0, 0.03]]))
+    if PR.get("v_radial"):         # a skirt sloping out over the hips: v ~ arc length down the surface, not height
+        ax0 = PR.get("axes", [[0.0, 0.03]])[0]
+        v = v - PR["v_radial"] * np.hypot(P[:, 0] - ax0[0], P[:, 1] - ax0[1])
+    if PR.get("arms"):
+        da, ua = arm_coords(P)
+        on_arm = (da < 0.07) & (np.abs(P[:, 0]) > PR.get("arm_x", 0.13))
+        u = np.where(on_arm, ua, u)
+        v = np.where(on_arm, np.abs(P[:, 0]) * 0.8 + P[:, 2] * 0.6, v)
+    c = np.repeat(rgb(PR["ground"])[None], len(P), 0)
+    c *= (0.95 + 0.07 * value_noise(P, 0.0012))[:, None]          # fine weave
+    c *= (0.95 + 0.10 * value_noise(P, 0.035))[:, None]           # sheen variation
+    cell, R = PR.get("cell", 0.045), PR.get("size", 0.009)
+    row = np.floor(v / cell)
+    off = np.where(row % 2 == 0, 0.0, 0.5)
+    col = np.floor(u / cell + off)
+    j1, j2, j3, j4 = (hash01(col + 11 * k, row + 7 * k) for k in range(4))
+    cu = (col + 0.5 - off) * cell + (j1 - 0.5) * cell * 0.3
+    cv = (row + 0.5) * cell + (j2 - 0.5) * cell * 0.3
+    th = j3 * 2 * np.pi
+    du, dv = u - cu, v - cv
+    if PR.get("lattice") == "3d":
+        # sprigs on a jittered 3D lattice, drawn in each texel's tangent plane (no wrap angle: a wide skirt's back
+        # is not sheared the way an angle x radius coordinate shears it where the radius changes with height)
+        q = P / cell
+        best = np.full(len(P), 9.0)
+        D3 = np.zeros_like(P)
+        J3 = np.zeros((len(P), 2))
+        base = np.floor(q - 0.5).astype(np.int64)
+        for dx in (0, 1):
+            for dy in (0, 1):
+                for dz in (0, 1):
+                    ci = base + np.array([dx, dy, dz])
+                    jit = np.stack([hash01(ci[:, 0] + 3 * k, ci[:, 1] + 5 * k, ci[:, 2] + 7 * k) for k in range(5)], 1)
+                    cen = (ci + 0.5 + (jit[:, :3] - 0.5) * 0.4) * cell
+                    d3 = P - cen
+                    dd = np.linalg.norm(d3, axis=1)
+                    take = dd < best
+                    best = np.where(take, dd, best)
+                    D3 = np.where(take[:, None], d3, D3)
+                    J3 = np.where(take[:, None], jit[:, 3:5], J3)
+        t1 = np.cross(N, np.array([0.0, 0.0, 1.0]))
+        t1 /= np.maximum(np.linalg.norm(t1, axis=1, keepdims=True), 1e-6)
+        t2 = np.cross(N, t1)
+        du, dv = np.sum(D3 * t1, 1), np.sum(D3 * t2, 1)
+        th = J3[:, 0] * 2 * np.pi
+        j4 = J3[:, 1]
+    x_, y_ = du * np.cos(th) + dv * np.sin(th), -du * np.sin(th) + dv * np.cos(th)
+    r, a = np.hypot(x_, y_), np.arctan2(y_, x_)
+    keep = j4 < PR.get("fill", 1.0)
+    rg = PR.get("region")
+    if rg:
+        keep &= (P[:, 2] >= rg.get("z_min", -9)) & (P[:, 2] <= rg.get("z_max", 9))
+        if rg.get("front_only"):
+            keep &= P[:, 1] < rg.get("y_max", 0.0)
+        if "abs_x_min" in rg:
+            keep &= np.abs(P[:, 0]) >= rg["abs_x_min"]
+    petal = keep & (r < R * (PR.get("petal_base", 0.45) + (1 - PR.get("petal_base", 0.45)) * np.abs(np.cos(2.5 * a))))
+    centre = keep & (r < R * 0.28)
+    leaf = np.zeros(len(P), bool)
+    for la in (np.pi * 0.85, -np.pi * 0.15):
+        lr = PR.get("leaf_r", 1.55)
+        lx, ly = x_ - np.cos(la) * R * lr, y_ - np.sin(la) * R * lr
+        ex = lx * np.cos(la) + ly * np.sin(la)
+        ey = -lx * np.sin(la) + ly * np.cos(la)
+        ls = PR.get("leaf_size", 1.0)
+        leaf |= keep & ((ex / (R * 0.75 * ls)) ** 2 + (ey / (R * 0.32 * ls)) ** 2 < 1)
+    stem = keep & (np.abs(y_ + R * 0.1) < R * 0.07) & (x_ < -R * 0.4) & (x_ > -R * 2.2)
+    lc = rgb(PR.get("leaf", PR["flower"]))
+    if not PR.get("stems", True):
+        stem = np.zeros(len(P), bool)
+    mx = PR.get("mix", 1.0)                 # damask woven into the ground: < 1 blends the motif with the ground
+    c = np.where((leaf | stem)[:, None], c * (1 - mx) + mx * lc[None] * (0.9 + 0.15 * value_noise(P, 0.002))[:, None], c)
+    c = np.where(petal[:, None], c * (1 - mx) + mx * rgb(PR["flower"])[None] * (0.88 + 0.2 * np.clip(1 - r / R, 0, 1))[:, None], c)
+    c = np.where(centre[:, None], rgb(PR.get("centre", PR["flower"]))[None], c)
+    return c
+
+
+PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove, "sprig": sprig}
 
 
 def bands(P, c, boundary):
@@ -496,6 +580,59 @@ print("TEXELS", int(mask.sum()), "boundary pts", len(boundary))
 P, N = pos[mask].astype(float), nrm[mask].astype(float)
 col = PATTERNS[PR["type"]](P, N)
 col = bands(P, col, boundary)
+
+
+def in_poly(x, z, poly):
+    """Even-odd point-in-polygon test, vectorised over (x, z)."""
+    inside = np.zeros(len(x), bool)
+    q = np.asarray(poly, float)
+    for i in range(len(q)):
+        (x0, z0), (x1, z1) = q[i], q[i - 1]
+        cross = ((z0 > z) != (z1 > z)) & (x < (x1 - x0) * (z - z0) / np.where(z1 - z0 == 0, 1e-12, z1 - z0) + x0)
+        inside ^= cross
+    return inside
+
+
+# "panels": front-projected regions painted over the pattern (a fichu in a bodice's neckline, a stomacher):
+#   [{"poly": [[x, z], ...], "color": rgb, "front_only": true, "edge": rgb, "edge_w": m, "cross": [w, rgb]}]
+for pn in PR.get("panels", []):
+    on = in_poly(P[:, 0], P[:, 2], pn["poly"]) & ((P[:, 1] < 0) if pn.get("front_only", True) else True)
+    pc = rgb(pn["color"])[None] * (0.95 + 0.07 * value_noise(P, 0.0015))[:, None]
+    if pn.get("sheer"):                       # sheer muslin: the colour under it shows a little, fine pleats
+        pc = pc * (0.9 + 0.1 * np.sin(P[:, 0] / pn["sheer"] * 2 * np.pi))[:, None]
+    col = np.where(on[:, None], pc, col)
+    if pn.get("cross"):                       # a crossed kerchief's two folded edges (an X from the shoulders)
+        w_, cc_ = pn["cross"]
+        zt = max(z for _, z in pn["poly"])
+        xs_ = max(abs(x) for x, _ in pn["poly"])
+        for sg in (1, -1):
+            d_ = np.abs((P[:, 0] * sg) - (xs_ - (zt - P[:, 2]) * xs_ / max(zt - min(z for _, z in pn["poly"]), 1e-3)))
+            col = np.where((on & (d_ < w_))[:, None], rgb(cc_)[None], col)
+    if pn.get("edge"):
+        q = np.asarray(pn["poly"], float)
+        dmin = np.full(len(P), 9.0)
+        for i in range(len(q)):
+            a_, b_ = q[i - 1], q[i]
+            ab = b_ - a_
+            t_ = np.clip(((P[:, [0, 2]] - a_) @ ab) / max(ab @ ab, 1e-12), 0, 1)
+            dmin = np.minimum(dmin, np.linalg.norm(P[:, [0, 2]] - (a_ + t_[:, None] * ab), axis=1))
+        ed = (dmin < pn.get("edge_w", 0.004)) & ((P[:, 1] < 0) if pn.get("front_only", True) else True) &             (dmin < 0.02) & (np.abs(P[:, 0]) < 0.3)
+        col = np.where(ed[:, None], rgb(pn["edge"])[None], col)
+# "bows": small painted ribbon bows down the centre front (a stomacher's echelle): {"z": [..], "w", "h", "color", "x"}
+BW = PR.get("bows")
+if BW:
+    for zb_ in BW["z"]:
+        dx_, dz_ = P[:, 0] - BW.get("x", 0.0), P[:, 2] - zb_
+        w_, h_ = BW.get("w", 0.03), BW.get("h", 0.016)
+        loop = (np.abs(dx_) < w_ / 2) & (np.abs(dz_) < h_ / 2 * (0.35 + 0.65 * np.abs(dx_) / (w_ / 2)))
+        knot = (np.abs(dx_) < w_ * 0.09) & (np.abs(dz_) < h_ * 0.3)
+        tails = (np.abs(np.abs(dx_) - (-dz_) * 0.5) < w_ * 0.07) & (dz_ < 0) & (dz_ > -h_ * 1.1)
+        front = P[:, 1] < 0
+        shade_ = 0.82 + 0.25 * np.clip(1 - np.abs(dz_) / (h_ / 2), 0, 1)
+        bc = rgb(BW["color"])
+        col = np.where(((loop | tails) & front)[:, None], bc[None] * shade_[:, None], col)
+        col = np.where((knot & front)[:, None], bc[None] * 0.8, col)
+    print("BOWS", len(BW["z"]))
 BT = PR.get("buttons")
 if BT:
     # buttons painted where the garment's own detail bake put them (centre front, every button_step from button_top)

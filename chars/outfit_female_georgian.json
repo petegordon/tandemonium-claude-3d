@@ -1,0 +1,1059 @@
+{
+ "char": "outfit_female_georgian",
+ "notes": "Pete 2026-10-15: 18th-century English lady (1770s robe a l'anglaise), partner to outfit_male_georgian; t2i seed 21 (refs/outfit_female_georgian/t2i/key1; the rear view came out as a front -- shapes from front + left). Pete: add a neck accessory (like seed 42's) as its own recolourable / swappable piece -> 'bowtie' = pale blue silk ribbon choker with a bow (collar dropped). Built from the Victorian lady's recipe (same slider body).",
+ "body_shape": "sliders",
+ "shape": {
+  "arm_girth": 0.58,
+  "torso_girth": 0.85,
+  "hip_girth": 0.95,
+  "leg_girth": 0.7,
+  "leg_length": 1.15,
+  "height": 1.0,
+  "leg_pitch": 3.0
+ },
+ "build_frame_lift": 0.0932,
+ "build_frame_note": "garment heights are in the BUILD frame: the slider-shaped body before dress_goose.py lifts the soles to the floor (+0.0932 m); the reference views / dressed renders are 0.0932 m higher",
+ "chain_follow": {
+  "F": 1.0,
+  "S": 0.9,
+  "B": 0.85
+ },
+ "chain_drape": {
+  "F": [
+   1.0,
+   1.0,
+   0.5
+  ],
+  "S": [
+   1.0,
+   0.8,
+   0.45
+  ],
+  "B": [
+   1.0,
+   0.85,
+   0.55
+  ]
+ },
+ "force_hide": {
+  "skirt": [
+   "Tail"
+  ],
+  "petticoat": [
+   "Tail"
+  ]
+ },
+ "garment_design": {
+  "jacket": {
+   "kind": "shirt",
+   "note": "fitted bodice, closed front (the square neckline, fichu and stomacher are painted), pointed waist, elbow-length sleeves",
+   "z_neck": 1.2868,
+   "z_top": 0.79,
+   "z_bot": 0.79,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 6500,
+   "hem_points": {
+    "x": [
+     0.0,
+     0.05,
+     0.2
+    ],
+    "z": [
+     0.79,
+     0.83,
+     0.855
+    ],
+    "z_back": 0.85
+   },
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "edge_relax": 60,
+   "edge_rings": 6,
+   "lo_edge_iter": 10,
+   "base_smooth": 25,
+   "cuff": 0.045,
+   "wrist_offset": -0.24,
+   "cover_margin": 0.02,
+   "ease": {
+    "torso": 0.022,
+    "sleeve": 0.01,
+    "blouse": 0.0,
+    "cuff": 0.012,
+    "neck": 0.02,
+    "hem": 0.006,
+    "puff": 0.0,
+    "puff_at": 0.08,
+    "puff_w": 0.15,
+    "puff_armw": 0.3,
+    "waist_nip": {
+     "z": 0.93,
+     "w": 0.07,
+     "amt": 0.012
+    },
+    "nip_min": 0.021
+   },
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "colors": {
+    "tweed": [
+     255,
+     255,
+     255
+    ]
+   },
+   "hem_zone": 0.04,
+   "cuff_clear": 0.004,
+   "armpit_relax": 20,
+   "ease_post_smooth": 30
+  },
+  "skirt": {
+   "kind": "skirt",
+   "note": "the gown's skirt: pale blue damask, full and rounded over the hips to the ankle, open at the front over the petticoat, gathered ruffle at the hem",
+   "guide": null,
+   "z_top": 0.89,
+   "z_hem": 0.1,
+   "z_bot": 0.1,
+   "na": 128,
+   "nz": 36,
+   "hi_up": 6,
+   "clear": 0.016,
+   "waist_clear": 0.032,
+   "waist_blend": 0.06,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.89,
+     0.82,
+     0.75,
+     0.65,
+     0.5,
+     0.35,
+     0.2,
+     0.1
+    ],
+    "front": [
+     0.0,
+     0.025,
+     0.055,
+     0.085,
+     0.11,
+     0.13,
+     0.145,
+     0.152
+    ],
+    "side": [
+     0.0,
+     0.04,
+     0.09,
+     0.135,
+     0.17,
+     0.195,
+     0.212,
+     0.22
+    ],
+    "back": [
+     0.0,
+     0.035,
+     0.08,
+     0.115,
+     0.145,
+     0.165,
+     0.18,
+     0.188
+    ]
+   },
+   "soft_folds": 0.0009,
+   "under": [],
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.55,
+   "weight_smooth": 12,
+   "colors": {
+    "silk": [
+     255,
+     255,
+     255
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true,
+   "opening": {
+    "front": [
+     [
+      0.1,
+      30
+     ],
+     [
+      0.4,
+      26
+     ],
+     [
+      0.7,
+      24
+     ],
+     [
+      0.89,
+      24
+     ]
+    ]
+   },
+   "pleats": {
+    "n": 30,
+    "depth": 0.012,
+    "z_stitch": 0.83,
+    "open": 0.18
+   },
+   "tiers": [
+    {
+     "note": "gathered hem flounce, all round the closed part of the gown",
+     "uniform": true,
+     "span_deg": 148,
+     "daz": 60,
+     "z_top": 0.215,
+     "z_bot": 0.085,
+     "o_top": 0.006,
+     "o_bot": 0.042,
+     "roll": 0.25,
+     "scallop": 0.0,
+     "n_sc": 0,
+     "v": 0.0,
+     "fold": 0.009,
+     "n_fold": 64
+    }
+   ],
+   "tier_na": 180,
+   "tier_nu": 7,
+   "over": [
+    "jacket"
+   ],
+   "over_gap": 0.004
+  },
+  "petticoat": {
+   "kind": "skirt",
+   "note": "cream silk petticoat under the open gown, to the ankle",
+   "guide": null,
+   "z_top": 0.845,
+   "z_hem": 0.11,
+   "z_bot": 0.11,
+   "na": 96,
+   "nz": 36,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.004,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.845,
+     0.8,
+     0.73,
+     0.63,
+     0.5,
+     0.35,
+     0.2,
+     0.11
+    ],
+    "front": [
+     0.0,
+     0.02,
+     0.045,
+     0.075,
+     0.098,
+     0.116,
+     0.13,
+     0.136
+    ],
+    "side": [
+     0.0,
+     0.03,
+     0.07,
+     0.105,
+     0.135,
+     0.155,
+     0.17,
+     0.176
+    ],
+    "back": [
+     0.0,
+     0.026,
+     0.06,
+     0.09,
+     0.115,
+     0.132,
+     0.145,
+     0.15
+    ]
+   },
+   "soft_folds": 0.0009,
+   "under": [
+    "jacket"
+   ],
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.6,
+   "weight_smooth": 12,
+   "colors": {
+    "cream": [
+     255,
+     255,
+     255
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "white silk stockings (the skirts cover the tops)",
+   "z_top": 0.4718,
+   "z_bot": -1.0932,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.007,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.04,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "outer_smooth": 90,
+   "outer_min": 0.003,
+   "normal_tilt": 8,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": -0.015
+   },
+   "min_r": 0.03,
+   "min_r_z": [
+    -0.0332,
+    0.4368
+   ]
+  }
+ },
+ "boot_design": {
+  "note": "pale blue silk shoes, low heel, small silver buckle on a strap (add_shoe_buckle.py)",
+  "z_off": -0.0932,
+  "centre_x": 0.092,
+  "toe_y": -0.06,
+  "heel_y": 0.105,
+  "sole_w": [
+   [
+    0.0,
+    0.029
+   ],
+   [
+    0.25,
+    0.033
+   ],
+   [
+    0.55,
+    0.039
+   ],
+   [
+    0.8,
+    0.036
+   ],
+   [
+    1.0,
+    0.026
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.09
+   ],
+   [
+    0.15,
+    0.095
+   ],
+   [
+    0.35,
+    0.09
+   ],
+   [
+    0.5,
+    0.075
+   ],
+   [
+    0.7,
+    0.06
+   ],
+   [
+    0.88,
+    0.05
+   ],
+   [
+    1.0,
+    0.042
+   ]
+  ],
+  "shaft": [
+   [
+    0.035,
+    0.02,
+    0.024,
+    0.08
+   ],
+   [
+    0.045,
+    0.02,
+    0.024,
+    0.08
+   ]
+  ],
+  "heel_h": 0.04,
+  "heel_len": 0.045,
+  "power": 2.6,
+  "shaft_power": 2.0,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.55,
+  "toe_cap": 0.03,
+  "toe_narrow": 2.0,
+  "toe_up": 0.008,
+  "sole_h": 0.006,
+  "welt": 0.001,
+  "heel_round": 0.018,
+  "sole_smooth": 12,
+  "sole_step": 0.003,
+  "leather_rgb": [
+   0.13,
+   0.22,
+   0.48
+  ],
+  "arch": {
+   "h": 0.03,
+   "t0": 0.18,
+   "t1": 0.62,
+   "waist": 0.45,
+   "heel_len": 0.032,
+   "heel_w": 0.55
+  }
+ },
+ "patterns": {
+  "jacket": {
+   "type": "sprig",
+   "ground": [
+    100,
+    132,
+    182
+   ],
+   "flower": [
+    190,
+    206,
+    232
+   ],
+   "centre": [
+    214,
+    226,
+    244
+   ],
+   "leaf": [
+    160,
+    182,
+    218
+   ],
+   "cell": 0.05,
+   "size": 0.01,
+   "fill": 0.95,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "r0": 0.0,
+   "roughness": 0.62,
+   "detail_gamma": 0.5,
+   "tex": 2048,
+   "arms": true,
+   "panels": [
+    {
+     "poly": [
+      [
+       -0.075,
+       1.255
+      ],
+      [
+       -0.045,
+       1.278
+      ],
+      [
+       -0.02,
+       1.288
+      ],
+      [
+       0.02,
+       1.288
+      ],
+      [
+       0.045,
+       1.278
+      ],
+      [
+       0.075,
+       1.255
+      ],
+      [
+       0.075,
+       1.14
+      ],
+      [
+       -0.075,
+       1.14
+      ]
+     ],
+     "color": [
+      206,
+      200,
+      192
+     ],
+     "sheer": 0.006,
+     "cross": null,
+     "edge": [
+      226,
+      220,
+      206
+     ],
+     "edge_w": 0.004
+    },
+    {
+     "poly": [
+      [
+       -0.07,
+       1.14
+      ],
+      [
+       0.07,
+       1.14
+      ],
+      [
+       0.045,
+       0.9
+      ],
+      [
+       0.0,
+       0.79
+      ],
+      [
+       -0.045,
+       0.9
+      ]
+     ],
+     "color": [
+      106,
+      138,
+      188
+     ],
+     "edge": [
+      84,
+      112,
+      160
+     ],
+     "edge_w": 0.003
+    }
+   ],
+   "flat_nz": 1.01,
+   "lattice": "3d",
+   "mix": 0.65,
+   "stems": false,
+   "petal_base": 0.6,
+   "leaf_r": 1.35,
+   "leaf_size": 0.75
+  },
+  "skirt": {
+   "type": "sprig",
+   "ground": [
+    100,
+    132,
+    182
+   ],
+   "flower": [
+    190,
+    206,
+    232
+   ],
+   "centre": [
+    214,
+    226,
+    244
+   ],
+   "leaf": [
+    160,
+    182,
+    218
+   ],
+   "cell": 0.05,
+   "size": 0.01,
+   "fill": 0.95,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "r0": 0.0,
+   "roughness": 0.62,
+   "detail_gamma": 0.5,
+   "tex": 2048,
+   "flat_nz": 1.01,
+   "v_radial": 0.0,
+   "lattice": "3d",
+   "mix": 0.65,
+   "stems": false,
+   "petal_base": 0.6,
+   "leaf_r": 1.35,
+   "leaf_size": 0.75
+  },
+  "petticoat": {
+   "type": "herringbone",
+   "tex": 2048,
+   "dark": [
+    200,
+    184,
+    150
+   ],
+   "light": [
+    210,
+    196,
+    162
+   ],
+   "column": 0.006,
+   "period": 0.003,
+   "contrast": 0.0,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "r0": 0.0,
+   "roughness": 0.6,
+   "detail_gamma": 0.15,
+   "flat_nz": 0.97
+  },
+  "socks": {
+   "type": "rib",
+   "tex": 1024,
+   "color": [
+    236,
+    234,
+    228
+   ],
+   "pitch": 0.0025,
+   "rib_dark": 0.92,
+   "leg_axes": [
+    [
+     0.085,
+     0.065
+    ],
+    [
+     -0.085,
+     0.065
+    ]
+   ],
+   "roughness": 0.6,
+   "flat_nz": 0.97
+  },
+  "hat": {
+   "type": "herringbone",
+   "tex": 1024,
+   "materials": [
+    "hat_felt"
+   ],
+   "dark": [
+    170,
+    132,
+    70
+   ],
+   "light": [
+    222,
+    190,
+    120
+   ],
+   "column": 0.004,
+   "period": 0.003,
+   "contrast": 1.2,
+   "r0": 0.0,
+   "axes": [
+    [
+     0.0,
+     -0.06
+    ]
+   ],
+   "roughness": 0.8,
+   "flat_nz": 0.6
+  }
+ },
+ "hat_design": {
+  "brim_c": [
+   0.0,
+   -0.07
+  ],
+  "brim_ax": [
+   0.19,
+   0.195
+  ],
+  "brim_z": 1.645,
+  "curl": -0.01,
+  "crown_c": [
+   0.0,
+   -0.062
+  ],
+  "crown_ax": [
+   0.066,
+   0.088
+  ],
+  "crown_base": 1.649,
+  "crown_top": 1.71,
+  "band_h": 0.03,
+  "colors": {
+   "straw": [
+    255,
+    255,
+    255
+   ]
+  },
+  "band_color": [
+   100,
+   132,
+   182
+  ],
+  "brass_color": [
+   176,
+   132,
+   62
+  ],
+  "felt_rough": 0.8,
+  "buckles": false,
+  "tilt_deg": 5,
+  "ribbon_bow": {
+   "side": -1,
+   "angle_deg": 125,
+   "w": 0.12,
+   "h": 0.046,
+   "puff": 0.02,
+   "ribbon_w": 0.02,
+   "tail_len": 0.11,
+   "tail_deg": 12,
+   "tail_degs": [
+    30,
+    -10
+   ]
+  },
+  "tilt_side_deg": -7,
+  "style": "top",
+  "crown_flare": 1.0
+ },
+ "accessory_design": {
+  "bowtie": {
+   "anchor_z": 1.265,
+   "bow_w": 0.13,
+   "bow_h_ratio": 0.55,
+   "collar_h_scale": 0.5,
+   "colors": {
+    "bow": [
+     100,
+     132,
+     182
+    ],
+    "neckband": [
+     100,
+     132,
+     182
+    ],
+    "cream_m": [
+     244,
+     242,
+     236
+    ]
+   },
+   "knot_w": 0.16,
+   "knot_h": 0.47,
+   "collar_gap_deg": 0.6,
+   "collar_off": 0.006,
+   "bow_rough": 0.32,
+   "bow_z_frac": 0.85,
+   "note": "pale blue silk ribbon choker tied in a bow at the throat (Pete: own piece, recolourable / swappable)",
+   "neckband_h": 0.018,
+   "neckband_off": 0.002,
+   "tails": {
+    "len": 0.055,
+    "w": 0.014,
+    "splay_deg": 18
+   },
+   "jewel": {
+    "r": 0.011,
+    "color": [
+     228,
+     234,
+     246
+    ],
+    "metal": 0.7,
+    "rough": 0.05,
+    "setting": [
+     214,
+     174,
+     90
+    ],
+    "drop": {
+     "r": 0.0075,
+     "hang": 0.01,
+     "color": [
+      238,
+      234,
+      226
+     ],
+     "rough": 0.15
+    }
+   }
+  }
+ },
+ "layer_ignore": {
+  "skirt": [
+   "boots",
+   "jacket",
+   "socks",
+   "fichu",
+   "petticoat",
+   "bowtie"
+  ],
+  "petticoat": [
+   "socks",
+   "jacket",
+   "boots",
+   "skirt"
+  ],
+  "jacket": [
+   "skirt",
+   "petticoat",
+   "bowtie"
+  ],
+  "socks": [
+   "skirt",
+   "petticoat",
+   "boots"
+  ],
+  "bowtie": [
+   "jacket"
+  ],
+  "fichu": [
+   "jacket",
+   "bowtie"
+  ],
+  "boots": [
+   "socks",
+   "skirt",
+   "petticoat"
+  ]
+ },
+ "skin_merge": {
+  "jacket": {
+   "UpLeg": "Hips"
+  }
+ },
+ "joints_file": "out/outfit_female_georgian-goose/joints.json",
+ "loose_pieces": [
+  "petticoat"
+ ],
+ "no_mask": [
+  "cuffs",
+  "fichu",
+  "lace"
+ ],
+ "shoe_buckle": {
+  "w": 0.03,
+  "h": 0.022,
+  "bar": 0.004,
+  "t": 0.62,
+  "color": [
+   240,
+   242,
+   248
+  ],
+  "metal": 0.55,
+  "rough": 0.2,
+  "strap_color": [
+   118,
+   150,
+   200
+  ]
+ },
+ "accessory_drop": {
+  "bowtie": [
+   "collar",
+   "shirtfront",
+   "wing_L",
+   "wing_R"
+  ]
+ },
+ "cuff_design": {
+  "note": "pale blue silk flounce at the elbow sleeve ends",
+  "length": 0.075,
+  "flare": 2.2,
+  "scallop": 0.0,
+  "n_sc": 16,
+  "wave": 0.007,
+  "n_wave": 14,
+  "color": [
+   100,
+   132,
+   182
+  ],
+  "na": 72,
+  "nu": 6,
+  "tuck": 0.006,
+  "thick": 0.0012
+ },
+ "lace_design": {
+  "note": "two-tier white lace ruffle under the flounce",
+  "length": 0.1,
+  "flare": 1.55,
+  "scallop": 0.003,
+  "n_sc": 24,
+  "wave": 0.005,
+  "n_wave": 24,
+  "color": [
+   244,
+   242,
+   236
+  ],
+  "na": 72,
+  "nu": 6,
+  "tuck": 0.01,
+  "thick": 0.001,
+  "tiers": 2,
+  "tier_step": -0.022,
+  "lace_tex": true
+ },
+ "fichu_design": {
+  "note": "white muslin kerchief: a soft band round the base of the neck, the two ends crossing over the bodice front into the square neckline",
+  "strips": [
+   {
+    "from": [
+     0.07,
+     1.262
+    ],
+    "to": [
+     -0.045,
+     1.16
+    ],
+    "w": 0.044,
+    "off": 0.003,
+    "taper": 0.35,
+    "roll": 0.0012,
+    "folds": 3
+   },
+   {
+    "from": [
+     -0.07,
+     1.262
+    ],
+    "to": [
+     0.045,
+     1.16
+    ],
+    "w": 0.044,
+    "off": 0.006,
+    "taper": 0.35,
+    "roll": 0.0012,
+    "folds": 3
+   }
+  ],
+  "over": [
+   "jacket"
+  ],
+  "subdiv": 1,
+  "net_dark": 0.93,
+  "motif_dark": 0.95,
+  "colors": {
+   "lace": [
+    240,
+    238,
+    232
+   ],
+   "linen": [
+    240,
+    238,
+    232
+   ]
+  },
+  "stock": {
+   "z0": 1.245,
+   "z1": 1.283,
+   "ease": 0.006,
+   "front_deg": 85,
+   "flare": 0.022,
+   "mat": 0
+  }
+ },
+ "bow_trims": {
+  "note": "stomacher echelle: six satin bows, smaller toward the point, a faceted jewel on each knot",
+  "piece": "jacket",
+  "x": 0.0,
+  "z": [
+   1.11,
+   1.055,
+   1.0,
+   0.945,
+   0.89
+  ],
+  "w": 0.075,
+  "h": 0.038,
+  "scale_step": -0.08,
+  "puff": 0.009,
+  "color": [
+   150,
+   178,
+   224
+  ],
+  "rough": 0.28,
+  "tail_len": 0.02,
+  "tail_deg": 24,
+  "jewel": {
+   "r": 0.0055,
+   "color": [
+    230,
+    236,
+    248
+   ],
+   "setting": [
+    214,
+    174,
+    90
+   ]
+  }
+ }
+}

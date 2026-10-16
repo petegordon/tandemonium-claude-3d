@@ -1,0 +1,24 @@
+{
+ "seed": 42,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-15: new 18th-century male + female outfits from his references (refs/*/pete_refs: Poldark's black tricorne; museum grid of 1740s-1770s English gentlemen's suits -- blue frock coat with gold braid and deep cuffs, pale blue-green suit with gold embroidery -- and robes a l'anglaise).",
+  "outfit": "an 18th-century English gentleman's suit of the 1770s -- a black felt tricorne hat (three-cornered, brim turned up on three sides) with a thin black braid edge; a long deep navy-blue wool frock coat reaching the knees, worn open, with a narrow standing collar, a row of round gilt buttons down each front edge, gold braid along the front edges, large turned-back gold-braided cuffs at the forearms, and full coat skirts at the back that hang loose behind the legs; an ivory silk waistcoat to the hips embroidered with small gold flowers, buttoned with small gilt buttons; a white linen cravat tied at the throat with a short lace jabot falling over the waistcoat; white lace ruffles at the wrists; navy-blue knee breeches fastened below the knee with a small gilt buckle; white silk stockings; black leather shoes with a low heel and a large square silver buckle",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. Elegant but not a costume-party exaggeration: no wig, no sword, no cane. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the tricorne's back point, the coat's back with a centre vent and the full coat skirts hanging straight to the knees, the backs of the stockings and shoes.",
+   "left": "Side profile: the tricorne in profile, the open coat's front edge and the coat skirts hanging close behind the legs (no bulk). Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the tricorne in profile, the open coat's front edge and the coat skirts hanging close behind the legs (no bulk). Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Dress the goose in picture 1 in this outfit: an 18th-century English gentleman's suit of the 1770s -- a black felt tricorne hat (three-cornered, brim turned up on three sides) with a thin black braid edge; a long deep navy-blue wool frock coat reaching the knees, worn open, with a narrow standing collar, a row of round gilt buttons down each front edge, gold braid along the front edges, large turned-back gold-braided cuffs at the forearms, and full coat skirts at the back that hang loose behind the legs; an ivory silk waistcoat to the hips embroidered with small gold flowers, buttoned with small gilt buttons; a white linen cravat tied at the throat with a short lace jabot falling over the waistcoat; white lace ruffles at the wrists; navy-blue knee breeches fastened below the knee with a small gilt buckle; white silk stockings; black leather shoes with a low heel and a large square silver buckle. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. Elegant but not a costume-party exaggeration: no wig, no sword, no cane. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Keep the goose's body, head, beak, eyes, pose, proportions, the camera (front view), the lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. Keep the arms and legs exactly where they are in picture 1.",
+   "seconds": 58,
+   "peak_gb": 11.3
+  }
+ }
+}
