@@ -2,7 +2,7 @@
 trousers, ...) and keep everything else -- same model and settings as t2i_outfit.py, picture 1 = the view itself.
 
   python scripts/t2i_cleanup.py --outfit outfit_grandpa_cardigan --src turn2s21 --tag turn2s21c --views q34,left,right
-      [--fix "<what to remove>"] [--seed 7]
+      [--fix "<what to remove>"] [--seed 7] [--ref <picture 2 to match, e.g. an edited front>]
 
 Copies the untouched views of --src, writes the edited ones, rebuilds sheet.png in refs/<outfit>/t2i/<tag>/.
 """
@@ -30,6 +30,7 @@ ap.add_argument("--views", default="q34,left,right")
 ap.add_argument("--fix", default=FIX)
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--steps", type=int, default=4)
+ap.add_argument("--ref", default="", help="picture 2: a reference image (e.g. the edited front) to match")
 a = ap.parse_args()
 src = ROOT / "refs" / a.outfit / "t2i" / a.src
 dest = ROOT / "refs" / a.outfit / "t2i" / a.tag
@@ -42,6 +43,8 @@ preflight(7.0)
 log = {"src": a.src, "fix": a.fix, "seed": a.seed, "views": {}}
 for v in a.views.split(","):
     names = [upload(dest / f"{v}.png", f"t2i_{a.outfit}_{a.tag}_{v}_in.png")]
+    if a.ref:
+        names.append(upload(ROOT / a.ref, f"t2i_{a.outfit}_{a.tag}_ref.png"))
     prompt = (f"{a.fix} Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background "
               f"exactly as in picture 1.")
     t0 = time.time()

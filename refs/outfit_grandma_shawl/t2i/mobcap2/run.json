@@ -1,0 +1,19 @@
+{
+ "src": "mobcap_src",
+ "fix": "Replace only the goose's small white lace cap with a large soft white cotton mob cap: a puffy round gathered crown with a deep frilled edge all round, and a plum-purple satin ribbon band around it tied in a bow at the front above the beak. Keep the round gold spectacles. The goose stays turned exactly as in picture 1.",
+ "seed": 7,
+ "views": {
+  "q34": {
+   "prompt": "Replace only the goose's small white lace cap with a large soft white cotton mob cap: a puffy round gathered crown with a deep frilled edge all round, and a plum-purple satin ribbon band around it tied in a bow at the front above the beak. Keep the round gold spectacles. The goose stays turned exactly as in picture 1. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 64
+  },
+  "left": {
+   "prompt": "Replace only the goose's small white lace cap with a large soft white cotton mob cap: a puffy round gathered crown with a deep frilled edge all round, and a plum-purple satin ribbon band around it tied in a bow at the front above the beak. Keep the round gold spectacles. The goose stays turned exactly as in picture 1. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 62
+  },
+  "right": {
+   "prompt": "Replace only the goose's small white lace cap with a large soft white cotton mob cap: a puffy round gathered crown with a deep frilled edge all round, and a plum-purple satin ribbon band around it tied in a bow at the front above the beak. Keep the round gold spectacles. The goose stays turned exactly as in picture 1. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 64
+  }
+ }
+}
