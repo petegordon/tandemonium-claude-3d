@@ -129,8 +129,22 @@ for o in [o for o in bpy.data.objects if o.type == "MESH"]:
 bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.select_all(action="SELECT")
 bpy.ops.mesh.quads_convert_to_tris(quad_method="BEAUTY", ngon_method="BEAUTY")
+# the beak split keeps upper and lower lip vertices on the same spot on purpose: welding them glues the mouth shut
+# (no honk), so the weld below skips every vertex weighted to Jaw / Tongue
+bpy.ops.object.mode_set(mode="OBJECT")
+for o in [o for o in bpy.data.objects if o.type == "MESH"]:
+    mouth = {o.vertex_groups[n].index for n in ("Jaw", "Tongue") if n in o.vertex_groups}
+    me_ = o.data
+    for v in me_.vertices:
+        v.select = not any(g.group in mouth and g.weight > 0 for g in v.groups)
+    for e in me_.edges:                                 # edges / faces too, or edit mode re-selects the mouth
+        e.select = all(me_.vertices[i].select for i in e.vertices)
+    for p in me_.polygons:
+        p.select = all(me_.vertices[i].select for i in p.vertices)
+bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.remove_doubles(threshold=0.0003)           # the garment builders leave split vertices: welded, the
-bpy.ops.mesh.separate(type="MATERIAL")                  # decimator can collapse across them and the GLB is small
+bpy.ops.mesh.select_all(action="SELECT")                # decimator can collapse across them and the GLB is small
+bpy.ops.mesh.separate(type="MATERIAL")
 bpy.ops.object.mode_set(mode="OBJECT")
 pieces = [o for o in bpy.data.objects if o.type == "MESH"]
 nomat = [o for o in pieces if not o.data.materials or o.data.materials[0] is None]

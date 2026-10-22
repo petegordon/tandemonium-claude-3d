@@ -682,11 +682,16 @@ if CLIPS:
     for o in goose_objs:
         if o.type != "MESH" or not o.vertex_groups:
             continue
+        # the beak split (fixes/beak_split.py) puts upper and lower lip vertices on the same spot on purpose:
+        # averaging them glued the lips together (half the upper bill followed the Jaw, the honk could not open)
+        mouth = {o.vertex_groups[n].index for n in ("Jaw", "Tongue") if n in o.vertex_groups}
         groups = {}
         for v in o.data.vertices:
             groups.setdefault(tuple(round(c, 5) for c in v.co), []).append(v)
         for vs in groups.values():
             if len(vs) < 2:
+                continue
+            if any(g.group in mouth and g.weight > 0 for v in vs for g in v.groups):
                 continue
             acc = {}
             for v in vs:
