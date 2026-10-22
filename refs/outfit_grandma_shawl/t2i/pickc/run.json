@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Remove the small dark tail tip sticking out behind the goose's hip next to its hand: the goose has no tail. Where it was, show the purple skirt or the plain light-grey background.",
+ "seed": 7,
+ "views": {
+  "q34": {
+   "prompt": "Remove the small dark tail tip sticking out behind the goose's hip next to its hand: the goose has no tail. Where it was, show the purple skirt or the plain light-grey background. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 58
+  }
+ }
+}

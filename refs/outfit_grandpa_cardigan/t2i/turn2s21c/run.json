@@ -1,0 +1,19 @@
+{
+ "src": "turn2s21",
+ "fix": "Remove the tail feathers sticking out behind the goose's hips and legs: the goose has no tail. Where the tail was, show what is behind it (the trousers, the cardigan hem, or the plain light-grey background).",
+ "seed": 7,
+ "views": {
+  "q34": {
+   "prompt": "Remove the tail feathers sticking out behind the goose's hips and legs: the goose has no tail. Where the tail was, show what is behind it (the trousers, the cardigan hem, or the plain light-grey background). Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 70
+  },
+  "left": {
+   "prompt": "Remove the tail feathers sticking out behind the goose's hips and legs: the goose has no tail. Where the tail was, show what is behind it (the trousers, the cardigan hem, or the plain light-grey background). Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 68
+  },
+  "right": {
+   "prompt": "Remove the tail feathers sticking out behind the goose's hips and legs: the goose has no tail. Where the tail was, show what is behind it (the trousers, the cardigan hem, or the plain light-grey background). Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 68
+  }
+ }
+}
