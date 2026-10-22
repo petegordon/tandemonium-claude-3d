@@ -1,0 +1,34 @@
+{
+ "seed": 7,
+ "steps": 4,
+ "spec": {
+  "object": "a 20 oz upside-down squeeze bottle of tomato ketchup: glossy translucent red plastic bottle standing on its black flip-top cap, wider rounded shoulders at the top (the bottle's bottom, pointing up), a slightly pinched waist, a cream paper label on the front reading BRICKMAN'S / FANCY / TOMATO KETCHUP with three tomatoes on the vine",
+  "view_hint": {
+   "left": "From the side the bottle is an oval, flatter than it is wide; no label on the side, just red plastic.",
+   "rear": "The back has a smaller cream rectangular label with nutrition facts text; the rest is glossy red plastic.",
+   "right": "From the side the bottle is an oval, flatter than it is wide; no label on the side, just red plastic."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Picture 1 is a photo of a 20 oz upside-down squeeze bottle of tomato ketchup: glossy translucent red plastic bottle standing on its black flip-top cap, wider rounded shoulders at the top (the bottle's bottom, pointing up), a slightly pinched waist, a cream paper label on the front reading BRICKMAN'S / FANCY / TOMATO KETCHUP with three tomatoes on the vine. Redraw exactly this object as a straight-on front view, label facing the camera. Keep its exact shape, proportions, colours, materials, label artwork and text. Orthographic product photo, camera at the object's mid-height, level, no perspective tilt. The whole object centred and upright exactly as it stands in picture 1, nothing cropped, filling about 80% of the image height. Plain flat light-grey studio background, soft even lighting, no shadows on the background, no other objects. ",
+   "seconds": 66,
+   "peak_gb": 11.3
+  },
+  "left": {
+   "prompt": "Picture 1 is a photo of a 20 oz upside-down squeeze bottle of tomato ketchup: glossy translucent red plastic bottle standing on its black flip-top cap, wider rounded shoulders at the top (the bottle's bottom, pointing up), a slightly pinched waist, a cream paper label on the front reading BRICKMAN'S / FANCY / TOMATO KETCHUP with three tomatoes on the vine; picture 2 is the same object as a clean front view. Show exactly the same object as a exact side profile view, the object turned 90 degrees so its left side faces the camera, with the same shape, proportions, colours and materials as picture 2, as it looks from that side. Orthographic product photo, camera at the object's mid-height, level, no perspective tilt. The whole object centred and upright exactly as it stands in picture 1, nothing cropped, filling about 80% of the image height. Plain flat light-grey studio background, soft even lighting, no shadows on the background, no other objects. Match picture 2's background, lighting and scale. From the side the bottle is an oval, flatter than it is wide; no label on the side, just red plastic.",
+   "seconds": 84,
+   "peak_gb": 10.9
+  },
+  "rear": {
+   "prompt": "Picture 1 is a photo of a 20 oz upside-down squeeze bottle of tomato ketchup: glossy translucent red plastic bottle standing on its black flip-top cap, wider rounded shoulders at the top (the bottle's bottom, pointing up), a slightly pinched waist, a cream paper label on the front reading BRICKMAN'S / FANCY / TOMATO KETCHUP with three tomatoes on the vine; picture 2 is the same object as a clean front view. Show exactly the same object as a straight-on back view, the object turned 180 degrees, with the same shape, proportions, colours and materials as picture 2, as it looks from that side. Orthographic product photo, camera at the object's mid-height, level, no perspective tilt. The whole object centred and upright exactly as it stands in picture 1, nothing cropped, filling about 80% of the image height. Plain flat light-grey studio background, soft even lighting, no shadows on the background, no other objects. Match picture 2's background, lighting and scale. The back has a smaller cream rectangular label with nutrition facts text; the rest is glossy red plastic.",
+   "seconds": 82,
+   "peak_gb": 10.9
+  },
+  "right": {
+   "prompt": "Picture 1 is a photo of a 20 oz upside-down squeeze bottle of tomato ketchup: glossy translucent red plastic bottle standing on its black flip-top cap, wider rounded shoulders at the top (the bottle's bottom, pointing up), a slightly pinched waist, a cream paper label on the front reading BRICKMAN'S / FANCY / TOMATO KETCHUP with three tomatoes on the vine; picture 2 is the same object as a clean front view. Show exactly the same object as a exact side profile view, the object turned 90 degrees so its right side faces the camera, with the same shape, proportions, colours and materials as picture 2, as it looks from that side. Orthographic product photo, camera at the object's mid-height, level, no perspective tilt. The whole object centred and upright exactly as it stands in picture 1, nothing cropped, filling about 80% of the image height. Plain flat light-grey studio background, soft even lighting, no shadows on the background, no other objects. Match picture 2's background, lighting and scale. From the side the bottle is an oval, flatter than it is wide; no label on the side, just red plastic.",
+   "seconds": 82,
+   "peak_gb": 10.9
+  }
+ }
+}
