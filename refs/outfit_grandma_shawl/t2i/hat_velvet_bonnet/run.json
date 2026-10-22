@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Replace the goose's white lace cap with a small black velvet Victorian bonnet perched on the back of the head, trimmed with jet beads, a short curled black ostrich feather and black ribbon ties in a bow under the beak. Keep the round gold spectacles.",
+ "seed": 7,
+ "views": {
+  "front": {
+   "prompt": "Replace the goose's white lace cap with a small black velvet Victorian bonnet perched on the back of the head, trimmed with jet beads, a short curled black ostrich feather and black ribbon ties in a bow under the beak. Keep the round gold spectacles. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 58
+  }
+ }
+}

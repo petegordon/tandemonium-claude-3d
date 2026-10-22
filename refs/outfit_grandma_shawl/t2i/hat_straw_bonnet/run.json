@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Replace the goose's white lace cap with a pale straw poke bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small spray of silk forget-me-nots. Keep the round gold spectacles.",
+ "seed": 7,
+ "views": {
+  "front": {
+   "prompt": "Replace the goose's white lace cap with a pale straw poke bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small spray of silk forget-me-nots. Keep the round gold spectacles. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 58
+  }
+ }
+}

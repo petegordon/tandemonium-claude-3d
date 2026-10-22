@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Replace the goose's white lace cap with a small round straw hat tilted forward, piled with silk roses and violets in plum, pink and cream, with a short net veil at the front. Keep the round gold spectacles.",
+ "seed": 7,
+ "views": {
+  "front": {
+   "prompt": "Replace the goose's white lace cap with a small round straw hat tilted forward, piled with silk roses and violets in plum, pink and cream, with a short net veil at the front. Keep the round gold spectacles. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 58
+  }
+ }
+}

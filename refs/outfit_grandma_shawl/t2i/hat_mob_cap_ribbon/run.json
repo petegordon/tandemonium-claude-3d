@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Replace the goose's white lace cap with a large soft white cotton mob cap gathered by a plum-purple satin ribbon tied in a bow at the front, with a deep frilled edge all round. Keep the round gold spectacles.",
+ "seed": 7,
+ "views": {
+  "front": {
+   "prompt": "Replace the goose's white lace cap with a large soft white cotton mob cap gathered by a plum-purple satin ribbon tied in a bow at the front, with a deep frilled edge all round. Keep the round gold spectacles. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 62
+  }
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "src": "pick",
+ "fix": "Replace the goose's white lace cap with a black silk Victorian widow's cap: a small soft black cap on top of the head edged with black lace frills, with two long black lace lappets hanging down behind the head. Keep the round gold spectacles.",
+ "seed": 7,
+ "views": {
+  "front": {
+   "prompt": "Replace the goose's white lace cap with a black silk Victorian widow's cap: a small soft black cap on top of the head edged with black lace frills, with two long black lace lappets hanging down behind the head. Keep the round gold spectacles. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 60
+  }
+ }
+}
