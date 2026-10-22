@@ -1,0 +1,11 @@
+{
+ "note": "Pete 2026-10-22: grandma + grandpa geese, shorter and wider (out/shapes/grandpa|grandma.glb). Grandpa A, at home: cardigan, braces, spectacles.",
+ "outfit": "a Victorian grandfather at home -- a soft brown wool flat cap; small round gold wire spectacles perched on the beak; a chunky mustard-yellow knitted cardigan worn open, with leather-covered buttons and two patch pockets; underneath, a collarless white cotton shirt with the sleeves down and a dark green wool waistcoat with a gold pocket-watch chain across the belly; brown corduroy trousers held up by red braces, loose and comfortable; burgundy carpet slippers",
+ "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+ "view_hint": {
+  "front": "Keep the arms and legs exactly where they are in picture 1.",
+  "rear": "From the back: the cap's back, the cardigan's back with ribbed hem, the trousers and the heels of the slippers.",
+  "left": "Side profile: the cap and spectacles in profile, the round belly under the waistcoat, the cardigan hanging open. Keep the feet and legs exactly where they are in picture 1.",
+  "right": "Side profile: the cap and spectacles in profile, the round belly under the waistcoat, the cardigan hanging open. Keep the feet and legs exactly where they are in picture 1."
+ }
+}
