@@ -92,7 +92,7 @@ tris, 95 KB packed, 3.04 x 1.15 m (bow 1.62 m ahead of the origin, stern 1.42 m 
 
 **Same contract as the tin pedalo below** (node names, `Paddle` clip, crank phase, socket use), so the game only
 changed its pick-up length. What moved: the riders sit higher, `Seat_Captain` (0, 0.40, 0.36), `Seat_Stoker`
-(0, 0.40, -0.282); the paddle wheel is at (0, 0.15, -1.32), radius 0.30. No `Flag` node. Numbers in
+(0, 0.40, -0.282); the paddle wheel is at (0, 0.15, -0.895), radius 0.30. No `Flag` node. Numbers in
 `out/sandquest/watercycle_info.json`.
 
 ```
