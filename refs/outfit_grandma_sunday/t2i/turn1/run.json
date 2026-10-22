@@ -1,0 +1,39 @@
+{
+ "seed": 21,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-22: grandma + grandpa geese, shorter and wider (out/shapes/grandpa|grandma.glb). Grandma B, Sunday best: bonnet + paisley shawl.",
+  "outfit": "a Victorian grandmother in her Sunday best -- a black straw bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small cluster of silk violets; a deep bottle-green silk dress with long sleeves, a white lace collar, a row of small jet buttons down the bodice and a full skirt to the ankles; a red-and-gold paisley wool shawl draped over the shoulders and elbows; black lace fingerless mittens; black buttoned boots",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the bonnet's back and ribbon ends, the paisley shawl's point down the back, the full skirt to the ankles.",
+   "left": "Side profile: the bonnet brim in profile, the shawl over the shoulders, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the bonnet brim in profile, the shawl over the shoulders, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "q34": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandmother in her Sunday best -- a black straw bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small cluster of silk violets; a deep bottle-green silk dress with long sleeves, a white lace collar, a row of small jet buttons down the bodice and a full skirt to the ankles; a red-and-gold paisley wool shawl draped over the shoulders and elbows; black lace fingerless mittens; black buttoned boots). Picture 1 is the three-quarter front view (turned to its left): keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. ",
+   "seconds": 93,
+   "peak_gb": 11.1
+  },
+  "left": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandmother in her Sunday best -- a black straw bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small cluster of silk violets; a deep bottle-green silk dress with long sleeves, a white lace collar, a row of small jet buttons down the bodice and a full skirt to the ankles; a red-and-gold paisley wool shawl draped over the shoulders and elbows; black lace fingerless mittens; black buttoned boots). Picture 1 is the side view, facing left: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Side profile: the bonnet brim in profile, the shawl over the shoulders, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1.",
+   "seconds": 95,
+   "peak_gb": 11.1
+  },
+  "rear": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandmother in her Sunday best -- a black straw bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small cluster of silk violets; a deep bottle-green silk dress with long sleeves, a white lace collar, a row of small jet buttons down the bodice and a full skirt to the ankles; a red-and-gold paisley wool shawl draped over the shoulders and elbows; black lace fingerless mittens; black buttoned boots). Picture 1 is the back view: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. From the back: the bonnet's back and ribbon ends, the paisley shawl's point down the back, the full skirt to the ankles.",
+   "seconds": 91,
+   "peak_gb": 11.1
+  },
+  "right": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandmother in her Sunday best -- a black straw bonnet framing the head, trimmed with a wide lavender silk ribbon tied in a bow under the beak and a small cluster of silk violets; a deep bottle-green silk dress with long sleeves, a white lace collar, a row of small jet buttons down the bodice and a full skirt to the ankles; a red-and-gold paisley wool shawl draped over the shoulders and elbows; black lace fingerless mittens; black buttoned boots). Picture 1 is the side view, facing right: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Side profile: the bonnet brim in profile, the shawl over the shoulders, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1.",
+   "seconds": 82,
+   "peak_gb": 11.1
+  }
+ }
+}

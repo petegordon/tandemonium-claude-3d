@@ -1,0 +1,39 @@
+{
+ "seed": 7,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-22: grandma + grandpa geese, shorter and wider (out/shapes/grandpa|grandma.glb). Grandpa B, evening: velvet smoking jacket + tasselled cap.",
+  "outfit": "a Victorian grandfather in the evening -- a round burgundy velvet smoking cap with a gold tassel; a quilted burgundy velvet smoking jacket with black satin shawl lapels, black frog-and-toggle fastenings across the front and black satin cuffs, tied with a silk cord belt over a round belly; a white shirt with a small black silk cravat; charcoal-grey wool trousers; black velvet slippers embroidered with a small gold motif",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the cap's tassel, the quilted jacket's back and belt ends, the trousers and slippers.",
+   "left": "Side profile: the cap and tassel in profile, the round belly under the belted jacket. Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the cap and tassel in profile, the round belly under the belted jacket. Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "q34": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandfather in the evening -- a round burgundy velvet smoking cap with a gold tassel; a quilted burgundy velvet smoking jacket with black satin shawl lapels, black frog-and-toggle fastenings across the front and black satin cuffs, tied with a silk cord belt over a round belly; a white shirt with a small black silk cravat; charcoal-grey wool trousers; black velvet slippers embroidered with a small gold motif). Picture 1 is the three-quarter front view (turned to its left): keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. ",
+   "seconds": 89,
+   "peak_gb": 11.1
+  },
+  "left": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandfather in the evening -- a round burgundy velvet smoking cap with a gold tassel; a quilted burgundy velvet smoking jacket with black satin shawl lapels, black frog-and-toggle fastenings across the front and black satin cuffs, tied with a silk cord belt over a round belly; a white shirt with a small black silk cravat; charcoal-grey wool trousers; black velvet slippers embroidered with a small gold motif). Picture 1 is the side view, facing left: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Side profile: the cap and tassel in profile, the round belly under the belted jacket. Keep the feet and legs exactly where they are in picture 1.",
+   "seconds": 95,
+   "peak_gb": 11.1
+  },
+  "rear": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandfather in the evening -- a round burgundy velvet smoking cap with a gold tassel; a quilted burgundy velvet smoking jacket with black satin shawl lapels, black frog-and-toggle fastenings across the front and black satin cuffs, tied with a silk cord belt over a round belly; a white shirt with a small black silk cravat; charcoal-grey wool trousers; black velvet slippers embroidered with a small gold motif). Picture 1 is the back view: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. From the back: the cap's tassel, the quilted jacket's back and belt ends, the trousers and slippers.",
+   "seconds": 91,
+   "peak_gb": 11.1
+  },
+  "right": {
+   "prompt": "Dress the goose in picture 1 in exactly the same outfit the goose in picture 2 is wearing: the same garments, colours, patterns, buttons and accessories (a Victorian grandfather in the evening -- a round burgundy velvet smoking cap with a gold tassel; a quilted burgundy velvet smoking jacket with black satin shawl lapels, black frog-and-toggle fastenings across the front and black satin cuffs, tied with a silk cord belt over a round belly; a white shirt with a small black silk cravat; charcoal-grey wool trousers; black velvet slippers embroidered with a small gold motif). Picture 1 is the side view, facing right: keep its pose, body, head, camera angle, lighting and plain light-grey background exactly; show the outfit as it looks from that side. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Side profile: the cap and tassel in profile, the round belly under the belted jacket. Keep the feet and legs exactly where they are in picture 1.",
+   "seconds": 89,
+   "peak_gb": 11.1
+  }
+ }
+}

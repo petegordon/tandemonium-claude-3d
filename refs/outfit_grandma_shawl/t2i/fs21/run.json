@@ -1,0 +1,24 @@
+{
+ "seed": 21,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-10-22: grandma + grandpa geese, shorter and wider (out/shapes/grandpa|grandma.glb). Grandma A, at home: lace cap, shawl, apron, spectacles.",
+  "outfit": "a Victorian grandmother at home -- a frilled white lace cap on top of the head; small round gold wire spectacles perched on the beak; a long-sleeved, high-necked plum-purple wool day dress with a full skirt falling to the ankles, a small oval cameo brooch at the collar; a cream crocheted wool shawl around the shoulders, knotted loosely at the front; a crisp white cotton apron with a bib and a frilled edge tied at the waist; black lace-up ankle boots",
+  "style": "Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the lace cap, the shawl's triangle point down the back, the apron's bow at the waist, the full skirt to the ankles.",
+   "left": "Side profile: the lace cap and spectacles in profile, the shawl over the shoulders, the apron over the rounded front, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: the lace cap and spectacles in profile, the shawl over the shoulders, the apron over the rounded front, the skirt falls to the ankles with no bustle and no train. Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Dress the goose in picture 1 in this outfit: a Victorian grandmother at home -- a frilled white lace cap on top of the head; small round gold wire spectacles perched on the beak; a long-sleeved, high-necked plum-purple wool day dress with a full skirt falling to the ankles, a small oval cameo brooch at the collar; a cream crocheted wool shawl around the shoulders, knotted loosely at the front; a crisp white cotton apron with a bib and a frilled edge tied at the waist; black lace-up ankle boots. Photorealistic 3D character render, soft studio lighting, real fabric textures, clean period tailoring, every garment complete and well fitted to the goose's body. This is an elderly goose: keep the short, stout, round body of picture 1 exactly -- do not make it taller or slimmer. Warm and cosy, not a costume-party exaggeration: no cane, no props in the hands. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged. The goose has NO tail. Keep the goose's body, head, beak, eyes, pose, proportions, the camera (front view), the lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. Keep the arms and legs exactly where they are in picture 1.",
+   "seconds": 64,
+   "peak_gb": 11.5
+  }
+ }
+}
