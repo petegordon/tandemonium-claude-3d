@@ -82,7 +82,26 @@ layer (face|body|ride), root_speed, root_dist, yaw_end, footfalls}`, plus `hip_m
 joints in rest, metres, +Y up), `ride_grip` (where each hand is in the Ride pose, rig space: the pedalo's bar and
 rail are built there), `pedal_feet_frame0`.
 
-## Pedalo
+## Water-cycle (the game's `pedalo.glb` since 2026-10-22)
+
+Pete swapped the tin pedalo for a period **water-cycle** after a reference photo: a black tandem bicycle frame
+raised on diagonal struts over two long, narrow, pointed floats (varnished, cream deck strip, red waterline), the
+paddle wheel at the stern where the rear wheel would be (chain from the stoker's crank), upright brass bars for the
+captain, the stoker's bars on the captain's seat post, sprung leather saddles. `scripts/make_watercycle.py`; 2,080
+tris, 95 KB packed, 3.04 x 1.15 m (bow 1.62 m ahead of the origin, stern 1.42 m behind).
+
+**Same contract as the tin pedalo below** (node names, `Paddle` clip, crank phase, socket use), so the game only
+changed its pick-up length. What moved: the riders sit higher, `Seat_Captain` (0, 0.40, 0.36), `Seat_Stoker`
+(0, 0.40, -0.282); the paddle wheel is at (0, 0.15, -1.32), radius 0.30. No `Flag` node. Numbers in
+`out/sandquest/watercycle_info.json`.
+
+```
+blender -b --factory-startup --python scripts/make_watercycle.py -- --sheet     # out/sandquest/watercycle_raw.glb + renders/sandquest/watercycle_sheet.png
+/c/Users/pete/ComfyUI-claude/.venv/Scripts/python.exe scripts/glb_toy_pack.py out/sandquest/watercycle_raw.glb out/sandquest/watercycle.glb --keep-colors
+cp out/sandquest/watercycle.glb ../sandquest-puzzle/public/gltf/pedalo.glb
+```
+
+## Pedalo (the original tin pedal boat, kept for reference)
 
 Procedural tin toy (`scripts/make_pedalo.py`): two pontoons (cream top, red belt at the waterline, teal below),
 tin deck plate with teal trim, a narrow central spine that houses the cranks, two pedestal bench seats in line
