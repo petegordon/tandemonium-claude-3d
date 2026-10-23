@@ -54,4 +54,9 @@ for p in $PIECES; do
     TZ=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design']['socks'].get('with_shoes',{}).get('trim_below',0.075))")
     run scripts/trim_edge.py -- --char $C --piece socks --z $TZ --below --glb shells/variants/withshoes/socks.glb --out shells/variants/withshoes/socks.glb
   fi
+  for TK in pockets:pockets buttons:button_trims watch:watch; do   # opt-in modelled trims (add_trims.py), per piece
+    if grep -q "\"${TK#*:}\"" chars/$C.json && "$PY" -I -c "import json,sys;k=json.load(open('chars/$C.json',encoding='utf-8')).get('${TK#*:}',{});sys.exit(0 if '$p' in [k.get('piece')]+[i.get('piece') for i in k.get('items',[]) if '${TK%%:*}'=='buttons'] else 1)"; then
+      "$B" -b --factory-startup --python scripts/add_trims.py -- --char $C --kind ${TK%%:*} --piece $p 2>&1 | grep -E "^(BRACES|FOB)|Error|Traceback|line [0-9]+," || true
+    fi
+  done
 done

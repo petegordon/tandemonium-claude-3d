@@ -1,6 +1,6 @@
 {
  "char": "outfit_grandpa",
- "notes": "Pete 2026-10-22: Victorian grandfather at home (picked concept A: flat cap, round spectacles, mustard cardigan, green waistcoat + pocket watch, collarless shirt, corduroy trousers with red braces, carpet slippers). Shorter and wider than the young gent; refs/outfit_grandpa/t2i/pick (tail-free).",
+ "notes": "Pete 2026-10-22: Victorian grandfather at home (picked concept A: flat cap, round spectacles, mustard cardigan, green waistcoat + pocket watch, collarless shirt, corduroy trousers (no braces: Pete 2026-10-23 found the dropped ones confusing), carpet slippers). Shorter and wider than the young gent; refs/outfit_grandpa/t2i/pick (tail-free).",
  "body_shape": "sliders",
  "shape": {
   "arm_girth": 1.1,
@@ -238,7 +238,7 @@
    "hem_points": {
     "x": [
      0.0,
-     0.2
+     0.28
     ],
     "z": [
      0.68,
@@ -247,7 +247,7 @@
     "z_back": 0.68
    },
    "v_neck": {
-    "z_vbot": 0.665,
+    "z_vbot": 0.6,
     "top_w": 0.068,
     "bot_w": 0.078,
     "pow": 1.0
@@ -299,7 +299,32 @@
    "outer_smooth": 30,
    "outer_min": 0.012,
    "seat_fit": true,
-   "seat_bump": 0.035
+   "seat_bump": 0.035,
+   "sleeve_fit": {
+    "over": "shirt",
+    "cuff": 0.007,
+    "blouse": 0.016,
+    "blouse_at": 0.025,
+    "blouse_w": 0.035,
+    "arm": 0.011,
+    "upper": 0.018,
+    "armw0": 0.2,
+    "armw1": 0.6,
+    "smooth": 4
+   },
+   "back_hang": {
+    "z_top": 0.86,
+    "az": 30,
+    "x_max": 0.38,
+    "smooth": 40,
+    "relax": 8,
+    "straight": true,
+    "clear": 0.012,
+    "column": true,
+    "ramp": 0.08,
+    "keep_z": true
+   },
+   "hem_x": 0.28
   }
  },
  "patterns": {
@@ -334,117 +359,39 @@
    "detail_gamma": 0.45
   },
   "cardigan": {
-   "type": "rib",
+   "type": "chunky_knit",
    "tex": 2048,
    "color": [
-    150,
-    108,
-    34
+    152,
+    102,
+    26
    ],
-   "pitch": 0.01,
-   "rib_dark": 0.95,
+   "sw": 0.011,
+   "sh": 0.0085,
+   "r0": 0.15,
    "axes": [
     [
      0.0,
-     0.0
+     0.03
     ]
    ],
-   "leg_axes": [
-    [
-     0.0,
-     0.0
-    ]
-   ],
-   "arms": true,
-   "detail_gamma": 0.6,
+   "arm_x": 0.17,
+   "arm_d": 0.085,
+   "hem_w": 0.045,
+   "cuff_w": 0.055,
+   "band_w": 0.026,
+   "front_x": 0.2,
+   "rib_pitch": 0.0065,
+   "lo": 0.58,
+   "gamma": 0.8,
+   "band_shade": 0.97,
+   "detail_gamma": 0.35,
    "roughness": 0.95,
-   "r0": 0.15,
-   "buttons": {
-    "color": [
-     92,
-     54,
-     30
-    ],
-    "x": -0.088,
-    "r": 0.008,
-    "z": [
-     1.06,
-     0.985,
-     0.91,
-     0.835,
-     0.76
-    ]
-   },
-   "panels": [
-    {
-     "poly": [
-      [
-       0.085,
-       0.82
-      ],
-      [
-       0.15,
-       0.82
-      ],
-      [
-       0.15,
-       0.72
-      ],
-      [
-       0.085,
-       0.72
-      ]
-     ],
-     "color": [
-      146,
-      104,
-      32
-     ],
-     "front_only": true,
-     "edge": [
-      110,
-      78,
-      24
-     ],
-     "edge_w": 0.002
-    },
-    {
-     "poly": [
-      [
-       -0.085,
-       0.82
-      ],
-      [
-       -0.15,
-       0.82
-      ],
-      [
-       -0.15,
-       0.72
-      ],
-      [
-       -0.085,
-       0.72
-      ]
-     ],
-     "color": [
-      146,
-      104,
-      32
-     ],
-     "front_only": true,
-     "edge": [
-      110,
-      78,
-      24
-     ],
-     "edge_w": 0.002
-    }
-   ],
-   "waffle": {
-    "pitch": 0.01,
-    "dark": 0.87,
-    "gamma": 0.5
+   "relief": {
+    "amp": 0.0016,
+    "rib_amp": 0.0022,
+    "eps": 0.0006,
+    "keep": 0.6
    }
   }
  },
@@ -575,20 +522,20 @@
  },
  "cap_design": {
   "note": "brown wool flat cap: the cyclist's cap built on the BASE head (base-frame values), then carried to his head by shell_to_shape.py (Head map = 0.93 x)",
-  "band_z": 1.642,
-  "band_tilt": 0.01,
-  "band_off": 0.01,
-  "top_back": 0.062,
-  "top_front": 0.03,
-  "overhang": 0.025,
+  "band_z": 1.626,
+  "band_tilt": 0.014,
+  "band_off": 0.014,
+  "top_back": 0.074,
+  "top_front": 0.04,
+  "overhang": 0.07,
   "attach": 0.04,
-  "puff": 0.26,
+  "puff": 0.8,
   "puff_front_cut": 1.0,
-  "front_wide": 0.02,
-  "front_drop": 0.016,
-  "peak_len": 0.056,
+  "front_wide": 0.14,
+  "front_drop": 0.022,
+  "peak_len": 0.042,
   "peak_droop": 0.02,
-  "peak_half_angle": 68,
+  "peak_half_angle": 52,
   "button_r": 0.009,
   "thickness": 0.003,
   "clear": 0.02,
@@ -605,7 +552,7 @@
    "anchor_z": 1.181,
    "collar_h_scale": 0.68,
    "collar_off": 0.006,
-   "point_len": 0.046,
+   "point_len": 0.03,
    "knot_w": 0.04,
    "knot_h": 0.038,
    "blade_w": 0.042,
@@ -622,15 +569,16 @@
      236
     ]
    },
-   "collar_gap_deg": 0.5,
-   "fall_frac": 0.72,
+   "collar_gap_deg": 0.0,
+   "fall_frac": 1.3,
    "knot_down": -0.004,
    "fall_over": [
-    "waistcoat"
+    "waistcoat",
+    "cardigan"
    ],
    "knot_t": 0.012,
    "point_deg": 20,
-   "fall_gap_deg": 7,
+   "fall_gap_deg": 0.8,
    "no_tie": true
   }
  },
@@ -666,71 +614,99 @@
  "no_mask": [
   "spectacles"
  ],
- "fob": {
-  "piece": "waistcoat",
-  "watch": [
-   0.012,
-   0.89
-  ],
-  "watch_r": 0.018,
-  "watch_t": 0.005,
-  "chain_to": [
-   0.092,
-   0.872
-  ],
-  "chain_sag": 0.018,
-  "chain_r": 0.0011,
-  "gold": [
-   200,
-   160,
-   76
+ "pockets": {
+  "piece": "cardigan",
+  "note": "modelled knit patch pockets (add_trims.py --kind pockets), ribbed tops painted by the chunky_knit pattern",
+  "items": [
+   {
+    "z": [
+     0.735,
+     0.835
+    ],
+    "band": 0.02,
+    "rib_pitch": 0.0065,
+    "depth": 0.005,
+    "lip": 0.002,
+    "round": 0.012,
+    "seam": 0.0022,
+    "band_shade": 0.9,
+    "az": [
+     36,
+     70
+    ],
+    "r0": 0.21,
+    "yc": 0.03
+   }
   ]
  },
- "braces": {
-  "piece": "breeches",
-  "w": 0.022,
-  "t": 0.0025,
-  "off": 0.003,
-  "color": [
-   168,
-   28,
-   32
+ "watch": {
+  "piece": "waistcoat",
+  "note": "open-face gold pocket watch (dial: scripts/make_watch_face.py) on the waistcoat front, Albert chain swagging into the right pocket",
+  "watch": [
+   0.03,
+   0.872
   ],
-  "clip": [
-   186,
-   186,
-   192
+  "watch_r": 0.02,
+  "watch_t": 0.007,
+  "lift": 0.0035,
+  "chain_to": [
+   0.07,
+   0.858
   ],
-  "crotch_z": 0.6,
-  "path": [
-   [
-    18,
-    0.865
-   ],
-   [
-    40,
-    0.78
-   ],
-   [
-    75,
-    0.66
-   ],
-   [
-    95,
-    0.585
-   ],
-   [
-    118,
-    0.65
-   ],
-   [
-    150,
-    0.77
-   ],
-   [
-    165,
-    0.865
-   ]
+  "chain_sag": 0.014,
+  "link": 0.0042,
+  "chain_r": 0.00055,
+  "face": "refs/textures/watch_face.png",
+  "gold": [
+   214,
+   172,
+   82
+  ]
+ },
+ "button_trims": {
+  "items": [
+   {
+    "piece": "cardigan",
+    "name": "cardigan",
+    "x": "band",
+    "side": -1,
+    "band_w": 0.026,
+    "z": [
+     1.04,
+     0.965,
+     0.89,
+     0.815,
+     0.74
+    ],
+    "r": 0.0095,
+    "t": 0.0038,
+    "color": [
+     84,
+     48,
+     26
+    ],
+    "roughness": 0.32
+   },
+   {
+    "piece": "waistcoat",
+    "name": "waistcoat",
+    "x": 0.0,
+    "z": [
+     1.048,
+     0.995,
+     0.941,
+     0.888,
+     0.835
+    ],
+    "r": 0.0062,
+    "t": 0.0028,
+    "color": [
+     40,
+     30,
+     22
+    ],
+    "roughness": 0.3
+   }
   ]
  }
 }

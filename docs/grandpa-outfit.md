@@ -5,7 +5,8 @@ Pete asked for a grandma and grandpa goose, "shorter and wider", and picked conc
 - white shirt with a soft collar;
 - dark green waistcoat with a gold pocket watch and chain;
 - chunky mustard cardigan worn open, with brown buttons and two patch pockets;
-- brown corduroy trousers, loose and gathered at the ankle, with red braces worn dropped;
+- brown corduroy trousers, loose and gathered at the ankle (no braces or ankle ties: Pete 2026-10-23 found the
+  dropped braces confusing; ignore both in the reference);
 - burgundy velvet carpet slippers.
 
 Grandma is the partner outfit, in [grandma-outfit.md](grandma-outfit.md).
@@ -17,7 +18,7 @@ Grandma is the partner outfit, in [grandma-outfit.md](grandma-outfit.md).
 
 Sheets are in `docs/img/grandparents/grandpa_*` (reference vs ours, beauty, poses, head, honk).
 
-![](img/grandparents/grandpa_vs_reference_r9.jpg)
+![](img/grandparents/grandpa_vs_reference_final.jpg)
 
 ## Body
 `chars/outfit_grandpa.json` "shape" (sliders): arm girth 1.1, torso 1.35, hips 1.3, leg girth 1.15, leg length 0.85,
@@ -97,3 +98,25 @@ CHAR=outfit_grandpa REF=key1c REST=1 RDIR=renders/grandpa bash scripts/review_cy
 | `build_cyclist.sh` | knee straps only when the recipe has `kneestrap` (the cyclist and Georgian do); `add_trims.py` hook for `fob` / `braces` |
 | `review_cyclist.sh` | `REST=1` (render the rest pose), `RDIR=` (output folder) |
 | new | `char_joints.py`, `shell_to_shape.py`, `make_spectacles.py`, `add_trims.py` |
+
+## Round 2 (2026-10-23, r10 → r13): Pete's fix list
+Final sheets: `grandpa_vs_reference_final.jpg`, `grandpa_beauty_final.jpg`, `grandpa_head_final.jpg` (spectacles from
+the side), `grandpa_closeups_final.jpg` (pockets, buttons, watch), `grandpa_poses_final.jpg`, `grandpa_honk_threejs.jpg`.
+glTF validator 0 errors / 0 warnings; three.js r161 plays every clip; the honk opens the beak and shows the tongue.
+
+| Item | Now |
+|---|---|
+| Knit | `pattern_paint.py` type `chunky_knit`: stockinette V stitches (11 x 8.5 mm) round the body and along the sleeves, k1p1 ribbed hem / cuffs / front + back-neck bands, the same height field baked into a 2048 normal map (`relief`, whiteout-blended with the garment's own bake). Reads as a chunky knit, not a check. Colour deepened to [152, 102, 26]. |
+| Sleeves | `make_garment.py` shirt-kind `sleeve_fit`: each sleeve vertex sits on the shirt sleeve beneath (ray from the arm axis) + a designed ease: close upper arm, a blouse just above a snug ribbed cuff. Hip vertices the goose's wing-arms weight are excluded (they face the arm, not away from it). |
+| Hem | `back_hang` with `straight` + `column` + `keep_z`: below z_top each azimuth hangs as one straight column at its widest need (rays from the body axis out to the layers beneath, outward-facing hits only), at the body's own height (the normal offset lifted the hip-shelf hem into a lip). `hem_x` 0.28: the hem cut reaches Grandpa's wide hips (was hard-coded 0.2, flaps at the sides). Front opening `v_neck.z_vbot` 0.6 (no corner notch). |
+| Pockets | `add_trims.py --kind pockets`: modelled knit patch pockets laid round the body by azimuth (36°–70°, z 0.735–0.835), a soft pillow with a skirt to the cloth, their own planar UVs + a small texture resampled from the finished knit (colour and normal, re-expressed in the pocket frame), a ribbed top band and a sewn edge. |
+| Buttons | `add_trims.py --kind buttons` (recipe `button_trims`): lathed sew-through buttons (rim, dished centre, 4 holes); cardigan r 9.5 mm brown horn centred on the wearer's right front band (`"x": "band"`), waistcoat r 6.2 mm dark horn on the centre line. |
+| Watch | `add_trims.py --kind watch`: 40 mm open-face gold watch (lathed case, bezel, pendant, crown, bow), enamel dial with Roman numerals and blued hands (`scripts/make_watch_face.py` → `refs/textures/watch_face.png`), an Albert chain of 21 alternating links swagging into the right pocket, T-bar. Replaces the old `fob`. |
+| Braces / ankle ties | Removed (Pete). `add_trims.py --kind braces` still exists, unused. |
+| Cap | `cap_design`: puff 0.8, overhang 0.07, front_wide 0.14, band 8 mm lower, peak 42 mm / 52° — the wide, puffy flat cap of the reference. |
+| Collar | `collar_gap_deg` 0, `fall_gap_deg` 0.8, `fall_frac` 1.3, `fall_over` [waistcoat, cardigan], `point_len` 0.03: no dark slits (the neck showed between the fall and the cardigan's back neckline, and through the stand's front gap). |
+| Spectacles | `make_spectacles.py` opt-in `perch`: reading glasses down the bill (y −0.228), the bridge saddling the ridge, temples back along the cheeks under the eyes (ec07ccf). |
+
+Remaining flaws: the T-pose (not a game pose) shows a few shirt specks at the armpit (riding / idle are clean); the
+cap's band shows as a darker ring under the crown from the front; tiny cardigan specks through the collar fall at the
+back; the front bands keep a faint groove line from the garment's own detail bake; the trousers keep the r9 shape.

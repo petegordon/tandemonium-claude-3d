@@ -489,8 +489,187 @@ def crochet(P, N):
     return yarn * (1 - hole)[:, None] + rgb(PR.get("hole_color", [60, 16, 46]))[None] * hole[:, None]
 
 
+# ---------------------------------------------------------------- chunky knit (opt-in type "chunky_knit")
+# A hand-knit cardigan: stockinette V stitches (columns round the body, along the sleeves), k1p1 ribbed bands at the
+# hem, the cuffs and the front / neck bands (ribs across each band), ribbed tops on patch pockets (chars json
+# "pockets" items); the same height field is painted (shading) and, with "relief", baked into the normal map.
+#   {"type": "chunky_knit", "color", "sw" 0.011 stitch width, "sh" 0.0085 row height, "r0" torso arc radius,
+#    "arm_x" 0.17, "hem_w" 0.045, "cuff_w" 0.055, "band_w" 0.026, "rib_pitch" 0.0065, "lo" 0.6 (groove shade),
+#    "relief": {"amp" 0.0016, "rib_amp" 0.0022, "eps" 0.0006, "keep" 0.6 (the garment's own baked normal)}}
+def arm_coords3(P):
+    """Per point: distance to the nearer arm polyline, arc coordinate round it (radius 4 cm), distance along it."""
+    js = joints()
+    best = np.full(len(P), 9.0)
+    u = np.zeros(len(P))
+    s = np.zeros(len(P))
+    for s_ in ("Left", "Right"):
+        pts = [np.array(js[f"{s_}Arm"]["head"]), np.array(js[f"{s_}ForeArm"]["head"]),
+               np.array(js[f"{s_}Hand"]["head"]), np.array(js[f"{s_}Hand"]["tail"])]
+        acc = 0.0
+        for q0, q1 in zip(pts[:-1], pts[1:]):
+            dq = q1 - q0
+            L = np.linalg.norm(dq)
+            t_ = np.clip(((P - q0) @ dq) / (dq @ dq), 0, 1)
+            rad = P - (q0 + t_[:, None] * dq)
+            d_ = np.linalg.norm(rad, axis=1)
+            ax = dq / L
+            ref = np.array([0, -1.0, 0]) - ax * (ax @ np.array([0, -1.0, 0]))
+            ref /= np.linalg.norm(ref)
+            side = np.cross(ax, ref)
+            ang = np.arctan2(rad @ side, rad @ ref)
+            take = d_ < best
+            best = np.where(take, d_, best)
+            u = np.where(take, ang * 0.04, u)
+            s = np.where(take, acc + t_ * L, s)
+            acc += L
+    return best, u, s
+
+
+def _open_edges():
+    """Open edges of the garment as sample points + unit directions (world)."""
+    from collections import Counter
+    pts, dirs = [], []
+    for o in obs:
+        V = np.array([(o.matrix_world @ v.co)[:] for v in o.data.vertices])
+        key = lambda i: tuple(np.round(V[i], 5))  # noqa: E731
+        cnt = Counter()
+        for pg in o.data.polygons:
+            for ek in pg.edge_keys:
+                a_, b_ = sorted([key(ek[0]), key(ek[1])])
+                cnt[(a_, b_)] += 1
+        for (a_, b_), k_ in cnt.items():
+            if k_ == 1:
+                a_, b_ = np.array(a_), np.array(b_)
+                d_ = b_ - a_
+                n_ = np.linalg.norm(d_)
+                if n_ < 1e-9:
+                    continue
+                for t_ in np.linspace(0, 1, 4):
+                    pts.append(a_ * (1 - t_) + b_ * t_)
+                    dirs.append(d_ / n_)
+    pts, dirs = np.array(pts), np.array(dirs)
+    # the edge of a decimated mesh zig-zags: each sample takes the principal direction of the edge within 2 cm
+    from mathutils.kdtree import KDTree
+    kd = KDTree(len(pts))
+    for k_, p_ in enumerate(pts):
+        kd.insert(Vector(p_), k_)
+    kd.balance()
+    sm = dirs.copy()
+    for k_, p_ in enumerate(pts):
+        nb = [i_ for _, i_, _ in kd.find_range(Vector(p_), PR.get("edge_r", 0.02))]
+        if len(nb) >= 3:
+            Q = pts[nb] - pts[nb].mean(0)
+            sm[k_] = np.linalg.svd(Q, full_matrices=False)[2][0]
+    return pts, sm
+
+
+def pocket_rects():
+    pk = cfg.get("pockets")
+    return pk.get("items", []) if isinstance(pk, dict) else []
+
+
+def knit_setup(P, N):
+    """Fixed per-texel regions: which band (0 none / 1 hem / 2 cuff / 3 front), the nearest edge's direction, on-arm."""
+    from mathutils.kdtree import KDTree
+    K = PR
+    bp, bd = _open_edges()
+    hem_z = float(np.percentile(bp[:, 2], 2))
+    is_cuff = np.abs(bp[:, 0]) > K.get("cuff_x", 0.3)
+    is_hem = (~is_cuff) & (bp[:, 2] < hem_z + 0.015)
+    is_front = ~is_cuff & ~is_hem
+    reg = np.zeros(len(P), int)
+    edir = np.zeros((len(P), 3))
+    for code, sel, w in ((1, is_hem, K.get("hem_w", 0.045)), (2, is_cuff, K.get("cuff_w", 0.055)),
+                         (3, is_front, K.get("band_w", 0.026))):
+        if not sel.any():
+            continue
+        kd = KDTree(int(sel.sum()))
+        for k_, p_ in enumerate(bp[sel]):
+            kd.insert(Vector(p_), k_)
+        kd.balance()
+        dsel = bd[sel]
+        near = [kd.find(Vector(p_)) for p_ in P]
+        dist = np.array([n_[2] for n_ in near])
+        idx = np.array([n_[1] for n_ in near])
+        on = (dist < w) & (reg == 0)
+        if code == 3:              # the front bands: down the front edges and round the back neck only
+            on &= np.abs(P[:, 0]) < K.get("front_x", 0.2)
+        reg = np.where(on, code, reg)
+        edir = np.where(on[:, None], dsel[idx], edir)
+        print("KNIT band", code, int(on.sum()), "texels")
+    da, _, _ = arm_coords3(P)
+    on_arm = (da < K.get("arm_d", 0.085)) & (np.abs(P[:, 0]) > K.get("arm_x", 0.17))
+    pk = np.zeros(len(P), bool)
+    for pc in (pocket_rects() if K.get("pocket_bands") else []):    # (modelled pockets paint their own tops)
+        for sg in (1, -1):
+            x0, x1 = sorted([sg * pc["x"][0], sg * pc["x"][1]])
+            pk |= ((P[:, 0] > x0) & (P[:, 0] < x1) & (P[:, 2] > pc["z"][1] - pc.get("band", 0.018))
+                   & (P[:, 2] < pc["z"][1] + 0.006) & (P[:, 1] < 0))
+    print("KNIT hem z", round(hem_z, 3), "arm texels", int(on_arm.sum()), "pocket band texels", int(pk.sum()))
+    return {"reg": reg, "edir": edir, "arm": on_arm, "pocket": pk}
+
+
+def knit_height(P, N, S):
+    """Height in [0, 1] (1 = the top of a stitch / rib)."""
+    K = PR
+    sw, sh = K.get("sw", 0.011), K.get("sh", 0.0085)
+    u, v = around(P, N, K.get("axes", [[0.0, 0.03]]))
+    _, ua, sa = arm_coords3(P)
+    u = np.where(S["arm"], ua * K.get("arm_scale", 1.0), u)
+    v = np.where(S["arm"], -sa, v)
+    fx = (u / sw) % 1.0
+    a = np.abs(fx - 0.5) * 2                              # 0 = column centre, 1 = column edge
+    fy = ((v + (1 - a) * sh * 0.55) / sh) % 1.0           # the legs rise toward the column centre: Vs
+    leg = np.sin(np.pi * np.clip(a, 0, 1)) ** 0.8 * np.sin(np.pi * fy) ** 0.9
+    h = np.clip(leg, 0, 1) ** 0.7
+    rp = K.get("rib_pitch", 0.0065)
+    # front bands: the phase runs along the edge -- height down the front edges, round the body at the back neck
+    # (a projection P . edge-direction drifts by |P| x the direction's noise: stripes break up)
+    along = np.where(np.abs(S["edir"][:, 2]) > 0.6, P[:, 2], u)
+    along = np.where(S["reg"] == 1, u, along)             # hem: vertical ribs round the body
+    along = np.where(S["reg"] == 2, ua, along)            # cuffs: ribs along the sleeve
+    across = np.where(S["reg"] == 2, sa, v)
+    rib = (0.5 + 0.5 * np.cos(2 * np.pi * along / rp)) ** 0.8
+    rib = rib * (0.82 + 0.18 * np.abs(np.sin(np.pi * across / (sh * 0.8))))
+    h = np.where(S["reg"] > 0, rib, h)
+    pr = (0.5 + 0.5 * np.cos(2 * np.pi * P[:, 0] / rp)) ** 0.8          # pocket tops: vertical ribs
+    h = np.where(S["pocket"], pr * (0.82 + 0.18 * np.abs(np.sin(np.pi * P[:, 2] / (sh * 0.8)))), h)
+    return h
+
+
+def chunky_knit(P, N):
+    global KNIT_S
+    KNIT_S = knit_setup(P, N)
+    h = knit_height(P, N, KNIT_S)
+    lo = PR.get("lo", 0.6)
+    c = rgb(PR["color"])[None] * (lo + (1 - lo) * h ** PR.get("gamma", 0.8))[:, None]
+    u, _ = around(P, N, PR.get("axes", [[0.0, 0.03]]))
+    tint = 0.96 + 0.08 * hash01(np.floor(u / PR.get("sw", 0.011)).astype(np.int64),
+                                np.floor(P[:, 2] / PR.get("sh", 0.0085)).astype(np.int64))
+    c *= tint[:, None]
+    c = np.where((KNIT_S["reg"] > 0)[:, None], c * PR.get("band_shade", 0.97), c)
+    c *= (0.96 + 0.08 * value_noise(P, 0.03))[:, None]
+    return c
+
+
+def knit_relief_normals(P, N, T4):
+    """Tangent-space normals (n x 3, in [-1, 1]) of the knit height field: central differences along each texel's
+    UV tangent / bitangent (the frame glTF / Blender build from the UVs)."""
+    RL = PR["relief"]
+    amp = np.where(KNIT_S["reg"] > 0, RL.get("rib_amp", 0.0022), RL.get("amp", 0.0016))
+    amp = np.where(KNIT_S["pocket"], RL.get("rib_amp", 0.0022), amp)
+    T = T4[:, :3] - N * (T4[:, :3] * N).sum(1, keepdims=True)
+    T /= np.maximum(np.linalg.norm(T, axis=1, keepdims=True), 1e-12)
+    B = np.cross(N, T) * np.where(T4[:, 3:4] < 0, -1.0, 1.0)
+    e = RL.get("eps", 0.0006)
+    dt = (knit_height(P + T * e, N, KNIT_S) - knit_height(P - T * e, N, KNIT_S)) / (2 * e)
+    db = (knit_height(P + B * e, N, KNIT_S) - knit_height(P - B * e, N, KNIT_S)) / (2 * e)
+    n = np.stack([-amp * dt, -amp * db, np.ones(len(P))], 1)
+    return n / np.linalg.norm(n, axis=1, keepdims=True)
+
 PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove, "sprig": sprig,
-            "crochet": crochet}
+            "crochet": crochet, "chunky_knit": chunky_knit}
+KNIT_S = None
 
 
 def bands(P, c, boundary):
@@ -528,6 +707,13 @@ def bands(P, c, boundary):
             rr = 0.7 + 0.3 * value_noise(P, 0.002)
         col = rgb(bd["color"])[None] * (0.78 + 0.22 * rr)[:, None]
         c = np.where(inb[:, None], col, c)
+        if HOLE is not None:               # (open-work: the band is solid; "scallop": [depth, pitch] cuts its outer edge)
+            HOLE[inb] = 0.0
+            if bd.get("scallop"):
+                dep_, pit_ = bd["scallop"]
+                sc_ = dep_ * (0.5 + 0.5 * np.cos(2 * np.pi * along / pit_)) ** 0.7
+                cut_ = (dist < off + sc_) & (dist < off + bd["width"])
+                HOLE[cut_] = 1.0
         print("BAND", bd.get("name", ""), int(inb.sum()), "texels")
     return c
 
@@ -573,6 +759,7 @@ PAINT_MATS = PR.get("materials")       # only texels of faces with these materia
 
 pos = np.zeros((TEX, TEX, 3), np.float32)
 nrm = np.zeros((TEX, TEX, 3), np.float32)
+tng = np.zeros((TEX, TEX, 4), np.float32)          # UV tangent (xyz) + bitangent sign, per texel (normal-map relief)
 mask = np.zeros((TEX, TEX), bool)
 boundary = []
 for o in obs:
@@ -622,10 +809,19 @@ for o in obs:
         nn = L @ Nv[vi]
         nrm[yy, xx] = nn / np.maximum(np.linalg.norm(nn, axis=1, keepdims=True), 1e-9)
         mask[yy, xx] = True
+        e1, e2 = V[vi[1]] - V[vi[0]], V[vi[2]] - V[vi[0]]
+        (du1, dv1), (du2, dv2) = (uv[1] - uv[0]) / TEX, (uv[2] - uv[0]) / TEX
+        rr_ = du1 * dv2 - du2 * dv1
+        if abs(rr_) > 1e-14:
+            T_ = (e1 * dv2 - e2 * dv1) / rr_
+            B_ = (e2 * du1 - e1 * du2) / rr_
+            tng[yy, xx, :3] = T_
+            tng[yy, xx, 3] = 1.0 if np.dot(np.cross(np.cross(e1, e2), T_), B_) >= 0 else -1.0
 boundary = np.array(boundary) if boundary else np.zeros((0, 3))
 print("TEXELS", int(mask.sum()), "boundary pts", len(boundary))
 
 P, N = pos[mask].astype(float), nrm[mask].astype(float)
+HOLE = None                                # (crochet with "alpha_holes": per-texel hole cover, 1 = open)
 col = PATTERNS[PR["type"]](P, N)
 col = bands(P, col, boundary)
 
@@ -707,13 +903,6 @@ dmean = float(np.median(dl[dl > 0.05])) if (dl > 0.05).any() else 1.0
 shade = np.clip(dl / dmean, 0.55, 1.25) ** PR.get("detail_gamma", 1.0)
 shade = np.where(dl < 0.25 * dmean, 1.0, shade)        # (texels the detail bake missed are black: no shading, not a dark spot)
 col = np.clip(col * shade[:, None], 0, 1)
-        if HOLE is not None:               # (open-work: the band is solid; "scallop": [depth, pitch] cuts its outer edge)
-            HOLE[inb] = 0.0
-            if bd.get("scallop"):
-                dep_, pit_ = bd["scallop"]
-                sc_ = dep_ * (0.5 + 0.5 * np.cos(2 * np.pi * along / pit_)) ** 0.7
-                cut_ = (dist < off + sc_) & (dist < off + bd["width"])
-                HOLE[cut_] = 1.0
 img = np.zeros((TEX, TEX, 3), np.float32)
 img[mask] = col
 # pad the islands (push-pull: empty texels take their filled neighbours' mean, 12 rounds)
@@ -762,13 +951,6 @@ for o in obs:
         bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
         if bs is not None and "roughness" in PR:
             bs.inputs["Roughness"].default_value = PR["roughness"]
-bpy.ops.object.select_all(action="DESELECT")
-for o in bpy.context.scene.objects:
-    o.select_set(True)
-bpy.ops.export_scene.gltf(filepath=str(GLB), use_selection=True, export_format="GLB")
-STAMP.write_text(str(GLB.stat().st_mtime_ns))
-print("PATTERN", PIECE, PR["type"], "->", GLB)
-HOLE = None                                # (crochet with "alpha_holes": per-texel hole cover, 1 = open)
         if bs is not None and HOLE is not None:     # alpha clip (glTF alphaMode MASK: image alpha -> Round -> Alpha)
             tx_ = next(n for n in m.node_tree.nodes if n.type == "TEX_IMAGE" and n.image == out)
             rd_ = m.node_tree.nodes.new("ShaderNodeMath")
@@ -777,3 +959,64 @@ HOLE = None                                # (crochet with "alpha_holes": per-te
             m.node_tree.links.new(rd_.outputs[0], bs.inputs["Alpha"])
             m.use_backface_culling = False
             print("ALPHA clip", m.name)
+if PR.get("relief") and KNIT_S is not None:
+    # knit relief in the normal map: the stitch / rib height field's tangent-space normals, whiteout-blended with the
+    # garment's own baked normal map (its folds, seams; weight "keep"), at the pattern's resolution
+    NK = knit_relief_normals(P, N, tng[mask].astype(float))
+    nn_node = None
+    for o in obs:
+        for m in o.data.materials:
+            if m and m.node_tree:
+                for n in m.node_tree.nodes:
+                    if n.type == "NORMAL_MAP" and n.inputs["Color"].is_linked:
+                        nn_node = (m, n.inputs["Color"].links[0].from_node)
+    keep = PR["relief"].get("keep", 0.6)
+    if nn_node is not None and nn_node[1].type == "TEX_IMAGE" and nn_node[1].image is not None:
+        oi = nn_node[1].image
+        OW, OH = oi.size
+        on_ = np.array(oi.pixels[:], np.float32).reshape(OH, OW, -1)[..., :3] * 2 - 1
+        oy = np.clip((ys + 0.5) * OH / TEX, 0, OH - 1).astype(int)
+        ox = np.clip((xs + 0.5) * OW / TEX, 0, OW - 1).astype(int)
+        n1 = on_[oy, ox].astype(float)
+        n1[:, :2] *= keep
+        n1 /= np.maximum(np.linalg.norm(n1, axis=1, keepdims=True), 1e-9)
+        NK = np.stack([n1[:, 0] + NK[:, 0], n1[:, 1] + NK[:, 1], n1[:, 2] * NK[:, 2]], 1)
+        NK /= np.linalg.norm(NK, axis=1, keepdims=True)
+    nimg = np.zeros((TEX, TEX, 3), np.float32)
+    nimg[..., 2] = 1.0
+    nimg[mask] = NK
+    fn = mask.copy()
+    for _ in range(12):
+        acc = np.zeros_like(nimg)
+        cntm = np.zeros((TEX, TEX), np.float32)
+        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            acc += np.roll(np.roll(nimg * fn[..., None], sy, 0), sx, 1)
+            cntm += np.roll(np.roll(fn.astype(np.float32), sy, 0), sx, 1)
+        new = (~fn) & (cntm > 0)
+        nimg[new] = acc[new] / cntm[new][:, None]
+        fn |= new
+    nimg /= np.maximum(np.linalg.norm(nimg, axis=2, keepdims=True), 1e-9)
+    ni = bpy.data.images.new(f"{CHAR}_{PIECE}_knit_normal", TEX, TEX, alpha=False)
+    ni.colorspace_settings.name = "Non-Color"
+    ni.pixels = np.concatenate([nimg * 0.5 + 0.5, np.ones((TEX, TEX, 1), np.float32)], -1).ravel().tolist()
+    ni.pack()
+    if nn_node is not None:
+        nn_node[1].image = ni
+    else:                                  # (no baked normal map: add one)
+        for o in obs:
+            for m in o.data.materials:
+                bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None) if m and m.node_tree else None
+                if bs is None:
+                    continue
+                tx_ = m.node_tree.nodes.new("ShaderNodeTexImage")
+                tx_.image = ni
+                nm_ = m.node_tree.nodes.new("ShaderNodeNormalMap")
+                m.node_tree.links.new(tx_.outputs["Color"], nm_.inputs["Color"])
+                m.node_tree.links.new(nm_.outputs["Normal"], bs.inputs["Normal"])
+    print("RELIEF knit normal map", TEX, "keep", keep, "slope p50/p95", np.round(np.percentile(np.hypot(NK[:, 0], NK[:, 1]) / np.maximum(NK[:, 2], 1e-6), [50, 95]), 2).tolist())
+bpy.ops.object.select_all(action="DESELECT")
+for o in bpy.context.scene.objects:
+    o.select_set(True)
+bpy.ops.export_scene.gltf(filepath=str(GLB), use_selection=True, export_format="GLB")
+STAMP.write_text(str(GLB.stat().st_mtime_ns))
+print("PATTERN", PIECE, PR["type"], "->", GLB)

@@ -222,7 +222,8 @@ if KIND in ("shirt", "coat", "glove"):
             return b_ + (VN_["top_w"] - b_) * np.clip((z - VN_["z_vbot"]) / (Z_NECK - VN_["z_vbot"]), 0, 1) ** VN_.get("pow", 0.9)
 
         def resid(c):
-            out_ = {"hem": 9.0} if abs(c[0]) > 0.2 else {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
+            # (the hem is cut within |x| < "hem_x", default 0.2 -- beyond it the arms; a wide body needs more)
+            out_ = {"hem": 9.0} if abs(c[0]) > R.get("hem_x", 0.2) else {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
             if VN_:
                 front_ = c[1] < ycf(c[2])
                 out_["v"] = float(abs(c[0]) - v_w(c[2])) if (front_ and c[2] > VN_["z_vbot"] - 0.005) else 9.0
@@ -1075,9 +1076,11 @@ if KIND == "shirt" and R.get("over"):
     for nm in R["over"]:
         uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
         ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
-        for i, (p_, n_) in enumerate(zip(P, N)):
+        sgn_ = R.get("under_signed", False)   # (only outward-facing hits: a torso ray that reaches the INSIDE of a
+        for i, (p_, n_) in enumerate(zip(P, N)):   # hanging sleeve no longer pushes the hip out into a wing)
             hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.09)
-            if hit[0] is not None and abs(hit[1].dot(Vector(n_))) > R.get("under_cos", 0.5):
+            cs_ = hit[1].dot(Vector(n_)) if hit[0] is not None else 0.0
+            if hit[0] is not None and (cs_ if sgn_ else abs(cs_)) > R.get("under_cos", 0.5):
                 under[i] = max(under[i], hit[3] - 0.01)
         bpy.data.objects.remove(uo)
     need = np.minimum(under, E.get("under_max", 0.045)) + E.get("clear", 0.008)
@@ -1350,6 +1353,151 @@ if KIND == "shirt":
         tgt = cen + along[:, None] * dd_ + radial / np.maximum(rr, 1e-6)[:, None] * r_cuff
         Pm[on] = Pm[on] * (1 - w_[:, None]) + tgt * w_[:, None]
         log("cuff", s_, "radius mm", round(r_cuff * 1000, 1), "ring", int(top.sum()), "on", int(on.sum()), "dwr range", np.round([dwr[on].min(), dwr[on].max()], 3).tolist(), "x range", np.round([Pm[on][:, 0].min(), Pm[on][:, 0].max()], 3).tolist())
+SF = R.get("sleeve_fit") if KIND == "shirt" else None
+is_sleeve = armw >= 0.3                    # (sleeve_fit refines this: the goose's wing-arms also weight its sides)
+if SF:
+    # an outer sleeve laid over the sleeve beneath (a cardigan over the shirt), not over the arm + a big clearance:
+    # per vertex, the ray from the arm axis out through it finds the under sleeve (SF "over", default the shirt);
+    # radius = that + ease(distance up from the wrist): snug ribbed cuff, a blouse just above it, then close
+    # {"over": "shirt", "cuff": 0.006, "blouse": 0.018, "blouse_at": 0.03, "blouse_w": 0.035, "arm": 0.009,
+    #  "upper": 0.011, "armw0": 0.5, "armw1": 0.85, "smooth": 4}
+    uo_ = next(o for o in load(OUT / f"{SF.get('over', 'shirt')}.glb") if o.type == "MESH")
+    ub_ = BVHTree.FromObject(uo_, bpy.context.evaluated_depsgraph_get())
+    bpy.data.objects.remove(uo_)
+    w_sf = np.clip((armw - SF.get("armw0", 0.5)) / (SF.get("armw1", 0.85) - SF.get("armw0", 0.5)), 0, 1)
+    w_sf = w_sf * w_sf * (3 - 2 * w_sf)
+    tgt_ = Pm.copy()
+    nhit = 0
+    for s_, sg in SIDES:
+        chain = [bone[f"{s_}Arm"][0], bone[f"{s_}ForeArm"][0], bone[f"{s_}Hand"][0]]
+        on_ = (P[:, 0] * sg > 0.08) & (w_sf > 0)
+        for i in np.flatnonzero(on_):
+            best = None
+            for q0, q1 in zip(chain[:-1], chain[1:]):
+                dq = q1 - q0
+                t_ = float(np.clip(((P[i] - q0) @ dq) / (dq @ dq), 0, 1))
+                c_ = q0 + t_ * dq
+                dd = np.linalg.norm(P[i] - c_)
+                if best is None or dd < best[0]:
+                    best = (dd, c_)
+            c_ = best[1]
+            rd_ = (P[i] - c_) / max(best[0], 1e-9)
+            if best[0] > SF.get("max_d", 0.11) or rd_ @ N[i] < SF.get("min_cos", 0.3):
+                w_sf[i] = 0.0               # (the goose's wing-arms weight its sides: a hip facing the hanging
+                continue                    #  forearm is not sleeve)
+            d_ = Pm[i] - c_
+            d_ /= max(np.linalg.norm(d_), 1e-9)
+            h_ = ub_.ray_cast(Vector(c_), Vector(d_), 0.25)
+            r_u = h_[3] if h_[0] is not None else float(np.linalg.norm(P[i] - c_)) + 0.012
+            nhit += h_[0] is not None
+            dw = dwr[i]
+            e_ = SF.get("arm", 0.009) + (SF.get("upper", 0.011) - SF.get("arm", 0.009)) * float(np.clip((dw - 0.15) / 0.15, 0, 1))
+            e_ += SF.get("blouse", 0.018) * math.exp(-((dw - R.get("cuff", 0.045) - SF.get("blouse_at", 0.03)) / SF.get("blouse_w", 0.035)) ** 2)
+            if dw < R.get("cuff", 0.045):
+                e_ = SF.get("cuff", 0.006) + (e_ - SF.get("cuff", 0.006)) * float(np.clip(1 - (R.get("cuff", 0.045) - dw) / 0.012, 0, 1))
+            tgt_[i] = c_ + d_ * (r_u + e_)
+    w_sf = np.minimum(w_sf, smooth_field(w_sf, ed, 3))      # (no hard step where vertices were dropped)
+    is_sleeve = w_sf > 0.05
+    Pm = Pm * (1 - w_sf[:, None]) + tgt_ * w_sf[:, None]
+    zone_ = w_sf > 0
+    for _ in range(SF.get("smooth", 4)):
+        Pm = np.where(zone_[:, None], smooth_field(Pm, ed, 1, pin=~zone_ | boundary), Pm)
+    log("sleeve fit verts", int(zone_.sum()), "under hits", nhit)
+HG = R.get("back_hang") if KIND == "shirt" else None
+if HG:
+    # the back hangs straight over the seat (as the coat's skirt): below "z_top", at the back (|azimuth| > "az"),
+    # the horizontal radius about the body axis never shrinks going down; the push is smoothed over the mesh
+    yc0 = HG.get("yc", 0.03)
+    rel_ = np.stack([Pm[:, 0], Pm[:, 1] - yc0], 1)
+    rr_ = np.linalg.norm(rel_, axis=1)
+    az_ = np.degrees(np.arctan2(Pm[:, 0], -(Pm[:, 1] - yc0)))
+    hang = (Pm[:, 2] < HG["z_top"]) & (np.abs(Pm[:, 0]) < HG.get("x_max", 0.22)) & (np.abs(az_) > HG.get("az", 70)) & ~is_sleeve
+    if HG.get("keep_z"):
+        # the offset along the body normal lifts a hip-shelf hem several cm (the normals there tilt up) and turns it
+        # out into a lip: hanging cloth keeps the body's height, eased in below z_top
+        rz_ = np.clip((HG["z_top"] - P[:, 2]) / HG.get("ramp", 0.06), 0, 1)
+        rz_ = rz_ * rz_ * (3 - 2 * rz_)
+        Pm[:, 2] = np.where(hang, Pm[:, 2] * (1 - rz_) + P[:, 2] * rz_, Pm[:, 2])
+        rel_ = np.stack([Pm[:, 0], Pm[:, 1] - yc0], 1)
+        rr_ = np.linalg.norm(rel_, axis=1)
+        az_ = np.degrees(np.arctan2(Pm[:, 0], -(Pm[:, 1] - yc0)))
+    nb_ = 90
+    bins = ((az_ + 180) / 360 * nb_).astype(int) % nb_
+    run = np.zeros(nb_)
+    target = rr_.copy()
+    for i in np.argsort(-Pm[:, 2]):
+        if hang[i]:
+            run[bins[i]] = max(run[bins[i]], rr_[i])
+            target[i] = run[bins[i]]
+    if HG.get("straight"):
+        # knit hangs straight from z_top: no flare either -- radius = the z_top ring's radius at that azimuth, but
+        # never inside the shells beneath (horizontal ray from outside onto "over" shells) + "clear"
+        ring_ = (np.abs(Pm[:, 2] - HG["z_top"]) < 0.012) & (np.abs(Pm[:, 0]) < HG.get("x_max", 0.22)) & (armw < 0.05)
+        rtop = np.full(nb_, np.nan)
+        for b_ in range(nb_):
+            sel_ = ring_ & (bins == b_)
+            if sel_.any():
+                rtop[b_] = np.median(rr_[sel_])
+        ok_ = ~np.isnan(rtop)
+        xb = np.arange(nb_)
+        rtop = np.interp(xb, xb[ok_], rtop[ok_], period=nb_) if ok_.any() else rtop
+        rtop = np.convolve(np.r_[rtop[-3:], rtop, rtop[:3]], np.ones(7) / 7, "valid")
+        trees_ = []
+        for nm in R.get("over", []):
+            uo_ = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+            trees_.append(BVHTree.FromObject(uo_, bpy.context.evaluated_depsgraph_get()))
+            bpy.data.objects.remove(uo_)
+        rmin = np.zeros(len(Pm))
+        for i in np.flatnonzero(hang):
+            d_ = np.array([Pm[i, 0], Pm[i, 1] - yc0, 0.0])
+            d_ /= max(np.linalg.norm(d_), 1e-9)
+            o_ = np.array([0.0, yc0, Pm[i, 2]])         # from the body axis out: the first hit is the torso layer
+            hs_ = []                                       # (from outside, the rays hit the hanging shirt sleeves;
+            for t_ in trees_:                              #  from inside, a layer that has ended -- the shirt below its
+                h_ = t_.ray_cast(Vector(o_), Vector(d_), 0.6)   # hem -- still finds the sleeve further out: only
+                if h_[0] is not None and h_[1].dot(Vector(d_)) > 0:  # outward-facing hits within 2.5 cm of the
+                    hs_.append(h_[3])                      #  innermost one count)
+            if hs_:
+                rmin[i] = max(h for h in hs_ if h < min(hs_) + HG.get("layer_gap", 0.025))
+        need_ = rmin + HG.get("clear", 0.01)
+        if HG.get("column"):            # one straight column per azimuth: the widest need anywhere below z_top
+            rcol = rtop.copy()
+            for b_ in range(nb_):
+                sel_ = hang & (bins == b_)
+                if sel_.any():
+                    rcol[b_] = max(rcol[b_], float(need_[sel_].max()))
+            rcol = np.convolve(np.r_[rcol[-3:], rcol, rcol[:3]], np.ones(7) / 7, "valid")
+            ramp_ = np.clip((HG["z_top"] - Pm[:, 2]) / HG.get("ramp", 0.06), 0, 1)
+            ramp_ = ramp_ * ramp_ * (3 - 2 * ramp_)
+            target = np.where(hang, np.maximum(rtop[bins] + (rcol[bins] - rtop[bins]) * ramp_, need_), rr_)
+        else:
+            target = np.where(hang, np.maximum(rtop[bins], need_), rr_)
+        push_ = smooth_field(np.where(hang, target - rr_, 0.0), ed, HG.get("smooth", 25))
+        push_ = np.where(hang, np.maximum(push_, rmin + HG.get("clear", 0.01) - rr_), push_)
+        sc_ = 1 + push_ / np.maximum(rr_, 1e-6)
+    else:
+        push_ = smooth_field(np.where(hang, target - rr_, 0.0), ed, HG.get("smooth", 25))
+        sc_ = 1 + np.maximum(push_, 0) / np.maximum(rr_, 1e-6)
+    Pm[:, 0] = rel_[:, 0] * sc_
+    Pm[:, 1] = yc0 + rel_[:, 1] * sc_
+    zone_ = hang | (smooth_field(hang.astype(float), ed, 3) > 0.01)
+    for _ in range(HG.get("relax", 6)):
+        Pr = smooth_field(Pm, ed, 4, pin=~zone_ | boundary)
+        out_r = np.linalg.norm(np.stack([Pr[:, 0], Pr[:, 1] - yc0], 1), axis=1) >= np.linalg.norm(np.stack([Pm[:, 0], Pm[:, 1] - yc0], 1), axis=1) - 0.002
+        Pm = np.where((zone_ & out_r)[:, None], Pr, Pm)
+    log("back hang verts", int(hang.sum()), "max push mm", round(float(np.max(push_)) * 1000, 1))
+    if "--debug" in argv:
+        rr_f = np.linalg.norm(np.stack([Pm[:, 0], Pm[:, 1] - yc0], 1), axis=1)
+        for zz_ in np.arange(0.68, 0.8, 0.015):
+            s_ = (np.abs(Pm[:, 2] - zz_) < 0.006) & (np.abs(Pm[:, 0]) < 0.3) & ~is_sleeve
+            if s_.any():
+                i_ = np.flatnonzero(s_)[np.argmax(np.abs(Pm[s_, 0]))]
+                print("DBG sil z", round(zz_, 3), "maxx", round(float(np.abs(Pm[i_, 0])), 3), "P", np.round(P[i_], 3).tolist(),
+                      "hang", bool(hang[i_]), "bnd", bool(boundary[i_]), "armw", round(float(armw[i_]), 2))
+        bad_ = np.flatnonzero((Pm[:, 2] < 0.72) & (rr_f > 0.26) & (np.abs(Pm[:, 0]) > 0.15) & (armw < 0.9))
+        for i in bad_[:12]:
+            print("DBG hang", np.round(Pm[i], 3).tolist(), "P", np.round(P[i], 3).tolist(), "armw", round(float(armw[i]), 2),
+                  "sleeve", bool(is_sleeve[i]), "hang", bool(hang[i]), "r0", round(float(rr_[i]), 3), "bnd", bool(boundary[i]))
 mid.data.vertices.foreach_set("co", Pm.ravel())
 mid.data.update()
 mid.name = mid.data.name = f"{PIECE}_mid"
@@ -1988,6 +2136,28 @@ for name, btype, cs in (("detail", "EMIT", "sRGB"), ("normal", "NORMAL", "Non-Co
     img.pack()
     imgs[name] = (img, node)
     log("baked", name)
+if R.get("fill_misses"):                # opt-in: texels the bake missed (black) take their neighbours' colour; flat normal
+    px_ = np.array(imgs["detail"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
+    nx_ = np.array(imgs["normal"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
+    miss_ = px_[..., :3].sum(2) < 0.03
+    ok_ = ~miss_
+    log("bake misses filled", int(miss_.sum()), "texels")
+    for _ in range(40):
+        if ok_.all():
+            break
+        acc_ = np.zeros_like(px_)
+        cnt_ = np.zeros((TEX, TEX), np.float32)
+        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            acc_ += np.roll(np.roll(px_ * ok_[..., None], sy, 0), sx, 1)
+            cnt_ += np.roll(np.roll(ok_.astype(np.float32), sy, 0), sx, 1)
+        new_ = (~ok_) & (cnt_ > 0)
+        px_[new_] = acc_[new_] / cnt_[new_][:, None]
+        ok_ |= new_
+    nx_[miss_] = (0.5, 0.5, 1.0, 1.0)
+    imgs["detail"][0].pixels = px_.ravel().tolist()
+    imgs["normal"][0].pixels = nx_.ravel().tolist()
+    imgs["detail"][0].pack()
+    imgs["normal"][0].pack()
 dimg = np.array(imgs["detail"][0].pixels[:]).reshape(TEX, TEX, 4)[..., :3]
 mean_detail = float(np.mean(dimg[dimg.sum(2) > 0.05]))               # (sRGB-encoded mean)
 mix = lnt.nodes.new("ShaderNodeMix")
@@ -2103,28 +2273,6 @@ w = bpy.data.worlds.new("w")
 w.use_nodes = True
 w.node_tree.nodes["Background"].inputs[0].default_value = (0.92, 0.92, 0.92, 1)
 sc.world = w
-if R.get("fill_misses"):                # opt-in: texels the bake missed (black) take their neighbours' colour; flat normal
-    px_ = np.array(imgs["detail"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
-    nx_ = np.array(imgs["normal"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
-    miss_ = px_[..., :3].sum(2) < 0.03
-    ok_ = ~miss_
-    log("bake misses filled", int(miss_.sum()), "texels")
-    for _ in range(40):
-        if ok_.all():
-            break
-        acc_ = np.zeros_like(px_)
-        cnt_ = np.zeros((TEX, TEX), np.float32)
-        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            acc_ += np.roll(np.roll(px_ * ok_[..., None], sy, 0), sx, 1)
-            cnt_ += np.roll(np.roll(ok_.astype(np.float32), sy, 0), sx, 1)
-        new_ = (~ok_) & (cnt_ > 0)
-        px_[new_] = acc_[new_] / cnt_[new_][:, None]
-        ok_ |= new_
-    nx_[miss_] = (0.5, 0.5, 1.0, 1.0)
-    imgs["detail"][0].pixels = px_.ravel().tolist()
-    imgs["normal"][0].pixels = nx_.ravel().tolist()
-    imgs["detail"][0].pack()
-    imgs["normal"][0].pack()
 for i, (r_, e_) in enumerate([((50, 0, 30), 3.0), ((60, 0, 200), 1.5)]):
     L = bpy.data.lights.new(f"l{i}", "SUN")
     L.energy = e_
