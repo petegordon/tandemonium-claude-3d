@@ -601,8 +601,8 @@
    "y": -0.182,
    "x": 0.03,
    "clear": 0.0015,
-   "face_fwd": 0.4,
-   "tilt": 8,
+   "face_fwd": 1.0,
+   "tilt": 0,
    "sink": 0.3,
    "temple_z": 0.0,
    "temple_end": -0.03
