@@ -81,10 +81,13 @@ placed = 0
 zs = BT["z"]
 for bi, z in enumerate(zs):
     sc = 1.0 + BT.get("scale_step", 0.0) * bi
-    loc, nrm, _, _ = bvh.ray_cast(Vector((BT.get("x", 0.0), -0.6, z)), Vector((0, 1, 0)), 2.0)
+    back_ = BT.get("from") == "back"                        # "from": "back": a bow on the back (an apron's tie)
+    loc, nrm, _, _ = bvh.ray_cast(Vector((BT.get("x", 0.0), 0.6 if back_ else -0.6, z)), Vector((0, -1 if back_ else 1, 0)), 2.0)
     if loc is None:
         continue
-    n = (-nrm if nrm.y > 0 else nrm).normalized()            # outward (toward the viewer)
+    n = ((nrm if nrm.y > 0 else -nrm) if back_ else (-nrm if nrm.y > 0 else nrm)).normalized()   # outward (toward the viewer)
+    if BT.get("axis_normal"):          # face straight along the body axis (a fold / crease at the spot tilts the face normal)
+        n = Vector((0, 1 if back_ else -1, 0))
     up = Vector((0, 0, 1))
     side = up.cross(n).normalized()
     up = n.cross(side).normalized()

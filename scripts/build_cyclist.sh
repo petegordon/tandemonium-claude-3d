@@ -17,7 +17,7 @@ for p in $PIECES; do
     hat) if grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C
          elif grep -q '"hat_design"' chars/$C.json; then run scripts/make_hat.py -- --char $C
          else run scripts/make_cap.py -- --char $C; fi ;;
-    skirt|petticoat|coatskirt) run scripts/make_skirt.py -- --char $C --piece $p ;;
+    skirt|petticoat|coatskirt|apron|apronband) run scripts/make_skirt.py -- --char $C --piece $p ;;
     pancollar) run scripts/make_accessory.py -- --char $C --piece pancollar ;;
     necktie) run scripts/make_accessory.py -- --char $C --piece necktie ;;
     bowtie) run scripts/make_accessory.py -- --char $C --piece bowtie ;;

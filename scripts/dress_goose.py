@@ -210,6 +210,8 @@ armv = np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in dom
 for k, meta_ in designed.items():
     if meta_.get("covers_file"):                   # exact covered body vertices (by rest position)
         cp = np.load(SH(meta_["covers_file"]))["pos"]
+        if not len(cp):                            # covers nothing (an apron over the skirt)
+            continue
         kdc = KDTree(len(cp))
         for i_, q_ in enumerate(cp):
             kdc.insert(Vector(q_), i_)

@@ -11,6 +11,639 @@
   "height": 0.9,
   "leg_pitch": 3.0
  },
- "garment_design": {},
- "patterns": {}
+ "garment_design": {
+  "jacket": {
+   "kind": "shirt",
+   "note": "plum wool day-dress bodice: closed, high neck (the stand collar is the 'bowtie' accessory), long plain sleeves, hem under the skirt's waist",
+   "z_neck": 1.157,
+   "z_top": 0.74,
+   "z_bot": 0.74,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 6500,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "edge_relax": 60,
+   "edge_rings": 6,
+   "lo_edge_iter": 10,
+   "base_smooth": 25,
+   "cuff": 0.045,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.02,
+   "ease": {
+    "torso": 0.014,
+    "sleeve": 0.012,
+    "blouse": 0.0,
+    "cuff": 0.005,
+    "neck": 0.02,
+    "hem": 0.01,
+    "puff": 0.008,
+    "puff_at": 0.08,
+    "puff_w": 0.15,
+    "puff_armw": 0.3,
+    "waist_nip": {
+     "z": 0.84,
+     "w": 0.06,
+     "amt": 0.006
+    },
+    "nip_min": 0.01
+   },
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.92,
+   "colors": {
+    "wool": [
+     84,
+     20,
+     64
+    ]
+   },
+   "hem_zone": 0.08,
+   "cuff_clear": 0.004,
+   "armpit_relax": 20,
+   "ease_post_smooth": 30,
+   "tuck": {
+    "into": "skirt",
+    "z_top": 0.86,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.02,
+    "hide": true,
+    "push_in": 0.04,
+    "push_depth": 0.004,
+    "push_above": 0.02,
+    "x_max": 0.3
+   },
+   "hem_points": {
+    "x": [
+     0.0,
+     0.2
+    ],
+    "z": [
+     0.74,
+     0.74
+    ],
+    "z_back": 0.845
+   }
+  },
+  "skirt": {
+   "kind": "skirt",
+   "note": "full plum wool skirt to mid-calf, over the bodice hem",
+   "guide": null,
+   "z_top": 0.86,
+   "z_hem": 0.3,
+   "z_bot": 0.3,
+   "na": 96,
+   "nz": 32,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.004,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "profile": {
+    "z": [
+     0.86,
+     0.8096,
+     0.7368,
+     0.6472,
+     0.5576,
+     0.468,
+     0.3784,
+     0.3
+    ],
+    "front": [
+     0,
+     0.02,
+     0.062,
+     0.088,
+     0.106,
+     0.12,
+     0.13,
+     0.135
+    ],
+    "side": [
+     0,
+     0.022,
+     0.064,
+     0.092,
+     0.112,
+     0.126,
+     0.136,
+     0.141
+    ],
+    "back": [
+     0,
+     0.024,
+     0.068,
+     0.097,
+     0.117,
+     0.131,
+     0.141,
+     0.146
+    ]
+   },
+   "soft_folds": 0.0016,
+   "under": [],
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.04,
+   "twill": 0.0,
+   "roughness": 0.9,
+   "weight_smooth": 12,
+   "colors": {
+    "wool": [
+     84,
+     20,
+     64
+    ]
+   },
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true,
+   "over": [],
+   "close_az": 8
+  },
+  "socks": {
+   "kind": "boot",
+   "note": "black wool stockings over the knee (the skirt covers the tops)",
+   "z_top": 0.46,
+   "z_bot": -0.9,
+   "tris": 2400,
+   "cover_margin": 0.01,
+   "region_sub": 0,
+   "base_smooth": 0,
+   "ease_reach": 0.1,
+   "boot_smooth": 6,
+   "seat_fit": false,
+   "over": [],
+   "ease": {
+    "boot": 0.007,
+    "clear": 0.004
+   },
+   "sole_z": 0.0,
+   "mottle": 0.04,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "foot_top": 0.16,
+   "foot_smooth": 20,
+   "boot_voxel": 0.012,
+   "boot_relax": 30,
+   "push_above": 0.15,
+   "top_len": 0.0,
+   "top_clear": 0.0,
+   "outer_smooth": 90,
+   "outer_min": 0.003,
+   "normal_tilt": 8,
+   "with_shoes": {
+    "variant": "withshoes",
+    "trim_below": 0.2248
+   },
+   "min_r": 0.028,
+   "min_r_z": [
+    0.1348,
+    0.43
+   ]
+  },
+  "apron": {
+   "kind": "skirt",
+   "guide": null,
+   "na": 48,
+   "nz": 20,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.012,
+   "waist_blend": 0.05,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.015,
+   "twill": 0.0,
+   "roughness": 0.75,
+   "weight_smooth": 12,
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true,
+   "note": "crisp white cotton apron: front panel (panel option) from under the waistband to a frilled hem",
+   "z_top": 0.845,
+   "z_hem": 0.53,
+   "z_bot": 0.53,
+   "panel": {
+    "front": [
+     [
+      0.845,
+      56
+     ],
+     [
+      0.53,
+      48
+     ]
+    ]
+   },
+   "over": [
+    "skirt"
+   ],
+   "over_gap": 0.004,
+   "soft_folds": 0.0025,
+   "profile": {
+    "z": [
+     0.845,
+     0.53
+    ],
+    "front": [
+     0,
+     0
+    ],
+    "side": [
+     0,
+     0
+    ],
+    "back": [
+     0,
+     0
+    ]
+   },
+   "colors": {
+    "cotton": [
+     214,
+     212,
+     206
+    ]
+   },
+   "tiers": [
+    {
+     "center_deg": 0,
+     "span_deg": 49,
+     "uniform": true,
+     "daz": 60,
+     "z_top": 0.565,
+     "z_bot": 0.5,
+     "o_top": 0.002,
+     "o_bot": 0.018,
+     "scallop": 0.0,
+     "fold": 0.006,
+     "n_fold": 56,
+     "roll": 0.35
+    }
+   ]
+  },
+  "apronband": {
+   "kind": "skirt",
+   "guide": null,
+   "na": 64,
+   "nz": 6,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.016,
+   "waist_blend": 0.01,
+   "cover_margin": 0.015,
+   "final_smooth": 1,
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.015,
+   "twill": 0.0,
+   "roughness": 0.75,
+   "weight_smooth": 12,
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true,
+   "note": "apron waistband: a white band all round the waist, tied in a big bow at the back (bow_trims)",
+   "z_top": 0.872,
+   "z_hem": 0.836,
+   "z_bot": 0.836,
+   "over": [
+    "skirt"
+   ],
+   "over_gap": 0.003,
+   "soft_folds": 0.0,
+   "profile": {
+    "z": [
+     0.872,
+     0.836
+    ],
+    "front": [
+     0,
+     0
+    ],
+    "side": [
+     0,
+     0
+    ],
+    "back": [
+     0,
+     0
+    ]
+   },
+   "colors": {
+    "cotton": [
+     214,
+     212,
+     206
+    ]
+   },
+   "close_az": 8
+  }
+ },
+ "patterns": {
+  "socks": {
+   "type": "rib",
+   "tex": 1024,
+   "color": [
+    36,
+    34,
+    36
+   ],
+   "pitch": 0.003,
+   "rib_dark": 0.85,
+   "leg_axes": [
+    [
+     0.113,
+     0.05
+    ],
+    [
+     -0.113,
+     0.05
+    ]
+   ],
+   "roughness": 0.9,
+   "flat_nz": 0.97
+  },
+  "boots": {
+   "type": "brogue",
+   "tex": 1024,
+   "materials": [
+    "boots_leather"
+   ],
+   "leather": [
+    30,
+    28,
+    28
+   ],
+   "seam": [
+    12,
+    11,
+    11
+   ],
+   "centre_x": 0.116,
+   "toe_y": -0.095,
+   "heel_y": 0.098,
+   "top_line": [
+    [
+     0.0,
+     0.11
+    ],
+    [
+     0.15,
+     0.12
+    ],
+    [
+     0.35,
+     0.115
+    ],
+    [
+     0.5,
+     0.1
+    ],
+    [
+     0.7,
+     0.076
+    ],
+    [
+     0.88,
+     0.058
+    ],
+    [
+     1.0,
+     0.046
+    ]
+   ],
+   "z_off": 0.0748,
+   "wing": false,
+   "medallion_on": false,
+   "laces": true,
+   "quarter_t": 0.42,
+   "collar_z": 0.18,
+   "lace_t": [
+    0.35,
+    0.62
+   ],
+   "roughness": 0.3,
+   "tongue": [
+    26,
+    24,
+    24
+   ],
+   "lace": [
+    14,
+    12,
+    12
+   ],
+   "shaft_laces": {
+    "z0": 0.075,
+    "z1": 0.175,
+    "rows": 5
+   }
+  }
+ },
+ "build_frame_lift": -0.0748,
+ "build_frame_note": "garment heights are in the BUILD frame: the slider-shaped body before dress_goose.py moves the soles to the floor (-0.0748 m: her short legs leave the soles ABOVE z=0 in the build frame, at z=+0.0748); the reference views / dressed renders are 0.0748 m lower",
+ "joints_file": "out/outfit_grandma-goose/joints.json",
+ "chain_follow": {
+  "F": 1.0,
+  "S": 0.9,
+  "B": 0.85
+ },
+ "chain_drape": {
+  "F": [
+   1.0,
+   1.0,
+   0.5
+  ],
+  "S": [
+   1.0,
+   0.8,
+   0.45
+  ],
+  "B": [
+   1.0,
+   0.85,
+   0.55
+  ]
+ },
+ "force_hide": {
+  "skirt": [
+   "Tail"
+  ]
+ },
+ "boot_design": {
+  "note": "black leather lace-up ankle boots (build frame: soles at +0.0748)",
+  "z_off": 0.0748,
+  "centre_x": 0.116,
+  "toe_y": -0.095,
+  "heel_y": 0.098,
+  "sole_w": [
+   [
+    0.0,
+    0.034
+   ],
+   [
+    0.25,
+    0.04
+   ],
+   [
+    0.55,
+    0.046
+   ],
+   [
+    0.8,
+    0.044
+   ],
+   [
+    1.0,
+    0.035
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.11
+   ],
+   [
+    0.15,
+    0.12
+   ],
+   [
+    0.35,
+    0.115
+   ],
+   [
+    0.5,
+    0.1
+   ],
+   [
+    0.7,
+    0.076
+   ],
+   [
+    0.88,
+    0.058
+   ],
+   [
+    1.0,
+    0.046
+   ]
+  ],
+  "shaft": [
+   [
+    0.07,
+    0.044,
+    0.046,
+    0.05
+   ],
+   [
+    0.1,
+    0.037,
+    0.041,
+    0.054
+   ],
+   [
+    0.14,
+    0.034,
+    0.04,
+    0.05
+   ],
+   [
+    0.18,
+    0.036,
+    0.042,
+    0.049
+   ]
+  ],
+  "heel_h": 0.032,
+  "heel_len": 0.045,
+  "power": 2.6,
+  "shaft_power": 2.0,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.35,
+  "toe_cap": 0.03,
+  "toe_narrow": 1.6,
+  "toe_up": 0.008,
+  "sole_h": 0.011,
+  "welt": 0.002,
+  "heel_round": 0.018,
+  "sole_smooth": 12,
+  "sole_step": 0.003,
+  "leather_rgb": [
+   0.02,
+   0.018,
+   0.018
+  ]
+ },
+ "layer_ignore": {
+  "skirt": [
+   "apron",
+   "apronband",
+   "boots",
+   "jacket",
+   "socks"
+  ],
+  "jacket": [
+   "apron",
+   "apronband",
+   "skirt"
+  ],
+  "socks": [
+   "skirt"
+  ],
+  "apron": [
+   "skirt",
+   "jacket",
+   "socks",
+   "boots"
+  ],
+  "apronband": [
+   "skirt",
+   "jacket",
+   "apron"
+  ]
+ },
+ "skin_merge": {
+  "jacket": {
+   "UpLeg": "Hips"
+  }
+ },
+ "bow_trims": {
+  "note": "the apron's tie: a big white cotton bow at the back waist with long tails",
+  "piece": "apronband",
+  "from": "back",
+  "x": 0.0,
+  "z": [
+   0.854
+  ],
+  "w": 0.17,
+  "h": 0.075,
+  "scale_step": 0.0,
+  "puff": 0.022,
+  "color": [
+   214,
+   212,
+   206
+  ],
+  "rough": 0.7,
+  "tail_len": 0.11,
+  "tail_deg": 18,
+  "axis_normal": true
+ },
+ "loose_pieces": [
+  "apron"
+ ]
 }

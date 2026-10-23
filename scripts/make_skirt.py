@@ -122,6 +122,10 @@ if A_:
 wt = np.clip((Z_TOP - ZZ) / S.get("waist_blend", 0.08), 0, 1) ** 1.5
 wt = wt * wt * (3 - 2 * wt)
 r = (rb + S.get("waist_clear", 0.006)) * (1 - wt) + r * wt
+if S.get("close_az"):                    # fill narrow inward dips round the body (the hidden tail root's notch at the
+    k_ = int(S["close_az"])              # centre back): a closing (max then min over +-k azimuth columns) per row
+    d_ = np.max([np.roll(r, s_, 0) for s_ in range(-k_, k_ + 1)], 0)
+    r = np.maximum(r, np.min([np.roll(d_, s_, 0) for s_ in range(-k_, k_ + 1)], 0))
 r = smooth2(r, S.get("final_smooth", 1))
 TIERS = S.get("tiers", [])
 
@@ -185,9 +189,24 @@ def open_remap(P_, ycs):
     """Opening: respace every row round the body from the front edge a(z) to 2 pi - a(z) (clean front edges, no
     stair steps); the radius at each new azimuth is the row's own, interpolated."""
     OP_ = S.get("opening")
-    if not OP_:
+    PN_ = S.get("panel")                # panel (an apron): every row spans only -a(z)..+a(z) across the front
+    if not OP_ and not PN_:
         return P_
     na = P_.shape[0]
+    if PN_:
+        pz, pw = zip(*PN_["front"])
+        Q = P_.copy()
+        th0 = 2 * np.pi * np.arange(na) / na
+        for j in range(P_.shape[1]):
+            z_ = float(P_[0, j, 2])
+            yc_ = float(ycs[j])
+            rr = np.hypot(P_[:, j, 0], P_[:, j, 1] - yc_)
+            a_ = math.radians(float(np.interp(z_, pz, pw)))
+            thn = (-a_ + np.arange(na) * (2 * a_) / (na - 1)) % (2 * np.pi)
+            rn = np.interp(thn, np.r_[th0, 2 * np.pi], np.r_[rr, rr[0]])
+            Q[:, j, 0] = np.sin(thn) * rn
+            Q[:, j, 1] = yc_ - np.cos(thn) * rn
+        return Q
     fz, fw = zip(*OP_["front"])
     Q = P_.copy()
     th0 = 2 * np.pi * np.arange(na) / na
@@ -211,7 +230,7 @@ def grid_mesh(name, P_, wrap=True):
     VT = (OP_ or {}).get("vent")
     for i in range(na):
         i2 = (i + 1) % na
-        if OP_ and i == na - 1:
+        if (OP_ or S.get("panel")) and i == na - 1:
             continue
         for j in range(nz - 1):
             if VT and abs((i + 0.5) / na - 0.5) * 360 < VT["half_az"] and                     float(P_[i, j, 2] + P_[i, j + 1, 2]) / 2 < VT["z_top"]:
@@ -348,7 +367,7 @@ def r_at(th, z):
 
 def tier_panel(tr, na, nu, detail):
     span = math.radians(tr["span_deg"]) if "span_deg" in tr else math.radians(tr["daz"] * tr.get("span", 2.2))
-    ths = math.pi + np.linspace(-span, span, na)
+    ths = math.radians(tr.get("center_deg", 180)) + np.linspace(-span, span, na)   # (center_deg 0: across the front)
     azd = np.degrees((ths + math.pi) % (2 * math.pi) - math.pi)
     wa = np.ones(na) if tr.get("uniform") else np.exp(-((np.abs(azd) - 180) / tr["daz"]) ** 2)   # (a hem flounce: all round)
     zbe = tr["z_bot"] + tr.get("scallop", 0.02) * np.sin(np.radians(azd) * tr.get("n_sc", 3)) ** 2 \
