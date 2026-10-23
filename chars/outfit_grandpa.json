@@ -589,7 +589,7 @@
  },
  "spectacles_design": {
   "note": "small round gold wire reading glasses perched down the bill, away from the eyes (Pete 2026-10-23); base-head metres, shell_to_shape.py carries them to his head",
-  "lens_r": 0.016,
+  "lens_r": 0.017,
   "wire_r": 0.0015,
   "shift": [
    0,
@@ -598,14 +598,14 @@
   ],
   "bridge_clear": 0.003,
   "perch": {
-   "y": -0.228,
-   "x": 0.021,
+   "y": -0.182,
+   "x": 0.03,
    "clear": 0.0015,
-   "face_fwd": 0.75,
-   "tilt": 12,
-   "sink": 0.4,
-   "temple_z": -0.004,
-   "temple_end": -0.02
+   "face_fwd": 0.4,
+   "tilt": 8,
+   "sink": 0.3,
+   "temple_z": 0.0,
+   "temple_end": -0.03
   }
  },
  "rigid": {
