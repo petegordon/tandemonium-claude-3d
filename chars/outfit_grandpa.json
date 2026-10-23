@@ -10,6 +10,718 @@
   "leg_length": 0.85,
   "height": 0.93
  },
- "garment_design": {},
- "patterns": {}
+ "garment_design": {
+  "breeches": {
+   "kind": "breeches",
+   "note": "full-length brown corduroy trousers (piece name 'breeches' for dress_goose's layer rules): loose, gathered into a soft band at the ankle",
+   "z_top": 0.88,
+   "z_bot": 0.15,
+   "tris": 3800,
+   "ease_min": 0.008,
+   "ease_max": 0.06,
+   "ease_z": [
+    [
+     0.88,
+     0.01
+    ],
+    [
+     0.8,
+     0.014
+    ],
+    [
+     0.7,
+     0.018
+    ],
+    [
+     0.6,
+     0.024
+    ],
+    [
+     0.5,
+     0.028
+    ],
+    [
+     0.4,
+     0.03
+    ],
+    [
+     0.3,
+     0.032
+    ],
+    [
+     0.24,
+     0.03
+    ],
+    [
+     0.2,
+     0.026
+    ],
+    [
+     0.17,
+     0.02
+    ]
+   ],
+   "ease_smooth": 30,
+   "ease_post_smooth": 10,
+   "knee_ramp": 0.06,
+   "kneeband": 0.02,
+   "waistband": 0.035,
+   "band_ease": 0.011,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "seat_bump": 0.004,
+   "fly_len": 0.11,
+   "mottle": 0.05,
+   "twill": 0.0,
+   "roughness": 0.92,
+   "colors": {
+    "cord": [
+     255,
+     255,
+     255
+    ]
+   },
+   "outer_smooth": 160,
+   "outer_min": 0.005,
+   "base_smooth": 30,
+   "outer_keep_gap": 0.06,
+   "seat_shape": {
+    "cleft": 0.0,
+    "cleft_w": 0.018,
+    "fold": 0.0,
+    "fold_w": 0.016,
+    "fold_rise": 0.015,
+    "y0": 0.03,
+    "z1": 0.77,
+    "fold_x": 0.11,
+    "bulge": 0.02,
+    "bulge_x": 0.065,
+    "bulge_z": 0.745,
+    "bulge_sx": 0.07,
+    "bulge_sz": 0.056,
+    "fill_z0": 0.69,
+    "relax": 14
+   },
+   "normal_tilt": 10,
+   "relax_folds": false,
+   "min_r": 0.095,
+   "min_r_z": [
+    0.24,
+    0.56
+   ],
+   "min_r_smooth": 40
+  },
+  "shirt": {
+   "kind": "shirt",
+   "note": "white cotton shirt, tucked into the trousers (cyclist shirt, heights x0.93)",
+   "z_neck": 1.2,
+   "z_top": 0.82,
+   "z_bot": 0.82,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 7000,
+   "cuff": 0.05,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.008,
+    "sleeve": 0.016,
+    "blouse": 0.012,
+    "cuff": 0.005,
+    "neck": 0.003,
+    "hem": 0.003
+   },
+   "mottle": 0.04,
+   "twill": 0.05,
+   "twill_scale": 520.0,
+   "roughness": 0.75,
+   "colors": {
+    "white": [
+     240,
+     240,
+     236
+    ]
+   },
+   "tuck": {
+    "into": "breeches",
+    "z_top": 0.865,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.005,
+    "hide": true,
+    "push_in": 0.045,
+    "push_depth": 0.004,
+    "push_above": 0.02
+   },
+   "hem_zone": 0.14,
+   "cuff_clear": 0.007,
+   "armpit_relax": 0,
+   "ease_post_smooth": 20
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "note": "dark green wool waistcoat, single-breasted, five buttons, no lapels, pointed front hem; watch pocket",
+   "z_neck": 1.176,
+   "z_top": 0.84,
+   "z_bot": 0.78,
+   "tris": 3000,
+   "cover_margin": 0.03,
+   "outline": {
+    "z_notch": 0.8,
+    "z_point": 0.775,
+    "z_side": 0.83,
+    "z_back": 0.9,
+    "point_x": 0.03,
+    "side_x": 0.15,
+    "z_vbot": 1.06,
+    "v_top_w": 0.058,
+    "v_pow": 0.9,
+    "arm_r": 0.095,
+    "arm_off": [
+     -0.005,
+     0.0,
+     -0.04
+    ],
+    "lapel_w": 0.001,
+    "notch_down": 0.0,
+    "pocket": [
+     0.095,
+     0.865
+    ],
+    "pocket_tilt": 6,
+    "pocket_w": 0.032,
+    "strap_z": 0.93,
+    "strap_x": 0.09
+   },
+   "buttons": 5,
+   "ease": {
+    "torso": 0.012,
+    "lapel": 0.0,
+    "clear": 0.006
+   },
+   "over": [
+    "shirt",
+    "breeches"
+   ],
+   "mottle": 0.14,
+   "twill": 0.06,
+   "roughness": 0.88,
+   "lining_color": [
+    70,
+    62,
+    52
+   ],
+   "lining_roughness": 0.65,
+   "colors": {
+    "green": [
+     38,
+     62,
+     44
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "offset_smooth": 12
+  },
+  "cardigan": {
+   "kind": "shirt",
+   "note": "chunky mustard knit cardigan worn open (v_neck bot_w = an open front), ribbed hem / cuffs / front bands, brown buttons on the wearer's right edge, two patch pockets (painted panels)",
+   "z_neck": 1.195,
+   "z_top": 0.68,
+   "z_bot": 0.68,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 7000,
+   "hem_points": {
+    "x": [
+     0.0,
+     0.2
+    ],
+    "z": [
+     0.68,
+     0.68
+    ],
+    "z_back": 0.68
+   },
+   "v_neck": {
+    "z_vbot": 0.665,
+    "top_w": 0.068,
+    "bot_w": 0.078,
+    "pow": 1.0
+   },
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "edge_relax": 25,
+   "edge_rings": 4,
+   "lo_edge_iter": 6,
+   "base_smooth": 25,
+   "cuff": 0.055,
+   "wrist_offset": -0.03,
+   "cover_margin": 0.02,
+   "ease": {
+    "torso": 0.034,
+    "sleeve": 0.018,
+    "blouse": 0.0,
+    "cuff": 0.01,
+    "neck": 0.01,
+    "hem": 0.026
+   },
+   "knit": true,
+   "rib": {
+    "hem": 0.05,
+    "cuff": 0.055,
+    "v": 0.022,
+    "pitch": 0.006,
+    "depth": 0.0009
+   },
+   "over": [
+    "shirt",
+    "waistcoat",
+    "breeches"
+   ],
+   "mottle": 0.03,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "colors": {
+    "knit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "hem_zone": 0.1,
+   "cuff_clear": 0.006,
+   "armpit_relax": 20,
+   "ease_post_smooth": 30,
+   "outer_smooth": 30,
+   "outer_min": 0.012,
+   "seat_fit": true,
+   "seat_bump": 0.035
+  }
+ },
+ "patterns": {
+  "breeches": {
+   "type": "rib",
+   "tex": 2048,
+   "color": [
+    96,
+    56,
+    32
+   ],
+   "pitch": 0.0042,
+   "rib_dark": 0.82,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "leg_axes": [
+    [
+     0.106,
+     0.022
+    ],
+    [
+     -0.106,
+     0.022
+    ]
+   ],
+   "roughness": 0.95,
+   "r0": 0.0,
+   "detail_gamma": 0.45
+  },
+  "cardigan": {
+   "type": "rib",
+   "tex": 2048,
+   "color": [
+    150,
+    108,
+    34
+   ],
+   "pitch": 0.01,
+   "rib_dark": 0.95,
+   "axes": [
+    [
+     0.0,
+     0.0
+    ]
+   ],
+   "leg_axes": [
+    [
+     0.0,
+     0.0
+    ]
+   ],
+   "arms": true,
+   "detail_gamma": 0.6,
+   "roughness": 0.95,
+   "r0": 0.15,
+   "buttons": {
+    "color": [
+     92,
+     54,
+     30
+    ],
+    "x": -0.088,
+    "r": 0.008,
+    "z": [
+     1.06,
+     0.985,
+     0.91,
+     0.835,
+     0.76
+    ]
+   },
+   "panels": [
+    {
+     "poly": [
+      [
+       0.085,
+       0.82
+      ],
+      [
+       0.15,
+       0.82
+      ],
+      [
+       0.15,
+       0.72
+      ],
+      [
+       0.085,
+       0.72
+      ]
+     ],
+     "color": [
+      146,
+      104,
+      32
+     ],
+     "front_only": true,
+     "edge": [
+      110,
+      78,
+      24
+     ],
+     "edge_w": 0.002
+    },
+    {
+     "poly": [
+      [
+       -0.085,
+       0.82
+      ],
+      [
+       -0.15,
+       0.82
+      ],
+      [
+       -0.15,
+       0.72
+      ],
+      [
+       -0.085,
+       0.72
+      ]
+     ],
+     "color": [
+      146,
+      104,
+      32
+     ],
+     "front_only": true,
+     "edge": [
+      110,
+      78,
+      24
+     ],
+     "edge_w": 0.002
+    }
+   ],
+   "waffle": {
+    "pitch": 0.01,
+    "dark": 0.87,
+    "gamma": 0.5
+   }
+  }
+ },
+ "joints_file": "out/outfit_grandpa-goose/joints.json",
+ "build_frame_lift": -0.0829,
+ "build_frame_note": "garment heights are in the BUILD frame: the slider-shaped body (height 0.93, legs 0.85) before dress_goose.py lowers the soles to the floor (-0.0829 m); the reference views / dressed renders are 0.0829 m LOWER. Upper-body heights = base goose x 0.93.",
+ "force_hide": {
+  "breeches": [
+   "Tail"
+  ]
+ },
+ "skin_merge": {
+  "cardigan": {
+   "UpLeg": "Hips"
+  },
+  "waistcoat": {
+   "UpLeg": "Hips"
+  }
+ },
+ "layer_ignore": {
+  "breeches": [
+   "boots"
+  ],
+  "cardigan": [
+   "shirt",
+   "waistcoat",
+   "breeches",
+   "necktie"
+  ],
+  "waistcoat": [
+   "shirt",
+   "breeches",
+   "necktie"
+  ]
+ },
+ "boot_design": {
+  "note": "burgundy velvet carpet slippers: low, rounded, flat (cyclist shoe last scaled x0.93 to his foot; z_off = the build frame's raised soles)",
+  "centre_x": 0.11,
+  "toe_y": -0.14,
+  "heel_y": 0.08,
+  "sole_w": [
+   [
+    0.0,
+    0.033
+   ],
+   [
+    0.25,
+    0.039
+   ],
+   [
+    0.55,
+    0.045
+   ],
+   [
+    0.8,
+    0.043
+   ],
+   [
+    1.0,
+    0.034
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.058
+   ],
+   [
+    0.15,
+    0.062
+   ],
+   [
+    0.35,
+    0.068
+   ],
+   [
+    0.5,
+    0.072
+   ],
+   [
+    0.7,
+    0.066
+   ],
+   [
+    0.88,
+    0.052
+   ],
+   [
+    1.0,
+    0.044
+   ]
+  ],
+  "shaft": [
+   [
+    0.05,
+    0.04,
+    0.047,
+    0.031
+   ],
+   [
+    0.064,
+    0.038,
+    0.044,
+    0.031
+   ]
+  ],
+  "heel_h": 0.008,
+  "heel_len": 0.04,
+  "power": 2.3,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 10,
+  "roughness": 0.85,
+  "toe_cap": 0.0,
+  "toe_narrow": 1.0,
+  "toe_up": 0.008,
+  "sole_h": 0.009,
+  "welt": 0.0,
+  "heel_round": 0.02,
+  "leather_rgb": [
+   0.11,
+   0.012,
+   0.022
+  ],
+  "sole_smooth": 4,
+  "sole_step": 0.003,
+  "z_off": 0.0829
+ },
+ "cap_design": {
+  "note": "brown wool flat cap: the cyclist's cap built on the BASE head (base-frame values), then carried to his head by shell_to_shape.py (Head map = 0.93 x)",
+  "band_z": 1.642,
+  "band_tilt": 0.01,
+  "band_off": 0.01,
+  "top_back": 0.062,
+  "top_front": 0.03,
+  "overhang": 0.025,
+  "attach": 0.04,
+  "puff": 0.26,
+  "puff_front_cut": 1.0,
+  "front_wide": 0.02,
+  "front_drop": 0.016,
+  "peak_len": 0.056,
+  "peak_droop": 0.02,
+  "peak_half_angle": 68,
+  "button_r": 0.009,
+  "thickness": 0.003,
+  "clear": 0.02,
+  "color": [
+   80,
+   58,
+   42
+  ],
+  "skin_clear": 0.01,
+  "seat_in": 0.002
+ },
+ "accessory_design": {
+  "necktie": {
+   "anchor_z": 1.181,
+   "collar_h_scale": 0.68,
+   "collar_off": 0.006,
+   "point_len": 0.046,
+   "knot_w": 0.04,
+   "knot_h": 0.038,
+   "blade_w": 0.042,
+   "blade_bot": 0.96,
+   "colors": {
+    "tie": [
+     28,
+     70,
+     44
+    ],
+    "collar": [
+     240,
+     240,
+     236
+    ]
+   },
+   "collar_gap_deg": 0.5,
+   "fall_frac": 0.72,
+   "knot_down": -0.004,
+   "fall_over": [
+    "waistcoat"
+   ],
+   "knot_t": 0.012,
+   "point_deg": 20,
+   "fall_gap_deg": 7,
+   "no_tie": true
+  }
+ },
+ "accessory_over": {
+  "necktie": [
+   "shirt"
+  ]
+ },
+ "spectacles_design": {
+  "note": "small round gold wire spectacles (base-head metres; shell_to_shape.py carries them to his head)",
+  "lens_r": 0.0185,
+  "wire_r": 0.0014,
+  "gap": 0.006,
+  "face_fwd": 0.65,
+  "shift": [
+   -0.004,
+   -0.008,
+   -0.006
+  ]
+ },
+ "rigid": {
+  "spectacles": "Head"
+ },
+ "no_mask": [
+  "spectacles"
+ ],
+ "fob": {
+  "piece": "waistcoat",
+  "watch": [
+   0.012,
+   0.89
+  ],
+  "watch_r": 0.018,
+  "watch_t": 0.005,
+  "chain_to": [
+   0.092,
+   0.872
+  ],
+  "chain_sag": 0.018,
+  "chain_r": 0.0011,
+  "gold": [
+   200,
+   160,
+   76
+  ]
+ },
+ "braces": {
+  "piece": "breeches",
+  "w": 0.022,
+  "t": 0.0025,
+  "off": 0.003,
+  "color": [
+   168,
+   28,
+   32
+  ],
+  "clip": [
+   186,
+   186,
+   192
+  ],
+  "crotch_z": 0.6,
+  "path": [
+   [
+    18,
+    0.865
+   ],
+   [
+    40,
+    0.78
+   ],
+   [
+    75,
+    0.66
+   ],
+   [
+    95,
+    0.585
+   ],
+   [
+    118,
+    0.65
+   ],
+   [
+    150,
+    0.77
+   ],
+   [
+    165,
+    0.865
+   ]
+  ]
+ }
 }

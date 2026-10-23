@@ -7,10 +7,12 @@ B="${BLENDER:-/c/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
 PY=/c/Users/pete/ComfyUI-claude/.venv/Scripts/python.exe
 T=${1:-v1}
 C=${CHAR:-outfit_male_cyclist}
+REST=${REST:+--rest}              # (REST=1: render the rest pose, not the first imported clip)
+R=${RDIR:-}
 G=out/$C-goose/${C}_full_dressed.glb
-R=renders/cyclist; [ "$C" != outfit_male_cyclist ] && R=renders/cyclist/$C
+[ -z "$R" ] && { R=renders/cyclist; [ "$C" != outfit_male_cyclist ] && R=renders/cyclist/$C; }
 mkdir -p $R
-ob() { "$B" -b --factory-startup --python scripts/outfit_beauty.py -- --glb $G --floor 0.6 "$@" 2>&1 | grep -E "BEAUTY|Error" || true; }
+ob() { "$B" -b --factory-startup --python scripts/outfit_beauty.py -- --glb $G --floor 0.6 $REST "$@" 2>&1 | grep -E "BEAUTY|Error" || true; }
 ob --out $R/key_$T.png --views front:0,left:90,rear:180 --cams refs/key_views/cameras.json
 ob --out $R/beauty_$T.png --px 1100
 # close-ups (heights are on the dressed goose: legs x1.15 from the hips down)

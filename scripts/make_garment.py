@@ -217,8 +217,9 @@ if KIND in ("shirt", "coat", "glove"):
 
         VN_ = R.get("v_neck")       # a cardigan: V opening at the front, from z_vbot up to the neck (half width top_w)
 
-        def v_w(z):
-            return VN_["top_w"] * np.clip((z - VN_["z_vbot"]) / (Z_NECK - VN_["z_vbot"]), 0, 1) ** VN_.get("pow", 0.9)
+        def v_w(z):     # "bot_w" (default 0): half width at z_vbot -- an open-front cardigan instead of a V
+            b_ = VN_.get("bot_w", 0.0)
+            return b_ + (VN_["top_w"] - b_) * np.clip((z - VN_["z_vbot"]) / (Z_NECK - VN_["z_vbot"]), 0, 1) ** VN_.get("pow", 0.9)
 
         def resid(c):
             out_ = {"hem": 9.0} if abs(c[0]) > 0.2 else {"hem": float(c[2] - hem_z(c[0], c[1], c[2]))}
@@ -1066,6 +1067,24 @@ if KIND == "vest":
     ease = smooth_field(ease, ed, 6)
     ease = np.maximum(ease, need)
     log("vest over-layer clearance mm p50/p90", np.round(np.percentile(under, [50, 90]) * 1000, 1).tolist())
+if KIND == "shirt" and R.get("over"):
+    # an outer shirt-kind layer (an open cardigan over a waistcoat + trousers): never closer than "clear" outside
+    # any "over" shell along the body normal, as the vest does (only recipes that list "over" are affected)
+    E = R.get("ease", {})
+    under = np.zeros(len(P))
+    for nm in R["over"]:
+        uo = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+        ub = BVHTree.FromObject(uo, bpy.context.evaluated_depsgraph_get())
+        for i, (p_, n_) in enumerate(zip(P, N)):
+            hit = ub.ray_cast(Vector(p_ - n_ * 0.01), Vector(n_), 0.09)
+            if hit[0] is not None and abs(hit[1].dot(Vector(n_))) > R.get("under_cos", 0.5):
+                under[i] = max(under[i], hit[3] - 0.01)
+        bpy.data.objects.remove(uo)
+    need = np.minimum(under, E.get("under_max", 0.045)) + E.get("clear", 0.008)
+    ease = np.maximum(ease, need)
+    ease = smooth_field(ease, ed, 6)
+    ease = np.maximum(ease, need)
+    log("shirt over-layer clearance mm p50/p90", np.round(np.percentile(under, [50, 90]) * 1000, 1).tolist())
 log("ease mm p10/50/90/max", np.round(np.percentile(ease, [10, 50, 90, 100]) * 1000, 1).tolist())
 
 mid = reg
@@ -1095,7 +1114,7 @@ if R.get("outer_smooth"):
                 w_ = np.clip(min((zc_ - (zlo_ - 0.03)) / 0.03, ((zhi_ + 0.03) - zc_) / 0.03, 1.0), 0, 1)
                 tgt_ = np.maximum(r_, R["min_r"] * w_ + r_ * (1 - w_))
                 Pm[ring_, :2] = c_ + d_ / np.maximum(r_, 1e-6)[:, None] * tgt_[:, None]
-        for _ in range(4):
+        for _ in range(R.get("min_r_smooth", 4)):     # (trouser legs: more, the 1 cm ring steps showed as ripples)
             Pm = smooth_field(Pm, ed, 1, pin=boundary)
     if R.get("outer_keep_gap"):
         # ... but not across the crotch / between the legs: there the smoothing webbed the legs together and the seat

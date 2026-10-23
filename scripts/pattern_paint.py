@@ -217,6 +217,10 @@ def rib(P, N):
     pitch = PR.get("pitch", 0.005)
     r = 0.5 + 0.5 * np.cos(2 * np.pi * (P[:, 2] if PR.get("horizontal") else u) / pitch)   # (a knitted tie: across)
     c = rgb(PR["color"])[None] * (PR.get("rib_dark", 0.72) + (1 - PR.get("rib_dark", 0.72)) * r)[:, None]
+    WF = PR.get("waffle")        # chunky waffle knit: horizontal ridges x the ribs -> a grid of raised cells
+    if WF:
+        w_ = 0.5 + 0.5 * np.cos(2 * np.pi * P[:, 2] / WF.get("pitch", 0.009))
+        c *= (WF.get("dark", 0.8) + (1 - WF.get("dark", 0.8)) * (w_ * r) ** WF.get("gamma", 0.5))[:, None]
     c *= (0.95 + 0.1 * value_noise(P, 0.015))[:, None]
     return c
 
@@ -659,8 +663,11 @@ if BT:
     Rg = cfg.get("garment_design", {}).get(PIECE, {})
     zs_ = np.arange(Rg.get("button_top", 1.2), Rg.get("z_bot", 0.9) + 0.03, -Rg.get("button_step", 0.06))
     br = BT.get("r", 0.0055)
+    bx_ = BT.get("x", 0.0)          # x of the button line (an open cardigan: on one front edge; default centre)
+    if "z" in BT:                   # explicit button heights
+        zs_ = np.array(BT["z"], float)
     for zb_ in zs_:
-        dbt = np.hypot(P[:, 0], P[:, 2] - zb_)
+        dbt = np.hypot(P[:, 0] - bx_, P[:, 2] - zb_)
         on_ = (P[:, 1] < 0) & (dbt < br)
         shade_ = 0.75 + 0.35 * np.clip(1 - dbt / br, 0, 1)
         col = np.where(on_[:, None], rgb(BT["color"])[None] * shade_[:, None], col)
