@@ -18,6 +18,16 @@ character (its Head map). Recipe: chars json "spectacles_design" (metres, base h
   temple_drop 0.012     the arm's end hooks down by this much
   color [196, 156, 72]  gold (metallic); roughness 0.3
   lens_alpha 0.0        > 0: a faint glass disc in each rim (alpha blend)
+  perch {...}           opt-in: reading glasses perched DOWN THE BILL, away from the eyes (Pete 2026-10-23) instead of
+                        a rim in front of each eye. Keys (all optional):
+     y -0.2             lens centres this far along the bill (base frame; bill tip -0.288, forehead -0.15)
+     x 0.024            lens centre half-spacing
+     clear 0.0015       rims stand this far off the bill (each lens is raised until every rim point clears it)
+     face_fwd 0.75      0 = lens faces sideways, 1 = straight ahead
+     tilt 12            degrees the lens tops lean back
+     sink 0.45          start height: lens centre this many lens radii above the bill top (then raised to clear)
+     temple_z -0.004    the temples' height at the head relative to the lens centres (they pass under the eye)
+     temple_end -0.02   y where the temples end (behind the eye), hooking down by temple_drop
 Writes out/<char>-goose/shells/spectacles.glb + spectacles.json and renders/<char>_spectacles.png.
 """
 import json
@@ -81,7 +91,37 @@ def eye(side):
 
 fwd = np.array([0.0, -1.0, 0.0])
 lens = {}
-for side, sg in (("Left", 1), ("Right", -1)):
+PERCH = SD.get("perch")
+if PERCH is not None:
+    py_, px_ = PERCH.get("y", -0.2), PERCH.get("x", 0.024)
+    top = cast(np.array([0.0, py_, 2.0]), (0, 0, -1), trees=[body_bvh])     # the bill ridge here
+    ztop = top[0][2] if top else 1.54
+    for side, sg in (("Left", 1), ("Right", -1)):
+        ff = PERCH.get("face_fwd", 0.75)
+        n = np.array([sg * (1 - ff), -ff, 0.0])
+        n /= np.linalg.norm(n)
+        tl = math.radians(PERCH.get("tilt", 12))                       # lens top leans back (toward +y)
+        n = n * math.cos(tl) + np.array([0.0, 0.0, math.sin(tl)])
+        n /= np.linalg.norm(n)
+        up = np.array([0.0, 0.0, 1.0])
+        u = np.cross(up, n)
+        u /= np.linalg.norm(u)
+        v = np.cross(n, u)
+        c = np.array([sg * px_, py_, ztop + PERCH.get("sink", 0.45) * LENS_R]) + np.array(SD.get("shift", [0.0, 0.0, 0.0])) * np.array([sg, 1, 1])
+        for _ in range(200):                                          # raise until every rim point clears the bill
+            bad = False
+            for a in np.linspace(0, 2 * math.pi, 48, endpoint=False):
+                p = c + LENS_R * (math.cos(a) * u + math.sin(a) * v)
+                loc, nor, _i, dist = body_bvh.find_nearest(Vector(p))
+                if loc is not None and (np.dot(p - np.array(loc), np.array(nor)) < 0 or dist < PERCH.get("clear", 0.0015) + WIRE):
+                    bad = True
+                    break
+            if not bad:
+                break
+            c = c + np.array([0.0, 0.0, 0.0005])
+        lens[side] = (c, n, u, v, sg)
+        print("LENS perch", side, np.round(c, 4).tolist(), "normal", np.round(n, 3).tolist(), "bill top", round(ztop, 4))
+for side, sg in (() if PERCH is not None else (("Left", 1), ("Right", -1))):
     c0, d = eye(side)
     o = c0 + d * 0.2                                        # from outside back toward the eye: first head-part hit
     hit = cast(o, -d)
@@ -142,15 +182,40 @@ mid = (inner["Left"] + inner["Right"]) / 2
 # the bridge crosses the FRONT of the face (over the top of the beak base) a little above the lens centres:
 # cast from in front, at x = 0, and stand bridge_clear off that surface
 zb = mid[2] + SD.get("bridge_rise", 0.006)
-front = cast(np.array([0.0, -0.6, zb]), (0, 1, 0), trees=[body_bvh])
-fy = front[0][1] if front else mid[1]
-peak = np.array([0.0, min(fy - SD.get("bridge_clear", 0.004), mid[1]), zb])
+if PERCH is not None:                       # over the bill ridge: a small saddle arch, bridge_clear above the ridge
+    rt = cast(np.array([0.0, mid[1], 2.0]), (0, 0, -1), trees=[body_bvh])
+    peak = np.array([0.0, mid[1], max(zb, (rt[0][2] if rt else mid[2]) + SD.get("bridge_clear", 0.004) + 2 * WIRE)])
+else:
+    front = cast(np.array([0.0, -0.6, zb]), (0, 1, 0), trees=[body_bvh])
+    fy = front[0][1] if front else mid[1]
+    peak = np.array([0.0, min(fy - SD.get("bridge_clear", 0.004), mid[1]), zb])
 bez = [(1 - t) ** 2 * inner["Right"] + 2 * (1 - t) * t * (2 * peak - (inner["Left"] + inner["Right"]) / 2) + t ** 2 * inner["Left"]
        for t in np.linspace(0, 1, 16)]
 parts.append(tube("bridge", bez))
 # temples: from the rim's back-most point along the side of the head, then a small hook down
 for side, (c, n, u, v, sg) in lens.items():
     ring = ring_pts(c, u, v, LENS_R)
+    if PERCH is not None:                 # perched: from the rim's outer point back along the cheek, under the eye
+        p0 = max(ring, key=lambda p: sg * p[0] + 0.5 * p[1])
+        y_end, zt = PERCH.get("temple_end", -0.02), c[2] + PERCH.get("temple_z", -0.004)
+        pts = [p0]
+        for t in np.linspace(0.06, 1.0, 22):
+            y = p0[1] + (y_end - p0[1]) * t
+            z = p0[2] + (zt - p0[2]) * min(1.0, t * 2.5) - SD.get("temple_drop", 0.012) * max(0.0, (t - 0.85) / 0.15) ** 2
+            h = cast(np.array([sg * 0.3, y, z]), (-sg, 0, 0))            # all head parts (eyes, lids) as well
+            x = (h[0][0] + sg * SD.get("temple_clear", 0.003)) if h else p0[0]
+            x = sg * max(sg * x, sg * p0[0] - 0.004 * t) if t < 0.2 else x
+            pts.append(np.array([x, y, z]))
+        P = np.array(pts)                     # a smooth wire: the clearance is kept as an outer envelope, then eased
+        X = sg * P[:, 0]
+        for _ in range(3):
+            Xs = X.copy()
+            Xs[1:-1] = (X[:-2] + X[1:-1] + X[2:]) / 3
+            X = np.maximum(X, Xs) if _ == 0 else Xs
+        X = np.maximum.accumulate(X) if PERCH.get("temple_flare", True) else X     # never cuts back in toward the head
+        P[:, 0] = sg * X
+        parts.append(tube(f"temple_{side}", list(P)))
+        continue
     p0 = max(ring, key=lambda p: p[1] + 0.3 * abs(p[0]))   # back and outer
     y_end = p0[1] + SD.get("temple_len", 0.085)
     pts = [p0]

@@ -157,9 +157,10 @@ cam.data.lens = 50
 sc.collection.objects.link(cam)
 sc.camera = cam
 dist = H * 1.75
-if opt("--frame", ""):          # --frame zc,h: a close-up framing h metres tall about height zc
-    zc_, h_ = [float(x) for x in opt("--frame", "").split(",")]
-    ctr = Vector((ctr[0], ctr[1], zc_))
+if opt("--frame", ""):          # --frame zc,h[,yc]: a close-up framing h metres tall about height zc (and depth yc: the head)
+    fr_ = [float(x) for x in opt("--frame", "").split(",")]
+    zc_, h_ = fr_[:2]
+    ctr = Vector((ctr[0], fr_[2] if len(fr_) > 2 else ctr[1], zc_))
     dist = h_ * 1.75
 tiles = []
 # --views name:azimuth,... (default the five beauty views; the text-to-image input sheet uses
