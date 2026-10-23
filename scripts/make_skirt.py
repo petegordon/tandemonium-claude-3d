@@ -61,7 +61,8 @@ def smooth2(F, it, wrap=True):
     return F
 
 
-rb = radius_field(bvh_body, THS, ZS, YC)
+rb = radius_field(BVHTree.FromPolygons([tuple(x) for x in BPv], [list(p.vertices) for p in body.data.polygons])
+                  if S.get("radius_arms") else bvh_body, THS, ZS, YC)   # (radius_arms: a cape over the shoulders + arms)
 rb = np.where(np.isnan(rb), 0.0, rb)
 rb = np.maximum.accumulate(rb, axis=1)                 # hangs: never tucks in going down
 clear = S.get("clear", 0.012)
@@ -179,9 +180,15 @@ if PL_:
 
 def loft(ths, zs, Rg, ycs):
     P_ = np.zeros((len(ths), len(zs), 3))
+    HA_ = S.get("hem_az")               # hem height by azimuth [[deg (0 front, 180 back), z], ...]: a shawl's back point
     for i, th in enumerate(ths):
         d = dirv(th)
-        P_[i] = np.stack([np.zeros(len(zs)), ycs, zs], 1) + d[None] * Rg[i][:, None]
+        zs_ = zs
+        if HA_:
+            ha, hz = zip(*HA_)
+            zh_ = float(np.interp(abs(math.degrees((th + math.pi) % (2 * math.pi) - math.pi)), ha, hz))
+            zs_ = Z_TOP - (Z_TOP - zs) * (Z_TOP - zh_) / (Z_TOP - Z_HEM)
+        P_[i] = np.stack([np.zeros(len(zs)), ycs, zs_], 1) + d[None] * Rg[i][:, None]
     return P_
 
 

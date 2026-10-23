@@ -29,6 +29,8 @@ def opt(name, default):
 ROOT = Path(__file__).resolve().parents[1]
 CHAR = opt("--char", "outfit_female_georgian")
 BT = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text(encoding="utf-8"))["bow_trims"]
+if isinstance(BT, list):              # several bow sets, one per piece (an apron's tie + a shawl's knot): --piece picks
+    BT = next(b for b in BT if b.get("piece", "jacket") == opt("--piece", BT[0].get("piece", "jacket")))
 PIECE = opt("--piece", BT.get("piece", "jacket"))
 GLB = ROOT / "out" / f"{CHAR}-goose" / "shells" / f"{PIECE}.glb"
 

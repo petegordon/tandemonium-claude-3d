@@ -455,6 +455,10 @@ INNER_D = (0.06, 0.12)          # full within / none beyond this distance to the
 INNER_SMOOTH = 14
 INNER_TOP = 0.12                 # up to this far above the hip joint (fading over 10 cm): the hip crease
 INNER_AZ = (170.0, 181.0)        # |azimuth| from the front: full up to / none beyond (the back tails)
+for k_, v_ in cfg.get("follow_inner", {}).items():   # chars json: an apron over the skirt follows the skirt's chains
+    FOLLOW_INNER[k_] = tuple(v_)
+    LAYER_RANK.setdefault(k_, 10)                 # (after its inner pieces, default rank 9: their FINAL weights must exist)
+INNER_TOP = cfg.get("inner_top", INNER_TOP)
 FINAL = {}
 for k, o in sorted(shells.items(), key=lambda kv: LAYER_RANK.get(kv[0], 9)):
     Wv, X, tl = skin[k]

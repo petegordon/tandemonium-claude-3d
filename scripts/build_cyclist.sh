@@ -14,10 +14,11 @@ for p in $PIECES; do
   echo "== $p"
   case $p in
     boots) run scripts/make_boot.py -- --char $C ;;
-    hat) if grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C
+    hat) if grep -q '"mobcap_design"' chars/$C.json; then run scripts/make_mobcap.py -- --char $C
+         elif grep -q '"cloche_design"' chars/$C.json; then run scripts/make_cloche.py -- --char $C
          elif grep -q '"hat_design"' chars/$C.json; then run scripts/make_hat.py -- --char $C
          else run scripts/make_cap.py -- --char $C; fi ;;
-    skirt|petticoat|coatskirt|apron|apronband) run scripts/make_skirt.py -- --char $C --piece $p ;;
+    skirt|petticoat|coatskirt|apron|apronband|shawl) run scripts/make_skirt.py -- --char $C --piece $p ;;
     pancollar) run scripts/make_accessory.py -- --char $C --piece pancollar ;;
     necktie) run scripts/make_accessory.py -- --char $C --piece necktie ;;
     bowtie) run scripts/make_accessory.py -- --char $C --piece bowtie ;;
@@ -32,7 +33,7 @@ for p in $PIECES; do
   esac
   if has_pattern $p; then run scripts/pattern_paint.py -- --char $C --piece $p; fi
   if [ "$p" = breeches ]; then run scripts/add_kneestrap.py -- --char $C; fi
-  if grep -q '"bow_trims"' chars/$C.json && [ "$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['bow_trims'].get('piece','jacket'))")" = "$p" ]; then run scripts/add_bows.py -- --char $C; fi
+  if grep -q '"bow_trims"' chars/$C.json && "$PY" -I -c "import json,sys;b=json.load(open('chars/$C.json',encoding='utf-8'))['bow_trims'];sys.exit(0 if '$p' in [x.get('piece','jacket') for x in (b if isinstance(b,list) else [b])] else 1)"; then run scripts/add_bows.py -- --char $C --piece $p; fi
   if [ "$p" = boots ] && grep -q '"shoe_buckle"' chars/$C.json; then run scripts/add_shoe_buckle.py -- --char $C; fi
   WT=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design'].get('$p',{}).get('with_outfit',{}).get('trim_below',''))" 2>/dev/null)
   if [ -n "$WT" ]; then      # worn under another garment in the full outfit: the hidden lower part cut away

@@ -430,10 +430,16 @@ if PIECE == "bowtie":
                     fs_.append((a, b, b + nu, a + nu))
             return mesh_obj(name, vs_, fs_, srgb(color), rough=rough, metal=metal, smooth=smooth)
         jr = JW.get("r", 0.008)
+        ja = JW.get("aspect", 1.0)                   # (a cameo: an upright oval)
         jc = c0 + out * (0.0085 + jr * 0.35)
-        parts.append(ellipsoid("setting", jc - out * 0.001, (jr * 1.35, jr * 0.5, jr * 1.35), JW.get("setting", [206, 166, 84]), 0.25, 1.0, 16, 6, True))
-        parts.append(ellipsoid("jewel", jc + out * jr * 0.15, (jr, jr * 0.6, jr), JW.get("color", [226, 232, 244]), JW.get("rough", 0.06),
-                               JW.get("metal", 0.6), 8, 4, False))          # faceted (flat shaded): catches the light
+        if JW.get("on_collar"):                      # no bow: the brooch sits on the collar front
+            jc = np.array([0, axis_y(Z0), Z0]) + dirv(0.0) * (neck_r(0.0, Z0) + AD.get("collar_off", 0.004) + 0.002 + jr * 0.25)
+        parts.append(ellipsoid("setting", jc - out * 0.001, (jr * 1.35, jr * 0.5, jr * 1.35 * ja), JW.get("setting", [206, 166, 84]), 0.25, 1.0, 16, 6, True))
+        if JW.get("backing"):                        # the cameo's coloured ground, between the gilt frame and the white relief
+            parts.append(ellipsoid("backing", jc + out * jr * 0.1, (jr * 1.12, jr * 0.5, jr * 1.12 * ja), JW["backing"], 0.35, 0.0, 16, 6, True))
+        parts.append(ellipsoid("jewel", jc + out * jr * 0.15, (jr, jr * 0.6, jr * ja), JW.get("color", [226, 232, 244]), JW.get("rough", 0.06),
+                               JW.get("metal", 0.6), 16 if JW.get("smooth") else 8, 6 if JW.get("smooth") else 4,
+                               bool(JW.get("smooth"))))          # faceted (flat shaded): catches the light
         if JW.get("drop"):
             DR = JW["drop"]
             dc = jc - up * (jr * 1.35 + DR.get("hang", 0.012) + DR.get("r", 0.006) * 1.3) + out * 0.002

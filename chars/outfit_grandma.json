@@ -143,7 +143,7 @@
      0.146
     ]
    },
-   "soft_folds": 0.0016,
+   "soft_folds": 0.003,
    "under": [],
    "under_gap": 0.006,
    "tex": 2048,
@@ -162,7 +162,13 @@
    "bake_ray": 0.05,
    "skip_tail": true,
    "over": [],
-   "close_az": 8
+   "close_az": 8,
+   "pleats": {
+    "n": 52,
+    "depth": 0.0045,
+    "z_stitch": 0.84,
+    "open": 0.35
+   }
   },
   "socks": {
    "kind": "boot",
@@ -239,12 +245,12 @@
    "panel": {
     "front": [
      [
-      0.845,
-      56
-     ],
-     [
       0.53,
       48
+     ],
+     [
+      0.845,
+      56
      ]
     ]
    },
@@ -252,7 +258,7 @@
     "skirt"
    ],
    "over_gap": 0.004,
-   "soft_folds": 0.0025,
+   "soft_folds": 0.004,
    "profile": {
     "z": [
      0.845,
@@ -273,9 +279,9 @@
    },
    "colors": {
     "cotton": [
-     214,
-     212,
-     206
+     192,
+     190,
+     184
     ]
    },
    "tiers": [
@@ -344,12 +350,116 @@
    },
    "colors": {
     "cotton": [
-     214,
-     212,
-     206
+     192,
+     190,
+     184
     ]
    },
    "close_az": 8
+  },
+  "shawl": {
+   "kind": "skirt",
+   "guide": null,
+   "na": 96,
+   "nz": 24,
+   "hi_up": 6,
+   "clear": 0.012,
+   "waist_clear": 0.012,
+   "waist_blend": 0.06,
+   "cover_margin": 0.015,
+   "final_smooth": 2,
+   "under_gap": 0.006,
+   "tex": 2048,
+   "mottle": 0.0,
+   "twill": 0.0,
+   "roughness": 0.95,
+   "weight_smooth": 12,
+   "bake_cage": 0.015,
+   "bake_ray": 0.05,
+   "skip_tail": true,
+   "note": "cream crocheted shawl over the shoulders and upper arms: open V in front closing at the knot, point down the back",
+   "z_top": 1.18,
+   "z_hem": 0.86,
+   "z_bot": 0.86,
+   "radius_arms": true,
+   "soft_folds": 0.0012,
+   "hem_az": [
+    [
+     0,
+     0.955
+    ],
+    [
+     40,
+     0.955
+    ],
+    [
+     90,
+     0.95
+    ],
+    [
+     135,
+     0.915
+    ],
+    [
+     180,
+     0.86
+    ]
+   ],
+   "opening": {
+    "front": [
+     [
+      0.95,
+      10
+     ],
+     [
+      1.0,
+      4
+     ],
+     [
+      1.055,
+      0.6
+     ],
+     [
+      1.12,
+      18
+     ],
+     [
+      1.18,
+      38
+     ]
+    ]
+   },
+   "over": [
+    "jacket",
+    "bowtie"
+   ],
+   "over_gap": 0.005,
+   "profile": {
+    "z": [
+     1.18,
+     0.86
+    ],
+    "front": [
+     0,
+     0.006
+    ],
+    "side": [
+     0,
+     0.01
+    ],
+    "back": [
+     0,
+     0.006
+    ]
+   },
+   "colors": {
+    "wool": [
+     255,
+     255,
+     255
+    ]
+   },
+   "close_az": 4
   }
  },
  "patterns": {
@@ -451,6 +561,31 @@
     "z1": 0.175,
     "rows": 5
    }
+  },
+  "shawl": {
+   "type": "crochet",
+   "tex": 2048,
+   "color": [
+    232,
+    222,
+    190
+   ],
+   "hole_color": [
+    118,
+    62,
+    92
+   ],
+   "pitch": 0.012,
+   "hole": 0.24,
+   "axes": [
+    [
+     0.0,
+     0.03
+    ]
+   ],
+   "flat_nz": 0.93,
+   "roughness": 0.95,
+   "detail_gamma": 0.6
   }
  },
  "build_frame_lift": -0.0748,
@@ -599,6 +734,8 @@
   "jacket": [
    "apron",
    "apronband",
+   "bowtie",
+   "shawl",
    "skirt"
   ],
   "socks": [
@@ -614,6 +751,20 @@
    "skirt",
    "jacket",
    "apron"
+  ],
+  "bowtie": [
+   "jacket",
+   "shawl"
+  ],
+  "shawl": [
+   "jacket",
+   "bowtie",
+   "apronband",
+   "apron",
+   "skirt"
+  ],
+  "spectacles": [
+   "hat"
   ]
  },
  "skin_merge": {
@@ -621,29 +772,180 @@
    "UpLeg": "Hips"
   }
  },
- "bow_trims": {
-  "note": "the apron's tie: a big white cotton bow at the back waist with long tails",
-  "piece": "apronband",
-  "from": "back",
-  "x": 0.0,
-  "z": [
-   0.854
-  ],
-  "w": 0.17,
-  "h": 0.075,
-  "scale_step": 0.0,
-  "puff": 0.022,
-  "color": [
+ "bow_trims": [
+  {
+   "note": "the apron's tie: a big white cotton bow at the back waist with long tails",
+   "piece": "apronband",
+   "from": "back",
+   "x": 0.0,
+   "z": [
+    0.854
+   ],
+   "w": 0.17,
+   "h": 0.075,
+   "scale_step": 0.0,
+   "puff": 0.022,
+   "color": [
+    192,
+    190,
+    184
+   ],
+   "rough": 0.7,
+   "tail_len": 0.11,
+   "tail_deg": 18,
+   "axis_normal": true
+  },
+  {
+   "note": "the shawl's front knot with two hanging ends",
+   "piece": "shawl",
+   "x": 0.004,
+   "z": [
+    1.05
+   ],
+   "w": 0.075,
+   "h": 0.06,
+   "scale_step": 0.0,
+   "puff": 0.016,
+   "color": [
+    214,
+    204,
+    172
+   ],
+   "rough": 0.95,
+   "tail_len": 0.115,
+   "tail_deg": 14
+  }
+ ],
+ "loose_pieces": [],
+ "accessory_design": {
+  "bowtie": {
+   "note": "the dress's plum stand collar + an oval cameo brooch at the front (bow, knot, wings, shirt front, neck band dropped)",
+   "anchor_z": 1.135,
+   "collar_h_scale": 0.55,
+   "collar_gap_deg": 0.6,
+   "collar_off": 0.008,
+   "bow_z_frac": 0.55,
+   "colors": {
+    "cream_m": [
+     84,
+     20,
+     64
+    ],
+    "bow": [
+     84,
+     20,
+     64
+    ],
+    "neckband": [
+     84,
+     20,
+     64
+    ]
+   },
+   "jewel": {
+    "on_collar": true,
+    "r": 0.0105,
+    "aspect": 1.3,
+    "color": [
+     240,
+     232,
+     220
+    ],
+    "backing": [
+     178,
+     98,
+     88
+    ],
+    "setting": [
+     206,
+     166,
+     84
+    ],
+    "smooth": true,
+    "metal": 0.0,
+    "rough": 0.4
+   }
+  }
+ },
+ "accessory_drop": {
+  "bowtie": [
+   "bow_L",
+   "bow_R",
+   "knot",
+   "wing_L",
+   "wing_R",
+   "shirtfront",
+   "neckband"
+  ]
+ },
+ "accessory_over": {
+  "bowtie": [
+   "jacket"
+  ]
+ },
+ "mobcap_design": {
+  "note": "white cotton mob cap: puffy gathered crown, deep frill all round, plum satin ribbon with a bow at the front",
+  "band_z": 1.445,
+  "band_tilt": 0.042,
+  "band_off": 0.008,
+  "crown_h": 0.075,
+  "crown_puff": 0.95,
+  "top_back": 0.012,
+  "gathers": 26,
+  "gather_amp": 0.045,
+  "frill_w": 0.036,
+  "frill_front": 1.0,
+  "frill_droop": 0.6,
+  "frill_n": 44,
+  "frill_amp": 0.007,
+  "frill_wave": 0.005,
+  "ribbon_h": 0.016,
+  "ribbon_off": 0.002,
+  "bow_az": 0,
+  "bow_w": 0.085,
+  "bow_h": 0.04,
+  "bow_puff": 0.01,
+  "cotton": [
    214,
    212,
    206
   ],
-  "rough": 0.7,
-  "tail_len": 0.11,
-  "tail_deg": 18,
-  "axis_normal": true
+  "ribbon": [
+   126,
+   28,
+   86
+  ],
+  "ribbon_rough": 0.35,
+  "skin_clear": 0.01,
+  "thickness": 0.002,
+  "round": 0.6,
+  "frill_droop_front": -0.25,
+  "centre_dy": 0.04,
+  "bow_out": 0.012
  },
- "loose_pieces": [
-  "apron"
- ]
+ "no_mask": [
+  "hat",
+  "spectacles"
+ ],
+ "spectacles_design": {
+  "note": "small round gold wire spectacles, as Grandpa's (base-head metres; shell_to_shape.py carries them to her head)",
+  "lens_r": 0.0185,
+  "wire_r": 0.0014,
+  "gap": 0.006,
+  "face_fwd": 0.65,
+  "shift": [
+   -0.004,
+   -0.008,
+   -0.006
+  ]
+ },
+ "rigid": {
+  "spectacles": "Head"
+ },
+ "follow_inner": {
+  "apron": [
+   "skirt"
+  ]
+ },
+ "inner_top": 0.2
 }

@@ -442,7 +442,27 @@ def sprig(P, N):
     return c
 
 
-PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove, "sprig": sprig}
+def crochet(P, N):
+    """Open-work (filet) crochet: a square mesh of yarn round the body with open holes; the holes are painted the colour
+    of what shows through (a shawl over a dress), the yarn has a twisted-stitch texture. pitch = mesh cell (m),
+    hole = half the hole's width as a fraction of the cell."""
+    # tri-planar (the mesh is a square grid in space; a cape's shoulders are near-flat, where "around" smears)
+    ax_ = np.argmax(np.abs(N), 1)
+    u = np.where(ax_ == 0, P[:, 1], P[:, 0])
+    v = np.where(ax_ == 2, P[:, 1], P[:, 2])
+    p = PR.get("pitch", 0.016)
+    fu, fv = (u / p) % 1.0 - 0.5, (v / p) % 1.0 - 0.5
+    h = PR.get("hole", 0.3)
+    e = np.maximum(np.abs(fu), np.abs(fv))                     # square holes, soft edged (yarn rounds over)
+    hole = np.clip((h - e) / 0.06 + 0.5, 0, 1)
+    tw = 0.5 + 0.5 * np.cos(2 * np.pi * (u + v) / (p / 3))     # twisted stitches along the yarn
+    yarn = rgb(PR["color"])[None] * (0.84 + 0.16 * tw)[:, None] * (0.94 + 0.12 * value_noise(P, 0.01))[:, None]
+    yarn *= (1 - 0.25 * np.clip((e - h) / 0.08, 0, 1) * (e < h + 0.08))[:, None]   # shade where the yarn turns into the hole
+    return yarn * (1 - hole)[:, None] + rgb(PR.get("hole_color", [60, 16, 46]))[None] * hole[:, None]
+
+
+PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove, "sprig": sprig,
+            "crochet": crochet}
 
 
 def bands(P, c, boundary):
