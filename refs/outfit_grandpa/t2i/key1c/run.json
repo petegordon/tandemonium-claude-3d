@@ -1,0 +1,19 @@
+{
+ "src": "key1",
+ "fix": "Remove the tail sticking out behind the goose's hips (the dark feathered lump below the cardigan hem): the goose has no tail. Where it was, show the brown corduroy trousers' seat continuing smoothly, or the plain light-grey background.",
+ "seed": 7,
+ "views": {
+  "left": {
+   "prompt": "Remove the tail sticking out behind the goose's hips (the dark feathered lump below the cardigan hem): the goose has no tail. Where it was, show the brown corduroy trousers' seat continuing smoothly, or the plain light-grey background. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 69
+  },
+  "rear": {
+   "prompt": "Remove the tail sticking out behind the goose's hips (the dark feathered lump below the cardigan hem): the goose has no tail. Where it was, show the brown corduroy trousers' seat continuing smoothly, or the plain light-grey background. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 94
+  },
+  "right": {
+   "prompt": "Remove the tail sticking out behind the goose's hips (the dark feathered lump below the cardigan hem): the goose has no tail. Where it was, show the brown corduroy trousers' seat continuing smoothly, or the plain light-grey background. Change nothing else: keep the goose, its outfit, colours, pose, camera, lighting and background exactly as in picture 1.",
+   "seconds": 100
+  }
+ }
+}
