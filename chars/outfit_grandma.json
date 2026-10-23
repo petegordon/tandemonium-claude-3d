@@ -1,0 +1,16 @@
+{
+ "char": "outfit_grandma",
+ "notes": "Pete 2026-10-22: Victorian grandmother at home (picked concept A: white mob cap with plum ribbon, round spectacles, plum day dress + cameo brooch, cream crochet shawl, white frilled apron, black lace-up boots). Shorter and wider than the young lady; refs/outfit_grandma/t2i/pick (tail-free).",
+ "body_shape": "sliders",
+ "shape": {
+  "arm_girth": 0.8,
+  "torso_girth": 1.25,
+  "hip_girth": 1.4,
+  "leg_girth": 0.95,
+  "leg_length": 0.85,
+  "height": 0.9,
+  "leg_pitch": 3.0
+ },
+ "garment_design": {},
+ "patterns": {}
+}

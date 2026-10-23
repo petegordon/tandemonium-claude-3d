@@ -30,6 +30,14 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(GLB))
+if "--rest" in argv:                  # --rest: the importer leaves the GLB's first clip applied (e.g. honk: beak open);
+    for a_ in [o for o in bpy.data.objects if o.type == "ARMATURE"]:     # show the rest pose instead
+        if a_.animation_data:
+            a_.animation_data.action = None
+            for t_ in a_.animation_data.nla_tracks:
+                t_.mute = True
+        for pb_ in a_.pose.bones:
+            pb_.matrix_basis.identity()
 # --with shell.glb,...: extra garment shells over the (naked) goose -- quick previews before dress_goose.py
 WITH = [ROOT / w_ for w_ in opt("--with", "").split(",") if w_]
 WLIFT = opt("--with-lift", 0.0)      # shells built in a shaped body's build frame (female: below the floor-lifted goose)

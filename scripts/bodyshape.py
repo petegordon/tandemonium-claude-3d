@@ -86,6 +86,13 @@ def deform(V, W, names, arm_obj, transforms):
     """Linear-blend the per-bone maps over rest vertices V (n x 3) with weights W (n x bones)."""
     if not transforms:
         return V.copy()
+    # weights over the armature's bones only: helper vertex groups (beak_lower, tongue) are not bones, and counting
+    # them diluted the lower bill's Jaw weight -- with "height" != 1 the head moves and the bill lagged (beak open)
+    bones = set(arm_obj.data.bones.keys())
+    keep = np.array([n in bones for n in names], bool)
+    W = np.where(keep[None, :], W, 0.0)
+    s_ = W.sum(1, keepdims=True)
+    W = np.where(s_ > 0, W / np.maximum(s_, 1e-9), W)
     out = V.copy()
     for i, n in enumerate(names):
         if n not in transforms:
