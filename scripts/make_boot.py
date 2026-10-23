@@ -251,7 +251,7 @@ ob.data.materials.append(mat)
 smat = bpy.data.materials.new("boots_sole")
 smat.use_nodes = True
 sbs = smat.node_tree.nodes["Principled BSDF"]
-sbs.inputs["Base Color"].default_value = (0.05, 0.032, 0.022, 1)
+sbs.inputs["Base Color"].default_value = tuple(B.get("sole_rgb", [0.05, 0.032, 0.022])) + (1,)   # (linear; opt-in colour)
 sbs.inputs["Roughness"].default_value = 0.6
 for so in soles:
     so.data.materials.append(smat)

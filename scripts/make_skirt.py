@@ -96,6 +96,35 @@ if S.get("profile"):
     ws = 1 - wf - wb
     extra = wf[:, None] * pf[None] + ws[:, None] * ps[None] + wb[:, None] * pb[None]
     r = smooth2(rb, 6) + clear + extra
+if S.get("bell"):
+    # opt-in: a bell silhouette (gathered skirt) -- from the waist's own radius, flaring smoothly to hem radii
+    # [front, side, back] (m, from the body axis) with "power" (< 1 = flares early, > 1 = late), never inside the
+    # hanging body + clear (+ "min_extra")
+    BL_ = S["bell"]
+    a_ = np.abs(((THS + math.pi) % (2 * math.pi)) - math.pi)
+    wf = np.clip(np.cos(a_), 0, 1) ** 2
+    wb = np.clip(-np.cos(a_), 0, 1) ** 2
+    ws = 1 - wf - wb
+    rh_ = wf * BL_["hem"][0] + ws * BL_["hem"][1] + wb * BL_["hem"][2]
+    rbf_ = rb.copy()                    # the body's radius with the hidden tail root's hole (no hit) filled round the azimuth
+    for k_ in range(NZ):
+        ok_ = rbf_[:, k_] > 0.05
+        if ok_.any() and not ok_.all():
+            idx_ = np.nonzero(ok_)[0]
+            rbf_[:, k_] = np.interp(np.arange(NA), np.r_[idx_ - NA, idx_, idx_ + NA], np.tile(rbf_[idx_, k_], 3))
+    rbf_ = np.maximum.accumulate(rbf_, axis=1)
+    rw_ = rbf_[:, 0] + S.get("waist_clear", 0.006)
+    t_ = np.clip((Z_TOP - ZS) / max(Z_TOP - Z_HEM, 1e-3), 0, 1) ** BL_.get("power", 0.7)
+    bell_ = rw_[:, None] + (rh_ - rw_)[:, None] * t_[None]
+    if BL_.get("plumb"):                # hang straight down from the waist's centre (YC drifts back with pitched legs)
+        bell_ = bell_ + (YC - YC[0])[None, :] * np.cos(THS)[:, None]
+        log("bell plumb: centre drift mm", round(float(YC[-1] - YC[0]) * 1000))
+    r = np.maximum(bell_, smooth2(rbf_, 6) + clear + BL_.get("min_extra", 0.0))
+    for zq in (0.84, 0.78, 0.72, 0.66, 0.6, 0.5, 0.4, 0.3):
+        k_ = int(np.argmin(np.abs(ZS - zq)))
+        i_f, i_s, i_b = int(np.argmin(a_)), int(np.argmin(np.abs(a_ - math.pi / 2))), int(np.argmax(a_))
+        log("bell z", zq, "body f/s/b mm", [round(rbf_[i, k_] * 1000) for i in (i_f, i_s, i_b)],
+            "skirt", [round(r[i, k_] * 1000) for i in (i_f, i_s, i_b)])
 log("radius mm body p50 / guide p50", round(float(np.median(rb)) * 1000), round(float(np.median(rgs)) * 1000))
 TT, ZZ = np.meshgrid(THS, ZS, indexing="ij")
 az = np.degrees((TT + math.pi) % (2 * math.pi) - math.pi)              # -180..180, 0 = front
@@ -173,7 +202,12 @@ if PL_:
     saw_ = (TT * PL_["n"] / (2 * math.pi) + PL_.get("phase", 0.0)) % 1.0
     if PL_.get("dir", 1) < 0:
         saw_ = 1.0 - saw_
-    r = r + PL_["depth"] * ramp_ * (saw_ - 0.5)
+    if PL_.get("shape") == "wave":      # opt-in: soft gathered folds (rounded, irregular), not knife pleats
+        ph_ = TT * PL_["n"] + PL_.get("wobble", 0.7) * np.sin(TT * 3 + 0.5) + 0.4 * np.sin(TT * 7 + 1.1)
+        amp_ = 1 + PL_.get("amp_var", 0.35) * np.sin(TT * 5 + 2.0)
+        r = r + PL_["depth"] * ramp_ * amp_ * 0.5 * np.sin(ph_)
+    else:
+        r = r + PL_["depth"] * ramp_ * (saw_ - 0.5)
     log("pleats", PL_["n"], "depth mm", PL_["depth"] * 1000)
 # (tiers are separate panels, built after the hi skirt below)
 

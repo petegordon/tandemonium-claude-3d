@@ -2103,6 +2103,28 @@ w = bpy.data.worlds.new("w")
 w.use_nodes = True
 w.node_tree.nodes["Background"].inputs[0].default_value = (0.92, 0.92, 0.92, 1)
 sc.world = w
+if R.get("fill_misses"):                # opt-in: texels the bake missed (black) take their neighbours' colour; flat normal
+    px_ = np.array(imgs["detail"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
+    nx_ = np.array(imgs["normal"][0].pixels[:], np.float32).reshape(TEX, TEX, 4)
+    miss_ = px_[..., :3].sum(2) < 0.03
+    ok_ = ~miss_
+    log("bake misses filled", int(miss_.sum()), "texels")
+    for _ in range(40):
+        if ok_.all():
+            break
+        acc_ = np.zeros_like(px_)
+        cnt_ = np.zeros((TEX, TEX), np.float32)
+        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            acc_ += np.roll(np.roll(px_ * ok_[..., None], sy, 0), sx, 1)
+            cnt_ += np.roll(np.roll(ok_.astype(np.float32), sy, 0), sx, 1)
+        new_ = (~ok_) & (cnt_ > 0)
+        px_[new_] = acc_[new_] / cnt_[new_][:, None]
+        ok_ |= new_
+    nx_[miss_] = (0.5, 0.5, 1.0, 1.0)
+    imgs["detail"][0].pixels = px_.ravel().tolist()
+    imgs["normal"][0].pixels = nx_.ravel().tolist()
+    imgs["detail"][0].pack()
+    imgs["normal"][0].pack()
 for i, (r_, e_) in enumerate([((50, 0, 30), 3.0), ((60, 0, 200), 1.5)]):
     L = bpy.data.lights.new(f"l{i}", "SUN")
     L.energy = e_

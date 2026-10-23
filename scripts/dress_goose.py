@@ -768,6 +768,78 @@ if abs(zmin) > 0.002:                                  # soles on the floor
     move_rest(lambda o, Xw: Xw + lift, lambda n, h, t: (h + lift, t + lift))
     print("FLOOR lift", round(-zmin, 4))
 
+HT_ = cfg.get("hand_tint")
+if HT_:
+    # opt-in: the bare hands recoloured on (a copy of) the body texture -- a clean even skin of "color" (sRGB), the
+    # texture's light/dark kept at "keep" strength (finger creases), for texels of faces skinned mostly to Hand bones
+    # (and the wrist below "wrist_w" of ForeArm weight next to them)
+    bimg_, done_ = {}, 0
+    for o in [*parts.values(), *layer_parts.values()]:
+        if o.type != "MESH" or not o.data.uv_layers:
+            continue
+        hg_ = {g.index for g in o.vertex_groups if "Hand" in g.name}
+        fg_ = {g.index for g in o.vertex_groups if "ForeArm" in g.name}
+        if not hg_:
+            continue
+        hw_ = np.zeros(len(o.data.vertices))
+        for v in o.data.vertices:
+            tot_ = sum(g.weight for g in v.groups) or 1.0
+            hw_[v.index] = (sum(g.weight for g in v.groups if g.group in hg_)
+                            + HT_.get("wrist_w", 0.5) * sum(g.weight for g in v.groups if g.group in fg_)
+                            * (sum(g.weight for g in v.groups if g.group in hg_) > 0.02)) / tot_
+        for m_ in o.data.materials:
+            if not m_ or not m_.node_tree:
+                continue
+            for n_ in m_.node_tree.nodes:
+                is_col_ = n_.type == "TEX_IMAGE" and n_.image and n_.image.colorspace_settings.name != "Non-Color"
+                if is_col_ and "basecolor" in n_.image.name.lower():          # (the body's own colour map only)
+                    if n_.image.name.endswith("_handtint"):
+                        continue
+                    if n_.image.name not in bimg_:
+                        cp_ = n_.image.copy()
+                        cp_.name = f"{CHAR}_body_handtint"
+                        W_, H_ = cp_.size
+                        bimg_[n_.image.name] = [cp_, np.array(cp_.pixels[:], np.float32).reshape(H_, W_, 4),
+                                                np.zeros((H_, W_), bool)]
+                    n_.image = bimg_[n_.image.name][0]
+        if not bimg_ or not any(m_ and m_.node_tree and any(n_.type == "TEX_IMAGE" and n_.image and
+                                                              n_.image.name.endswith("_handtint") for n_ in m_.node_tree.nodes)
+                                for m_ in o.data.materials):
+            continue
+        cp_, px_, msk_ = next(iter(bimg_.values()))
+        H_, W_ = msk_.shape
+        uvd_ = o.data.uv_layers.active.data
+        o.data.calc_loop_triangles()
+        for t_ in o.data.loop_triangles:
+            if min(hw_[list(t_.vertices)]) < HT_.get("min_w", 0.5):
+                continue
+            uv_ = np.array([uvd_[li].uv[:] for li in t_.loops]) * [W_, H_]
+            x0, y0 = np.floor(uv_.min(0)).astype(int)
+            x1, y1 = np.ceil(uv_.max(0)).astype(int)
+            x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, W_ - 1), min(y1, H_ - 1)
+            if x1 < x0 or y1 < y0:
+                continue
+            gx_, gy_ = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+            (ax_, ay_), (bx_, by_), (cx_, cy_) = uv_
+            den_ = (by_ - cy_) * (ax_ - cx_) + (cx_ - bx_) * (ay_ - cy_)
+            if abs(den_) < 1e-12:
+                continue
+            l1_ = ((by_ - cy_) * (gx_ - cx_) + (cx_ - bx_) * (gy_ - cy_)) / den_
+            l2_ = ((cy_ - ay_) * (gx_ - cx_) + (ax_ - cx_) * (gy_ - cy_)) / den_
+            ins_ = (l1_ >= -0.05) & (l2_ >= -0.05) & (1 - l1_ - l2_ >= -0.05)
+            msk_[(gy_[ins_] - 0.5).astype(int), (gx_[ins_] - 0.5).astype(int)] = True
+            done_ += 1
+    for cp_, px_, msk_ in bimg_.values():
+        if not msk_.any():
+            continue
+        tgt_ = np.array(HT_.get("color", [46, 45, 48]), np.float32) / 255.0   # (a byte image's pixels are sRGB)
+        L_ = px_[..., :3].mean(2)
+        Lm_ = float(np.median(L_[msk_])) or 1.0
+        sh_ = np.clip(1 + HT_.get("keep", 0.35) * (L_ / Lm_ - 1), 0.6, 1.4)
+        px_[msk_, :3] = tgt_[None] * sh_[msk_][:, None]
+        cp_.pixels = px_.ravel().tolist()
+        cp_.pack()
+        print("HAND TINT", int(msk_.sum()), "texels", done_, "tris")
 tris = {k: sum(len(p.vertices) - 2 for p in o.data.polygons) for k, o in {**parts, **shells, **layer_parts}.items()}
 visible = tris.get("body", 0) + sum(tris[k] for k in shells)
 report = {"char": CHAR, "mask_faces": stats, "tris": tris, "tris_dressed_visible": visible}

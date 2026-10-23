@@ -45,6 +45,29 @@ bpy.ops.import_scene.gltf(filepath=str(GLB))
 gar = next(o for o in bpy.data.objects if o.type == "MESH")
 M = gar.matrix_world
 bvh = BVHTree.FromPolygons([M @ v.co for v in gar.data.vertices], [tuple(p.vertices) for p in gar.data.polygons])
+CLR = []                                 # opt-in "clear_of": [pieces] the bow keeps "clear" (m) outside (a skirt's flare)
+for pc_ in BT.get("clear_of", []):
+    f_ = ROOT / "out" / f"{CHAR}-goose" / "shells" / f"{pc_}.glb"
+    if f_.exists():
+        before_ = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(f_))
+        for o_ in set(bpy.data.objects) - before_:
+            if o_.type == "MESH":
+                CLR.append(BVHTree.FromPolygons([o_.matrix_world @ v.co for v in o_.data.vertices],
+                                                [tuple(p.vertices) for p in o_.data.polygons]))
+            bpy.data.objects.remove(o_)
+
+
+def keep_clear(p_):
+    for t_ in CLR:
+        loc_, nrm_, _, _ = t_.find_nearest(p_, 0.1)
+        if loc_ is not None:
+            g_ = (p_ - loc_).dot(nrm_)
+            if g_ < BT.get("clear", 0.004):
+                p_ = p_ + nrm_ * (BT.get("clear", 0.004) - g_)
+    return p_
+
+
 bm = bmesh.new()
 uvl = bm.loops.layers.uv.new("UVMap")
 
@@ -109,7 +132,10 @@ for bi, z in enumerate(zs):
         a_ = math.radians(BT.get("tail_deg", 22)) * k
         dv = (-up * math.cos(a_) + side * math.sin(a_)).normalized()
         L = BT.get("tail_len", 0.022) * sc
-        path = [c0 + n * 0.003 + dv * (L * i / 6) for i in range(7)]
+        TO_ = BT.get("tail_out", 0.0)        # opt-in: the tails lean out over a flaring skirt (fraction of the drop, curving)
+        path = [c0 + n * 0.003 + dv * (L * i / 6) + n * (TO_ * L * (i / 6) ** 1.3) for i in range(7)]
+        if CLR:
+            path = [path[0]] + [keep_clear(p_) for p_ in path[1:]]
         strip(path, [H * 0.18 * (1 + 0.3 * i / 6) for i in range(7)], [n.cross(dv).normalized()] * 7, 0)
     ellipsoid(c0 + n * 0.005, (side, up, n), (W * 0.11, H * 0.3, 0.0035 * sc), 0)        # the knot
     JW = BT.get("jewel")

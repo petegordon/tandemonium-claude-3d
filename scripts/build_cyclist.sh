@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 B="${BLENDER:-/c/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
 PY=/c/Users/pete/ComfyUI-claude/.venv/Scripts/python.exe
 C=${CHAR:-outfit_male_cyclist}           # (CHAR=outfit_female_cyclist bash scripts/build_cyclist.sh ...)
-run() { "$B" -b --factory-startup --python "$@" 2>&1 | grep -E "^(CROP|SHELL|CLEAN|PATTERN|BAND|HAT|CAP|BOOT|STRAP|RENDER|TARGET|BUCKLES|BOWS|FOB|BRACES)|Error|Traceback|line [0-9]+," || true; }
+run() { "$B" -b --factory-startup --python "$@" 2>&1 | grep -E "^(CROP|SHELL|CLEAN|PATTERN|BAND|HAT|CAP|BOOT|STRAP|RENDER|TARGET|BUCKLES|BOWS|FOB|BRACES|KNOT)|Error|Traceback|line [0-9]+," || true; }
 has_pattern() { "$PY" -I -c "import json,sys;d=json.load(open('chars/$C.json',encoding='utf-8'));sys.exit(0 if '$1' in d.get('patterns',{}) else 1)"; }
 PIECES="${*:-breeches shirt waistcoat gloves socks}"
 for p in $PIECES; do
@@ -36,6 +36,7 @@ for p in $PIECES; do
   for TK in fob braces; do           # modelled trims joined into this shell (add_trims.py), when the recipe has them
     if grep -q "\"$TK\"" chars/$C.json && [ "$("$PY" -I -c "import json;d=json.load(open('chars/$C.json',encoding='utf-8'));print(d['$TK'].get('piece','waistcoat' if '$TK'=='fob' else 'breeches'))" | tr -d '[:space:]')" = "$p" ]; then run scripts/add_trims.py -- --char $C --kind $TK; fi
   done
+  if grep -q '"shawl_knot"' chars/$C.json && [ "$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['shawl_knot'].get('piece','shawl'))" | tr -d '[:space:]')" = "$p" ]; then run scripts/add_shawl_knot.py -- --char $C; fi
   if grep -q '"bow_trims"' chars/$C.json && "$PY" -I -c "import json,sys;b=json.load(open('chars/$C.json',encoding='utf-8'))['bow_trims'];sys.exit(0 if '$p' in [x.get('piece','jacket') for x in (b if isinstance(b,list) else [b])] else 1)"; then run scripts/add_bows.py -- --char $C --piece $p; fi
   if [ "$p" = boots ] && grep -q '"shoe_buckle"' chars/$C.json; then run scripts/add_shoe_buckle.py -- --char $C; fi
   WT=$("$PY" -I -c "import json;print(json.load(open('chars/$C.json',encoding='utf-8'))['garment_design'].get('$p',{}).get('with_outfit',{}).get('trim_below',''))" 2>/dev/null)

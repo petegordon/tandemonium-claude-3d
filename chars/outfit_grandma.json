@@ -16,8 +16,8 @@
    "kind": "shirt",
    "note": "plum wool day-dress bodice: closed, high neck (the stand collar is the 'bowtie' accessory), long plain sleeves, hem under the skirt's waist",
    "z_neck": 1.157,
-   "z_top": 0.74,
-   "z_bot": 0.74,
+   "z_top": 0.8,
+   "z_bot": 0.8,
    "back_rise": 0.0,
    "rise_y0": -0.1,
    "tris": 6500,
@@ -80,8 +80,8 @@
      0.2
     ],
     "z": [
-     0.74,
-     0.74
+     0.8,
+     0.8
     ],
     "z_back": 0.845
    }
@@ -93,11 +93,11 @@
    "z_top": 0.86,
    "z_hem": 0.3,
    "z_bot": 0.3,
-   "na": 96,
+   "na": 240,
    "nz": 32,
    "hi_up": 6,
    "clear": 0.012,
-   "waist_clear": 0.004,
+   "waist_clear": 0.008,
    "waist_blend": 0.05,
    "cover_margin": 0.015,
    "final_smooth": 2,
@@ -143,7 +143,7 @@
      0.146
     ]
    },
-   "soft_folds": 0.003,
+   "soft_folds": 0.002,
    "under": [],
    "under_gap": 0.006,
    "tex": 2048,
@@ -164,11 +164,25 @@
    "over": [],
    "close_az": 8,
    "pleats": {
-    "n": 52,
-    "depth": 0.0045,
+    "n": 26,
+    "depth": 0.016,
     "z_stitch": 0.84,
-    "open": 0.35
-   }
+    "open": 0.3,
+    "shape": "wave",
+    "wobble": 0.7,
+    "amp_var": 0.35
+   },
+   "bell": {
+    "hem": [
+     0.32,
+     0.34,
+     0.32
+    ],
+    "power": 0.45,
+    "min_extra": 0.012,
+    "plumb": true
+   },
+   "fill_misses": true
   },
   "socks": {
    "kind": "boot",
@@ -308,7 +322,7 @@
    "nz": 6,
    "hi_up": 6,
    "clear": 0.012,
-   "waist_clear": 0.016,
+   "waist_clear": 0.021,
    "waist_blend": 0.01,
    "cover_margin": 0.015,
    "final_smooth": 1,
@@ -326,7 +340,8 @@
    "z_hem": 0.836,
    "z_bot": 0.836,
    "over": [
-    "skirt"
+    "skirt",
+    "apron"
    ],
    "over_gap": 0.003,
    "soft_folds": 0.0,
@@ -398,34 +413,34 @@
     ],
     [
      135,
-     0.915
+     0.93
     ],
     [
      180,
-     0.86
+     0.9
     ]
    ],
    "opening": {
     "front": [
      [
       0.95,
-      10
+      12
      ],
      [
-      1.0,
-      4
+      1.04,
+      5
      ],
      [
-      1.055,
+      1.095,
       0.6
      ],
      [
-      1.12,
-      18
+      1.14,
+      16
      ],
      [
       1.18,
-      38
+      30
      ]
     ]
    },
@@ -547,36 +562,41 @@
    ],
    "roughness": 0.3,
    "tongue": [
-    26,
-    24,
-    24
+    22,
+    20,
+    20
    ],
    "lace": [
-    14,
-    12,
-    12
+    58,
+    54,
+    54
    ],
    "shaft_laces": {
     "z0": 0.075,
     "z1": 0.175,
-    "rows": 5
+    "rows": 6,
+    "eyelet": [
+     120,
+     118,
+     122
+    ]
    }
   },
   "shawl": {
    "type": "crochet",
    "tex": 2048,
    "color": [
-    232,
-    222,
-    190
+    236,
+    226,
+    196
    ],
    "hole_color": [
     118,
     62,
     92
    ],
-   "pitch": 0.012,
-   "hole": 0.24,
+   "pitch": 0.0135,
+   "hole": 0.21,
    "axes": [
     [
      0.0,
@@ -585,7 +605,35 @@
    ],
    "flat_nz": 0.93,
    "roughness": 0.95,
-   "detail_gamma": 0.6
+   "detail_gamma": 0.6,
+   "alpha_holes": true,
+   "hole_soft": 0.03,
+   "hole_rim_dark": 0.15,
+   "map": "cone",
+   "apex": [
+    0.0,
+    1.32
+   ],
+   "group": 6,
+   "spread": 1.0,
+   "hole_round": 4,
+   "tube": 0.18,
+   "bands": [
+    {
+     "name": "edge",
+     "width": 0.007,
+     "color": [
+      232,
+      222,
+      192
+     ],
+     "rib": "none",
+     "scallop": [
+      0.0035,
+      0.012
+     ]
+    }
+   ]
   }
  },
  "build_frame_lift": -0.0748,
@@ -709,8 +757,8 @@
   "voxel": 0.004,
   "smooth_iter": 8,
   "roughness": 0.35,
-  "toe_cap": 0.03,
-  "toe_narrow": 1.6,
+  "toe_cap": 0.026,
+  "toe_narrow": 1.15,
   "toe_up": 0.008,
   "sole_h": 0.011,
   "welt": 0.002,
@@ -721,6 +769,11 @@
    0.02,
    0.018,
    0.018
+  ],
+  "sole_rgb": [
+   0.012,
+   0.011,
+   0.011
   ]
  },
  "layer_ignore": {
@@ -781,39 +834,24 @@
    "z": [
     0.854
    ],
-   "w": 0.17,
-   "h": 0.075,
+   "w": 0.2,
+   "h": 0.085,
    "scale_step": 0.0,
-   "puff": 0.022,
+   "puff": 0.026,
    "color": [
     192,
     190,
     184
    ],
    "rough": 0.7,
-   "tail_len": 0.11,
-   "tail_deg": 18,
-   "axis_normal": true
-  },
-  {
-   "note": "the shawl's front knot with two hanging ends",
-   "piece": "shawl",
-   "x": 0.004,
-   "z": [
-    1.05
+   "tail_len": 0.13,
+   "tail_deg": 16,
+   "axis_normal": true,
+   "tail_out": 0.4,
+   "clear_of": [
+    "skirt"
    ],
-   "w": 0.075,
-   "h": 0.06,
-   "scale_step": 0.0,
-   "puff": 0.016,
-   "color": [
-    214,
-    204,
-    172
-   ],
-   "rough": 0.95,
-   "tail_len": 0.115,
-   "tail_deg": 14
+   "clear": 0.006
   }
  ],
  "loose_pieces": [],
@@ -884,31 +922,42 @@
   ]
  },
  "mobcap_design": {
-  "note": "white cotton mob cap: puffy gathered crown, deep frill all round, plum satin ribbon with a bow at the front",
-  "band_z": 1.445,
-  "band_tilt": 0.042,
-  "band_off": 0.008,
-  "crown_h": 0.075,
-  "crown_puff": 0.95,
-  "top_back": 0.012,
-  "gathers": 26,
-  "gather_amp": 0.045,
-  "frill_w": 0.036,
-  "frill_front": 1.0,
-  "frill_droop": 0.6,
-  "frill_n": 44,
-  "frill_amp": 0.007,
-  "frill_wave": 0.005,
-  "ribbon_h": 0.016,
-  "ribbon_off": 0.002,
-  "bow_az": 0,
-  "bow_w": 0.085,
-  "bow_h": 0.04,
-  "bow_puff": 0.01,
+  "note": "white cotton mob cap (r2, Pete 2026-10-23 'bigger and puffier like the reference'): a big gathered pouf over the back of the head, ruffled frill framing the face, plum satin ribbon behind the frill with a bow at the top front",
+  "rim_front": [
+   -0.06,
+   1.475
+  ],
+  "rim_back": [
+   0.045,
+   1.345
+  ],
+  "rim_off": 0.006,
+  "rx": 0.152,
+  "re": 0.158,
+  "h": 0.128,
+  "d": 0.107,
+  "puff_p": 2.4,
+  "overhang": 0.0,
+  "gathers": 28,
+  "gather_amp": 0.03,
+  "gather_reach": 0.6,
+  "frill_w": 0.05,
+  "frill_fwd": 0.95,
+  "frill_n": 36,
+  "frill_amp": 0.006,
+  "frill_back": 0.3,
+  "ribbon_h": 0.018,
+  "ribbon_at": 0.016,
+  "bow_w": 0.13,
+  "bow_h": 0.06,
+  "bow_puff": 0.012,
+  "bow_out": 0.004,
+  "tail_len": 0,
+  "tail_w": 0.017,
   "cotton": [
-   214,
-   212,
-   206
+   204,
+   202,
+   196
   ],
   "ribbon": [
    126,
@@ -916,28 +965,44 @@
    86
   ],
   "ribbon_rough": 0.35,
-  "skin_clear": 0.01,
-  "thickness": 0.002,
-  "round": 0.6,
-  "frill_droop_front": -0.25,
-  "centre_dy": 0.04,
-  "bow_out": 0.012
+  "skin_clear": 0.008,
+  "thickness": 0.0018,
+  "na": 360,
+  "nb": 7,
+  "ribbon_smooth": 40,
+  "ribbon_off": 0.004,
+  "tail_deg": 35,
+  "bow_at": 0.05,
+  "frill_out": 0.1,
+  "frill_side": 0.3,
+  "frill_side_at": 45,
+  "frill_side_w": 0.45,
+  "nm": 22
  },
  "no_mask": [
   "hat",
   "spectacles"
  ],
  "spectacles_design": {
-  "note": "small round gold wire spectacles, as Grandpa's (base-head metres; shell_to_shape.py carries them to her head)",
-  "lens_r": 0.0185,
-  "wire_r": 0.0014,
-  "gap": 0.006,
-  "face_fwd": 0.65,
+  "note": "small round gold wire reading glasses perched down the bill, away from the eyes (Pete 2026-10-23), as Grandpa's; base-head metres, shell_to_shape.py carries them to her head",
+  "lens_r": 0.016,
+  "wire_r": 0.0015,
   "shift": [
-   -0.004,
-   -0.008,
-   -0.006
-  ]
+   0,
+   0,
+   0
+  ],
+  "bridge_clear": 0.003,
+  "perch": {
+   "y": -0.228,
+   "x": 0.021,
+   "clear": 0.0015,
+   "face_fwd": 0.75,
+   "tilt": 12,
+   "sink": 0.4,
+   "temple_z": -0.004,
+   "temple_end": -0.02
+  }
  },
  "rigid": {
   "spectacles": "Head"
@@ -947,5 +1012,47 @@
    "skirt"
   ]
  },
- "inner_top": 0.2
+ "inner_top": 0.2,
+ "shawl_knot": {
+  "note": "the shawl's two front ends tied in a soft crochet knot with two wide crochet ends hanging over the bodice (Pete 2026-10-23: knitted ends, not ribbons)",
+  "piece": "shawl",
+  "x": 0.004,
+  "z": 1.09,
+  "knot": [
+   0.058,
+   0.04,
+   0.026
+  ],
+  "knot_off": 0.002,
+  "end_len": 0.16,
+  "end_w": [
+   0.03,
+   0.046
+  ],
+  "end_deg": 12,
+  "end_gap": 0.008,
+  "end_off": 0.006,
+  "end_thick": 0,
+  "over": [
+   "jacket"
+  ],
+  "pitch": 0.012,
+  "hole": 0.21,
+  "color": [
+   236,
+   226,
+   196
+  ]
+ },
+ "hand_tint": {
+  "note": "Pete 2026-10-23: bare hands as clean as the reference (smooth charcoal, no tan wrist patch / speckle)",
+  "color": [
+   34,
+   33,
+   36
+  ],
+  "keep": 0.6,
+  "wrist_w": 0.6,
+  "min_w": 0.5
+ }
 }

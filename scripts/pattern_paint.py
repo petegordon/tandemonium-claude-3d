@@ -455,13 +455,37 @@ def crochet(P, N):
     u = np.where(ax_ == 0, P[:, 1], P[:, 0])
     v = np.where(ax_ == 2, P[:, 1], P[:, 2])
     p = PR.get("pitch", 0.016)
+    if PR.get("map") == "cone":            # opt-in: worked in rounds from the neck (a cape): rings by distance from an apex
+        ay_, az_ = PR.get("apex", [0.0, 1.3])   # above the neck; columns radiate, increases every "group" rounds
+        r_ = np.hypot(P[:, 0], P[:, 1] - ay_)
+        v = np.hypot(r_, az_ - P[:, 2])
+        ring_ = np.floor(v / p)
+        grp_ = PR.get("group", 4)
+        gi_ = np.floor(ring_ / grp_).astype(int)
+        gi_ -= gi_.min()
+        rk_ = np.bincount(gi_, weights=r_) / np.maximum(np.bincount(gi_), 1)   # mean girth radius of each group
+        n_ = np.round(2 * np.pi * rk_[gi_] * PR.get("spread", 1.0) / p)
+        ang_ = np.arctan2(P[:, 0], -(P[:, 1] - ay_)) + PR.get("seam_az", 0.0)   # 0 = centre front
+        u = (ang_ / (2 * np.pi)) * n_ * p
     fu, fv = (u / p) % 1.0 - 0.5, (v / p) % 1.0 - 0.5
     h = PR.get("hole", 0.3)
     e = np.maximum(np.abs(fu), np.abs(fv))                     # square holes, soft edged (yarn rounds over)
+    if PR.get("hole_round"):               # opt-in: rounded-square holes (superellipse power)
+        q_ = PR["hole_round"]
+        e = (np.abs(fu) ** q_ + np.abs(fv) ** q_) ** (1 / q_)
     hole = np.clip((h - e) / 0.06 + 0.5, 0, 1)
     tw = 0.5 + 0.5 * np.cos(2 * np.pi * (u + v) / (p / 3))     # twisted stitches along the yarn
     yarn = rgb(PR["color"])[None] * (0.84 + 0.16 * tw)[:, None] * (0.94 + 0.12 * value_noise(P, 0.01))[:, None]
     yarn *= (1 - 0.25 * np.clip((e - h) / 0.08, 0, 1) * (e < h + 0.08))[:, None]   # shade where the yarn turns into the hole
+    if PR.get("alpha_holes"):              # opt-in: real open holes (alpha-clipped), the yarn shaded round each hole
+        global HOLE
+        HOLE = np.clip((h - e) / PR.get("hole_soft", 0.03) + 0.5, 0, 1)
+        yarn *= (1 - PR.get("hole_rim_dark", 0.35) * np.clip(1 - (e - h) / 0.12, 0, 1) * (e >= h - 0.02))[:, None]
+        bu_ = np.clip((0.5 - np.abs(fu)) / max(0.5 - h, 1e-3), 0, 1)     # 0 at a bar's centre line, 1 at the hole
+        bv_ = np.clip((0.5 - np.abs(fv)) / max(0.5 - h, 1e-3), 0, 1)
+        tube_ = np.cos(np.minimum(bu_, bv_) * np.pi / 2) ** 0.6       # round yarn: bright on top, darker to the sides
+        yarn *= (1 - PR.get("tube", 0.28) + PR.get("tube", 0.28) * tube_)[:, None]
+        return yarn
     return yarn * (1 - hole)[:, None] + rgb(PR.get("hole_color", [60, 16, 46]))[None] * hole[:, None]
 
 
@@ -683,6 +707,13 @@ dmean = float(np.median(dl[dl > 0.05])) if (dl > 0.05).any() else 1.0
 shade = np.clip(dl / dmean, 0.55, 1.25) ** PR.get("detail_gamma", 1.0)
 shade = np.where(dl < 0.25 * dmean, 1.0, shade)        # (texels the detail bake missed are black: no shading, not a dark spot)
 col = np.clip(col * shade[:, None], 0, 1)
+        if HOLE is not None:               # (open-work: the band is solid; "scallop": [depth, pitch] cuts its outer edge)
+            HOLE[inb] = 0.0
+            if bd.get("scallop"):
+                dep_, pit_ = bd["scallop"]
+                sc_ = dep_ * (0.5 + 0.5 * np.cos(2 * np.pi * along / pit_)) ** 0.7
+                cut_ = (dist < off + sc_) & (dist < off + bd["width"])
+                HOLE[cut_] = 1.0
 img = np.zeros((TEX, TEX, 3), np.float32)
 img[mask] = col
 # pad the islands (push-pull: empty texels take their filled neighbours' mean, 12 rounds)
@@ -696,8 +727,24 @@ for _ in range(12):
     new = (~filled) & (cntm > 0)
     img[new] = acc[new] / cntm[new][:, None]
     filled |= new
-out = bpy.data.images.new(f"{CHAR}_{PIECE}_pattern", TEX, TEX, alpha=False)
-out.pixels = np.concatenate([img, np.ones((TEX, TEX, 1), np.float32)], -1).ravel().tolist()
+ALPHA = np.ones((TEX, TEX, 1), np.float32)
+if HOLE is not None:                       # the alpha channel: 0 in the holes (padded like the colour, so seams stay closed)
+    am = np.zeros((TEX, TEX), np.float32)
+    am[mask] = 1 - HOLE
+    fa = mask.copy()
+    for _ in range(12):
+        acc = np.zeros_like(am)
+        cntm = np.zeros((TEX, TEX), np.float32)
+        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            acc += np.roll(np.roll(am * fa, sy, 0), sx, 1)
+            cntm += np.roll(np.roll(fa.astype(np.float32), sy, 0), sx, 1)
+        new = (~fa) & (cntm > 0)
+        am[new] = acc[new] / cntm[new]
+        fa |= new
+    am[~fa] = 1.0
+    ALPHA = am[..., None]
+out = bpy.data.images.new(f"{CHAR}_{PIECE}_pattern", TEX, TEX, alpha=HOLE is not None)
+out.pixels = np.concatenate([img, ALPHA], -1).ravel().tolist()
 out.pack()
 for o in obs:
     for m in o.data.materials:
@@ -721,3 +768,12 @@ for o in bpy.context.scene.objects:
 bpy.ops.export_scene.gltf(filepath=str(GLB), use_selection=True, export_format="GLB")
 STAMP.write_text(str(GLB.stat().st_mtime_ns))
 print("PATTERN", PIECE, PR["type"], "->", GLB)
+HOLE = None                                # (crochet with "alpha_holes": per-texel hole cover, 1 = open)
+        if bs is not None and HOLE is not None:     # alpha clip (glTF alphaMode MASK: image alpha -> Round -> Alpha)
+            tx_ = next(n for n in m.node_tree.nodes if n.type == "TEX_IMAGE" and n.image == out)
+            rd_ = m.node_tree.nodes.new("ShaderNodeMath")
+            rd_.operation = "ROUND"
+            m.node_tree.links.new(tx_.outputs["Alpha"], rd_.inputs[0])
+            m.node_tree.links.new(rd_.outputs[0], bs.inputs["Alpha"])
+            m.use_backface_culling = False
+            print("ALPHA clip", m.name)

@@ -4,17 +4,25 @@
 cap with the plum ribbon from six hat options. References: `refs/outfit_grandma/t2i/key1c/` (the picked outfit restaged
 on her shaped body in the key cameras; the image model's invented tail removed with `t2i_cleanup.py`).
 
-| Ours vs the references (same cameras) | Beauty |
+| Ours vs the references (same cameras), round 2 | Beauty |
 |---|---|
-| ![](img/grandparents/grandma_ref_vs_ours.jpg) | ![](img/grandparents/grandma_beauty.jpg) |
+| ![](img/grandparents/grandma_vs_reference_final.jpg) | ![](img/grandparents/grandma_beauty_final.jpg) |
+
+Close-ups: `grandma_head_final.jpg` (spectacles down the bill, side view), `grandma_closeups_final.jpg` (cap, shawl,
+knot, apron tie), `grandma_poses_final.jpg` (three.js poses incl. riding), `grandma_honk_threejs.jpg`. The first build's
+sheets (`grandma_ref_vs_ours.jpg`, `grandma_beauty.jpg`, ...) are kept for comparison.
 
 **Outfit:**
-- **Cap:** white cotton mob cap: puffy gathered crown, ruffled frill all round, plum satin ribbon with a bow at the front.
-- **Spectacles:** small round gold wire, Grandpa's `make_spectacles.py` with his settings.
+- **Cap:** a big white cotton mob cap: a gathered pouf over the back of the head (about 0.31 m across, like the
+  reference's), a ruffled frill framing the face, plum satin ribbon behind the frill, a plum bow at the top front.
+- **Spectacles:** small round gold wire reading glasses perched down the bill (Grandpa's `make_spectacles.py`
+  `perch` mode, his values).
 - **Dress:** plum wool, high stand collar with an oval cameo, long sleeves, full gathered skirt to mid-calf.
-- **Shawl:** cream filet crochet over the shoulders, knotted at the front with two hanging ends, a point at the back.
+- **Shawl:** cream filet crochet with real open holes (alpha-clipped), worked in rounds from the neck, a solid
+  scalloped edge; knotted at the front with a crochet knot and two wide crochet ends.
 - **Apron:** white cotton front panel with a ruffled hem; a waistband all round tied in a big bow at the back.
-- **Legs and feet:** black stockings and black lace-up ankle boots.
+- **Legs and feet:** black stockings and black lace-up ankle boots (black soles, laces up the shaft).
+- **Hands:** bare, as the reference: the body texture's hand texels recoloured an even charcoal (`hand_tint`).
 
 **Result:** `out/outfit_grandma-goose/outfit_grandma_full_dressed.glb`, rigged and skinned with all the clips.
 glTF validator 0 errors / 0 warnings; three.js r161 ok; the honk opens the beak and shows the tongue
@@ -31,6 +39,7 @@ glTF validator 0 errors / 0 warnings; three.js r161 ok; the honk opens the beak 
 ## Build
 ```
 CHAR=outfit_grandma bash scripts/build_cyclist.sh socks boots jacket skirt apron apronband bowtie shawl hat
+   # (shawl: pattern_paint, then add_shawl_knot.py; apronband: add_bows.py)
 blender ... make_spectacles.py -- --char outfit_grandma
 blender ... shell_to_shape.py -- --char outfit_grandma --piece spectacles --fresh
 blender ... dress_goose.py -- --char outfit_grandma --tag full --variant withshoes
@@ -75,9 +84,40 @@ front; then tilted by a fold -> `axis_normal`; notch at the centre back -> `clos
 r11-r15 shawl (opening order bug, crochet scale, knot). r16-r21 mob cap + spectacles. r22-r23 gathers, apron fabric,
 seated apron (follow_inner), three.js cap fixes (wire-ring bow -> flat lobes; ribbon smear).
 
+## Round 2 (r24-r30, 2026-10-23): Pete's review of the first build
+Pete asked for every listed flaw fixed, the glasses further down the beak, and iteration against the reference.
+- **Cap** (`make_mobcap.py` rewritten): the face opening is where a plane tilted back crosses the head (`rim_front` /
+  `rim_back`); the pouf is a superellipsoid dome about that plane's normal (`rx`, `re`, `h`, set back `d`), so it
+  overhangs the gathered rim like a ball with the face hole at its front. Each lip point clears the head by `lip_gap`.
+  Gathers are rounded puffs between creases (`gathers`, `gather_amp`, `gather_reach`). The frill grows from the dome's
+  lip, forward over the face (`frill_fwd`, `frill_out`), ruffled along its own normal (not in its plane: that made a
+  saw-tooth), narrowed where it would cover the eyes (`frill_side`, `frill_side_at` 45 deg). The ribbon is smoothed
+  over the gathers; the bow is two pillow lobes with satin creases + a knot (no tails: they floated). The clearance
+  pass ignores the catchlight planes (their back faces pushed points 8 cm out as spikes). 59k tris.
+- **Crochet** (`pattern_paint.py`, opt-in on the `crochet` pattern): `alpha_holes` (alpha-clipped holes: glTF MASK,
+  double-sided, Image alpha -> Round -> BSDF alpha), `map: cone` (rounds from an `apex` above the neck, column count per
+  `group` of rounds from that group's mean girth: no tri-planar seams), `hole_round`, `tube` (round-yarn shading),
+  and `bands` are solid in open-work, with a `scallop`ed outer edge.
+- **Knot** (new `scripts/add_shawl_knot.py`, recipe `shawl_knot`, run by build_cyclist.sh after the shawl's pattern):
+  a two-lobed pinched knot with twisted folds and two wide single-layer crochet ends lying on the bodice, a tiling
+  one-cell crochet texture (ends alpha-clipped, knot solid with dark holes). The shawl's front V closes higher (1.095).
+- **Skirt** (`make_skirt.py`, opt-in): `bell` (a bell from the waist's own radius to hem radii, `power` 0.45 = early
+  flare; `plumb` hangs it from the waist's centre -- the body centre drifts 73 mm back with her pitched legs, which
+  slanted the skirt) and `pleats.shape: wave` (soft gathered folds, 26 round, on `na` 240 so they are sampled).
+  The lampshade shelf at the hips and the knife pleats are gone. Seated (three.js riding pose) it no longer balloons.
+- **Apron tie:** bigger bow (0.2 m), tails lean out over the skirt (`add_bows.py` opt-in `tail_out`, `clear_of`
+  [skirt]); the shawl's back point raised so the bow shows.
+- **Bodice:** hem raised to 0.80 inside the skirt (its side poked out under the apron band as a dark wedge).
+- **Hands** (`dress_goose.py` opt-in `hand_tint`): a copy of the body colour map, Hand-skinned texels recoloured
+  charcoal with the texture's light/dark kept (creases); a glove shell was tried and rejected (a mitten, no fingers).
+- **Boots:** `make_boot.py` opt-in `sole_rgb` (black soles), rounder toe, lighter laces and dark eyelets.
+- `make_garment.py` opt-in `fill_misses` (black bake-miss texels filled from neighbours) -- not the dark wedge's cause
+  in the end, kept on for the skirt.
+- Compatibility: the Georgian lady's skirt, jacket (bows) and boots rebuilt: vertex-identical, textures equal.
+
 ## Limits / next
-- The cap is smaller and sits higher than the reference's oversized pouf (the image model enlarged it; sized to the
-  head). The crochet is a painted mesh, not open holes; from a distance it reads as a small check.
-- The shawl's knot ends are short ribbons, not the knitted ends of the reference; the shawl is a cape (the arms
-  flare it when raised: see the seated pose).
-- Gloveless mitt hands (D8). Not ride-fitted (no `ride_fit` / delivery / game integration yet).
+- The shawl is still a cape (no drape over the forearms when they reach forward); the T-pose shows the bodice's
+  armpit cloth as wings (not a game pose).
+- Far away (mip-mapped) the crochet holes close up in three.js and the shawl reads as a cream dot pattern.
+- The hands keep the base goose's mitt shape and claw tips; only their colour changed.
+- 36.6 MB GLB (2048 textures per piece). Not ride-fitted (no `ride_fit` / delivery / game integration yet).
