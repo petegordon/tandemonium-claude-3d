@@ -285,3 +285,12 @@ Contact sheets come from `scripts/goose-views-sheet.py`. Results: `docs/img/ride
 - `scripts/recolour.py` holds the shared hue / saturation / value remap. It feeds both `outfit_beauty.py --recolour` and `scripts/colourway_params.py`, which writes `tandemonium/js/goose-colourways-data.js` from the delivered GLBs.
 - The game's `js/goose-colourways.js` mirrors Blender's Hue/Saturation node in the material shader.
 - In-game check: `docs/img/riders/ingame_colourways.jpg`.
+
+## 10. Rear wheel clearance (#505, 2026-10-26)
+
+The goosefit26 bike had its rear end inside the rear tyre (Tandemonium #505, measured by the game's fit viewer, `tools/fit-viewer` + `smoke:fit`): chainstays 17 mm into the tread, the frame's seat-tube foot 16 mm, the rack clamp 15 mm, the rack 12 mm, the mudguard 8 mm. Cause: `CHAINSTAY_CLEAR` put the tyre only 8 cm behind the stoker's bottom bracket, and the rack and stays were warped from the lowered stoker seat cluster, which sat below the top of the tyre. Pete: either wheel size, the best-looking bike; 26 in kept.
+
+- `frame_fit.py`: `CHAINSTAY_CLEAR` 0.08 → 0.18 m. hub_R −1.050 → −1.150 m, chainstay 0.41 → 0.51 m, length 2.37 → 2.47 m. Saddles, bottom brackets and grips unchanged, so the rider clips (`ride_fit.py --clips`) stay valid; the game places the geese by the sockets.
+- `goosefit_bike.py`: a rear-wheel clearance pass after the warps. The mudguard is pushed out radially to `MUDGUARD_GAP` (12 mm; it moved 24.5 mm). Every rack vertex closer to the hub than tread + gap is bowed out to that radius (`RACK` = Cube, Cube.002, Cylinder.016), continuous so rails and crossbars bow together. Every other part's signed distance to the tyre is reported in `FIT` (`rear_wheel_inside`, `rear_wheel_clearance_m`); the build now reports nothing inside and +0.5 mm clearance (the mudguard stays touch the tread at the axle). After decimation (`TOL_M` 4 mm) the game's check allows 2 mm.
+- Build: `make_bike.py --fit out/fit/frame_goosefit_26in.json --tag goosefit26 --no-renders` (Blender 5.2), pack with `uv run --with pillow python scripts/glb_pack_images.py out/bike/bike_rigged_goosefit26.glb <tandemonium>/tandem-3d/goose/goose_tandem.glb` (no .venv here any more; `frame_fit.py` runs with `uv run --with numpy --with pillow`).
+- Before / after: Tandemonium `docs/img/fit-505-before.jpg` / `fit-505-after.jpg`.

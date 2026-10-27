@@ -25,6 +25,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 ANCHOR_STEP = 0.04
+MUDGUARD_GAP = 0.012      # #505: mudguard and rack off the tread by this much
+RACK = ["Cube", "Cube.002", "Cylinder.016"]
 IDW_P = 4
 CRANK_OLD = 0.1581
 GOOSENECK = {"y": (0.09, 0.26), "z_min": 0.86}       # old frame faces cut: captain-post stub that held the stoker bars
@@ -239,6 +241,41 @@ def reshape(spec, groups):
     for n in WARP:
         _set(n, warp(old[n]))
 
+    # ---- rear wheel clearance (#505) ---------------------------------------------------------------
+    # Nothing but the wheel group may sit inside the rear tyre (the goosefit26 bike had the stays, rack,
+    # clamp and frame foot in it, and the mudguard 8 mm into the tread). The hub moved back for that
+    # (frame_fit CHAINSTAY_CLEAR); the mudguard is pushed out radially to MUDGUARD_GAP, and every other
+    # part's clearance is reported so make_bike's log shows a regression at once.
+    tyre = _v("Cylinder.008")
+    rr = np.linalg.norm(tyre[:, 1:] - hubR2[1:], axis=1)
+    R_t, r_in, half = rr.max(), rr.min(), np.abs(tyre[:, 0]).max()
+
+    def tyre_dist(V):                              # signed distance from the tyre's solid, < 0 = inside
+        r = np.linalg.norm(V[:, 1:] - hubR2[1:], axis=1)
+        return np.maximum(np.abs(r - (R_t + r_in) / 2) - (R_t - r_in) / 2, np.abs(V[:, 0]) - half)
+
+    mg = _v("Cylinder.009")
+    r_mg = np.linalg.norm(mg[:, 1:] - hubR2[1:], axis=1)
+    mudguard_push = 0.0
+    if r_mg.min() < R_t + MUDGUARD_GAP:
+        f = (R_t + MUDGUARD_GAP) / r_mg.min()
+        mudguard_push = float((f - 1) * r_mg.min())
+        mg[:, 1:] = hubR2[1:] + (mg[:, 1:] - hubR2[1:]) * f
+        _set("Cylinder.009", mg)
+    # the rack (warped from the lowered stoker clamp to over the hub) still dips into the tread: bow every
+    # rack vertex closer to the hub than the tread + gap radially out to that radius (continuous, zero at
+    # the boundary, no x term, so rails and crossbars bow together and stay smooth)
+    for n in RACK:
+        V = _v(n)
+        r = np.linalg.norm(V[:, 1:] - hubR2[1:], axis=1)
+        push = np.maximum(0.0, R_t + MUDGUARD_GAP - r)
+        m = push > 0
+        if m.any():
+            V[m, 1:] += (V[m, 1:] - hubR2[1:]) / r[m, None] * push[m, None]
+            _set(n, V)
+    clearance = {n: round(float(tyre_dist(_v(n)).min()), 4) for n in allnames if n not in groups["Wheel_R"]}
+    rear_inside = {n: c for n, c in clearance.items() if c < 0}
+
     # gooseneck stub off the captain post (the stoker bars now stand on the top tube)
     fr = _o("Cylinder")
     bm = bmesh.new()
@@ -277,4 +314,6 @@ def reshape(spec, groups):
     return {"k": round(k, 4), "kc": round(kc, 4), "bar_raise_m": round(float(d_bar), 3), "bar_back_m": round(float(dy), 3),
             "anchors": len(A_old), "gooseneck_faces_cut": len(kill),
             "grip_C_u_error_m": round(float(-(Ff(gripC)[0] + axis * d_bar)[1] - (-gripC2[1])), 3),
-            "stoker_stem_m": round(float(clamp_bar2[2] - tt[2]), 3)}
+            "stoker_stem_m": round(float(clamp_bar2[2] - tt[2]), 3),
+            "rear_wheel_inside": rear_inside, "rear_wheel_clearance_m": round(min(clearance.values()), 4),
+            "mudguard_push_m": round(mudguard_push, 4)}

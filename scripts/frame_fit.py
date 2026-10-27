@@ -59,7 +59,7 @@ FORK_OFFSET = 0.045
 TOE_CLEAR = 0.03
 BACK_CLEAR = 0.22     # stoker grips this far behind the captain's hip joint (saddle rear 0.13, breeches 0.13, coat)
 KNEE_CLEAR = 0.04     # stoker's knee to the captain's back at the top of her stroke
-CHAINSTAY_CLEAR = 0.08
+CHAINSTAY_CLEAR = 0.18   # #505: was 0.08; the stoker's seat cluster and the rack sat below the top of the tyre
 
 
 def rot(v, deg):
