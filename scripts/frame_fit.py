@@ -42,7 +42,7 @@ MALE_LEG = [float(x) for x in arg("--male-leg", "1.0").split(",")]     # the mal
 TAG = arg("--tag", "goosefit")
 CRANK_FRAC = 0.20     # human rule of thumb: 170 mm for ~0.85 m inseam
 BB_CLEAR = 0.10       # bottom pedal clears the ground at ~22 deg bike tilt
-HIP_UP = 0.11
+HIP_UP = 0.0          # #505: was 0.11 (a human's); a goose's bottom swallows the saddle, Pete wants the seat top at the hip joint
 LEG_REACH = 0.95
 TOE_DOWN = 12.0
 PIN_UP = 0.011        # pedal top above the spindle (PedalPin socket)
@@ -59,7 +59,7 @@ FORK_OFFSET = 0.045
 TOE_CLEAR = 0.03
 BACK_CLEAR = 0.22     # stoker grips this far behind the captain's hip joint (saddle rear 0.13, breeches 0.13, coat)
 KNEE_CLEAR = 0.04     # stoker's knee to the captain's back at the top of her stroke
-CHAINSTAY_CLEAR = 0.08
+CHAINSTAY_CLEAR = 0.18   # #505: was 0.08; the stoker's seat cluster and the rack sat below the top of the tyre
 
 
 def rot(v, deg):

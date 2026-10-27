@@ -25,6 +25,13 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 ANCHOR_STEP = 0.04
+MUDGUARD_GAP = 0.012      # #505: mudguard and rack off the tread by this much
+RACK = ["Cube", "Cube.002", "Cylinder.016"]   # carrier: leather pad, frame, clamp bolt (placed level on its own posts)
+RACK_CLEAR = 0.015        # #505: carrier underside above the mudguard's outer skin
+RACK_STAY_X = 0.05        # #505: rear carrier stays rise from the dropouts at this half-width
+RACK_LEN = 1.5            # #505: the carrier is stretched along the bike so it reaches out over the wheel
+MUDGUARD_STAYS = ["NurbsPath.014", "NurbsPath.015"]
+MUDGUARD_TAIL_DEG = 25.0   # #505: the mudguard ends this far above horizontal behind the hub (clean cut)
 IDW_P = 4
 CRANK_OLD = 0.1581
 GOOSENECK = {"y": (0.09, 0.26), "z_min": 0.86}       # old frame faces cut: captain-post stub that held the stoker bars
@@ -37,8 +44,7 @@ SADDLE_C = ["seat", "Circle", "Cylinder.020", "Cylinder.021", "NurbsPath.010"]
 SADDLE_S = ["seat.001", "Circle.001", "Cylinder.010", "Cylinder.023", "NurbsPath.011"]
 STOKER_BARS = ["NurbsPath.009", "Cylinder.019"]
 CHAINS = ["NurbsPath.007", "NurbsPath.008"]
-WARP = ["Cylinder", "Cylinder.001", "NurbsPath.002", "NurbsPath.003", "NurbsPath.006", "Cube", "Cube.002",
-        "Cylinder.016"]
+WARP = ["Cylinder", "Cylinder.001", "NurbsPath.002", "NurbsPath.003", "NurbsPath.006"]
 NEW_TUBES = {"goosefit_quill": "Steer", "goosefit_stoker_stem": "Bike_root", "goosefit_stem_ext": "Steer"}
 BAR_ONLY = ["NurbsPath", "Cylinder.012"]           # bar + grips (the stem clamp Tee Joint.001 / Cylinder.017 stay)
 
@@ -113,7 +119,7 @@ def reshape(spec, groups):
 
     allnames = [n for g in groups.values() for n in g]
     cover = (FRONT + BARS + groups["Wheel_F"] + groups["Wheel_R"] + REAR_EXTRA + SADDLE_C + SADDLE_S + STOKER_BARS
-             + CHAINS + WARP + groups["Crank_F"] + groups["Crank_R"] + ["wainframe_joint_low", "wainframe_joint_low.001"]
+             + CHAINS + WARP + RACK + groups["Crank_F"] + groups["Crank_R"] + ["wainframe_joint_low", "wainframe_joint_low.001"]
              + [n for g in ("Pedal_FL", "Pedal_FR", "Pedal_RL", "Pedal_RR") for n in groups[g]])
     assert sorted(cover) == sorted(allnames), set(allnames) ^ set(cover)
 
@@ -180,7 +186,6 @@ def reshape(spec, groups):
         ([ring_lo, X, bbR], [Ff(ring_lo)[0], X2, bbR2]),              # down tube to the stoker BB
         ([bbR, hubR], [bbR2, hubR2]),                                 # chainstay
         ([hubR, topS], [hubR2, topS2]),                               # seat stays
-        ([clampS, rack_rear], [clampS2, Rr(rack_rear)[0]]),           # rack
     ]
     A_old, A_new = [], []
     for old, new in tubes:
@@ -239,6 +244,77 @@ def reshape(spec, groups):
     for n in WARP:
         _set(n, warp(old[n]))
 
+    # ---- rear wheel clearance (#505) ---------------------------------------------------------------
+    # Nothing but the wheel group may sit inside the rear tyre (the goosefit26 bike had the stays, rack,
+    # clamp and frame foot in it, and the mudguard 8 mm into the tread). The hub moved back for that
+    # (frame_fit CHAINSTAY_CLEAR); the mudguard is pushed out radially to MUDGUARD_GAP, and every other
+    # part's clearance is reported so make_bike's log shows a regression at once.
+    tyre = _v("Cylinder.008")
+    rr = np.linalg.norm(tyre[:, 1:] - hubR2[1:], axis=1)
+    R_t, r_in, half = rr.max(), rr.min(), np.abs(tyre[:, 0]).max()
+
+    def tyre_dist(V):                              # signed distance from the tyre's solid, < 0 = inside
+        r = np.linalg.norm(V[:, 1:] - hubR2[1:], axis=1)
+        return np.maximum(np.abs(r - (R_t + r_in) / 2) - (R_t - r_in) / 2, np.abs(V[:, 0]) - half)
+
+    # mudguard: concentric with the wheel (the source arc is not centred on the hub, so a push about the
+    # hub left it tight at the front and 5 cm off at the tail), then its inner surface MUDGUARD_GAP off the
+    # tread, thickness kept; the two mudguard stays are then stretched from the axle to meet it again
+    mg = _v("Cylinder.009")
+    yz = mg[:, 1:]
+    A_ = np.c_[yz, np.ones(len(yz))]
+    sol = np.linalg.lstsq(A_, (yz ** 2).sum(1), rcond=None)[0]      # Kasa circle fit: y^2+z^2 = a y + b z + c
+    c_fit = sol[:2] / 2
+    mudguard_recentre = float(np.linalg.norm(hubR2[1:] - c_fit))
+    yz = yz + (hubR2[1:] - c_fit)
+    r_mg = np.linalg.norm(yz - hubR2[1:], axis=1)
+    mudguard_push = float(R_t + MUDGUARD_GAP - r_mg.min())
+    yz = hubR2[1:] + (yz - hubR2[1:]) * ((r_mg + mudguard_push) / r_mg)[:, None]
+    mg[:, 1:] = yz
+    _set("Cylinder.009", mg)
+    # the tail: the source strip flares sideways in its last few centimetres (a hook from above); cut it
+    # clean on a plane through the hub, MUDGUARD_TAIL_DEG above horizontal behind the wheel
+    o_mg = _o("Cylinder.009")
+    bm = bmesh.new()
+    bm.from_mesh(o_mg.data)
+    t = math.tan(math.radians(MUDGUARD_TAIL_DEG))
+    co, no = Vector((0, hubR2[1], hubR2[2])), Vector((0, -t, 1)).normalized()
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-5, plane_co=co, plane_no=no)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if (v.co - co).dot(no) < -1e-6], context="VERTS")
+    bm.to_mesh(o_mg.data)
+    bm.free()
+    o_mg.data.update()
+    mg = _v("Cylinder.009")
+    r_mg_in = float(np.linalg.norm(mg[:, 1:] - hubR2[1:], axis=1).min())
+    for n in MUDGUARD_STAYS:
+        V = _v(n)
+        r = np.linalg.norm(V[:, 1:] - hubR2[1:], axis=1)
+        f = (r_mg_in + 0.004) / r.max()                       # far end just inside the mudguard's inner skin
+        V[:, 1:] = hubR2[1:] + (V[:, 1:] - hubR2[1:]) * f
+        _set(n, V)
+    # ---- carrier rack (#505, Pete: "a bit higher from a new frame post so that it goes straight out over the
+    # rear tire and mudguard") ---------------------------------------------------------------------------
+    # The source carrier, scaled k, placed LEVEL with its underside RACK_CLEAR above the mudguard's outer skin
+    # and its front just behind the stoker's seat clamp; a stub post from the clamp carries the front, two
+    # stays from the dropouts carry the rear (tubes made with the frame's paint below).
+    rk_old = np.vstack([old[n] for n in RACK])
+    c_old = (rk_old.min(0) + rk_old.max(0)) / 2
+    size = (rk_old.max(0) - rk_old.min(0)) * k * np.array([1.0, RACK_LEN, 1.0])
+    r_mg_out = float(np.linalg.norm(mg[:, 1:] - hubR2[1:], axis=1).max())
+    rack_bottom = hubR2[2] + r_mg_out + RACK_CLEAR
+    c_new = np.array([0.0, clampS2[1] + 0.03 + size[1] / 2, rack_bottom + size[2] / 2])
+    for n in RACK:
+        _set(n, c_new + (old[n] - c_old) * k * np.array([1.0, RACK_LEN, 1.0]))
+    rk = np.vstack([_v(n) for n in ("Cube", "Cube.002")])
+    rack_front = np.array([0.0, rk[:, 1].min() + 0.015, rk[:, 2].min() + 0.006])
+    rack_rear_c = np.array([0.0, rk[:, 1].max() - 0.04, rk[:, 2].min() + 0.006])
+    RACK_TUBES = [("goosefit_rack_post", np.array([0.0, clampS2[1], clampS2[2]]), rack_front, 1.0)]
+    for sx, tag in ((1, "L"), (-1, "R")):
+        RACK_TUBES.append((f"goosefit_rack_stay_{tag}", np.array([sx * RACK_STAY_X, hubR2[1], hubR2[2]]),
+                           np.array([sx * RACK_STAY_X, rack_rear_c[1], rack_rear_c[2]]), 0.6))
+    clearance = {n: round(float(tyre_dist(_v(n)).min()), 4) for n in allnames if n not in groups["Wheel_R"]}
+    rear_inside = {n: c for n, c in clearance.items() if c < 0}
+
     # gooseneck stub off the captain post (the stoker bars now stand on the top tube)
     fr = _o("Cylinder")
     bm = bmesh.new()
@@ -271,10 +347,16 @@ def reshape(spec, groups):
     _tube("goosefit_stoker_stem", np.array([0, clamp_bar2[1], tt[2]]), clamp_bar2 + np.array([0, 0, 0.02]), r, uv, mat)
     _tube("goosefit_stem_ext", stem_top - np.array([0, 0.01 * np.sign(dy), 0]),
           stem_top + np.array([0, dy + 0.01 * np.sign(dy), 0]), r * 0.9, uv, mat)
+    for nm, p0, p1, rf in RACK_TUBES:
+        _tube(nm, p0, p1, r * rf, uv, mat)
+        NEW_TUBES[nm] = "Bike_root"
     for nm, g in NEW_TUBES.items():
         groups[g].append(nm)
 
     return {"k": round(k, 4), "kc": round(kc, 4), "bar_raise_m": round(float(d_bar), 3), "bar_back_m": round(float(dy), 3),
             "anchors": len(A_old), "gooseneck_faces_cut": len(kill),
             "grip_C_u_error_m": round(float(-(Ff(gripC)[0] + axis * d_bar)[1] - (-gripC2[1])), 3),
-            "stoker_stem_m": round(float(clamp_bar2[2] - tt[2]), 3)}
+            "stoker_stem_m": round(float(clamp_bar2[2] - tt[2]), 3),
+            "rear_wheel_inside": rear_inside, "rear_wheel_clearance_m": round(min(clearance.values()), 4),
+            "mudguard_push_m": round(mudguard_push, 4), "mudguard_recentre_m": round(mudguard_recentre, 4),
+            "rack_bottom_m": round(float(rack_bottom), 3), "rack_len_m": round(float(size[1]), 3)}
