@@ -52,7 +52,11 @@ KEEP_BODY = ["idle_shift", "walk_start", "walk", "walk_stop", "turn_L90", "turn_
 UPPER = ["Spine", "Spine1", "Spine2", "Neck", "Neck1", "Neck2", "Neck3", "Head", "LeftShoulder", "LeftArm",
          "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand"]
 DROP_MATS = ("lining", "piping")                      # invisible at toy scale, thousands of tris
-FACE_RATIO = {"body": 0.6, "eyeball": 0.3, "lid": 0.3, "catchlight": 1.0}
+# eyes (tandemonium-claude-3d #41): the eyeball keeps every front face (its hidden back half is cut instead) and the
+# lids stay round; at 0.3 the almond opening went polygonal and the iris smeared, which shows on full-size geese
+FACE_RATIO = {"body": 0.6, "eyeball": 1.0, "lid": 0.75, "catchlight": 1.0}
+SOCKET_R = 0.045                                      # head skin within this of an eye centre is not decimated (m)
+EYE_PATCH = 0.19                                      # eyeball's own square atlas patch (top of the right strip)
 DETAIL_WORDS = ("brass", "stud", "rim", "tab", "band", "gold", "wing", "buckle", "button")
 DETAIL_FLOOR = 60
 FEATHER_RATIO = 0.15
@@ -173,6 +177,18 @@ targets, cloth = {}, []
 for o in pieces:
     n = tris(o)
     cls, r = piece_class(o)
+    if o.name.startswith("eyeball"):                    # the eye profile is a planar UV along the look axis; the
+        uvd_ = o.data.uv_layers[0].data                 # hidden back half all sits on (0.01, 0.01): cut it
+        back = [p for p in o.data.polygons
+                if any(abs(uvd_[li].uv.x - 0.01) < 1e-4 and abs(uvd_[li].uv.y - 0.01) < 1e-4 for li in p.loop_indices)]
+        import bmesh
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.faces.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[bm.faces[p.index] for p in back], context="FACES")
+        bm.to_mesh(o.data)
+        bm.free()
+        n = tris(o)
     if cls in ("face", "feather"):
         targets[o.name] = max(8, round(n * r))
     elif cls == "detail":
@@ -186,6 +202,21 @@ for o in cloth:
 print("TARGETS", {k: (tris(bpy.data.objects[k]), v) for k, v in targets.items()})
 
 
+EYE_CENTRES = [sum((v.co for v in o.data.vertices), Vector()) / max(1, len(o.data.vertices))
+               for o in pieces if o.name.startswith("eyeball")]
+
+
+def socket_guard(o):
+    """Vertex group "dec_ok": 0 round the eye sockets, 1 elsewhere, so the socket rim keeps its almond shape."""
+    if not EYE_CENTRES or not o.name.startswith("body"):
+        return None
+    vg = o.vertex_groups.get("dec_ok") or o.vertex_groups.new(name="dec_ok")
+    for v in o.data.vertices:
+        d = min((v.co - c).length for c in EYE_CENTRES)
+        vg.add([v.index], min(1.0, max(0.0, (d - SOCKET_R) / SOCKET_R)), "REPLACE")
+    return vg.name
+
+
 def decimate(o, target):
     n = tris(o)
     if target >= n:
@@ -197,8 +228,14 @@ def decimate(o, target):
     m.decimate_type = "COLLAPSE"
     m.ratio = max(0.02, target / n)
     m.use_collapse_triangulate = True
+    guard = socket_guard(o)
+    if guard:
+        m.vertex_group = guard
+        m.vertex_group_factor = 1000.0
     bpy.ops.object.modifier_move_to_index(modifier="dec", index=0)
     bpy.ops.object.modifier_apply(modifier="dec")
+    if guard:                                           # not a bone: keep it out of the skin
+        o.vertex_groups.remove(o.vertex_groups[guard])
 
 
 for o in pieces:
@@ -260,8 +297,9 @@ print("SOLID materials", [goose.material_slots[i].material.name for i in solid])
 # textured faces: smart-projected and packed by Blender into [0,1]; squeezed into the left 79 % of the atlas.
 # Solid-colour faces: every face of a material maps onto one flat patch in the right-hand strip -> no UV seams on
 # the brass, lids, hat, boots ... (vertex splits in the glTF come from UV seams) and patches big enough for mipmaps.
+eye_mats = [i for i, sl in enumerate(goose.material_slots) if sl.material.name.startswith("goose_eye")]
 for pg in me.polygons:
-    pg.select = pg.material_index not in solid
+    pg.select = pg.material_index not in solid and pg.material_index not in eye_mats
 bpy.ops.object.select_all(action="DESELECT")
 goose.select_set(True)
 bpy.context.view_layer.objects.active = goose
@@ -274,14 +312,20 @@ else:
     bpy.ops.uv.pack_islands(rotate=True, margin=0.003)
 bpy.ops.object.mode_set(mode="OBJECT")
 uvd = me.uv_layers["atlas"].data
+src_uv = me.uv_layers["UVMap"].data
 STRIP = 0.79
+SOLID_H = 1.0 - EYE_PATCH - 0.02 if eye_mats else 1.0   # solid patches below, the eyeball patch above
 rows = max(1, math.ceil(len(solid) / 2))
 for pg in me.polygons:
-    if pg.material_index in solid:
+    if pg.material_index in eye_mats:                    # both eyeballs share one patch: same profile texture
+        for li in pg.loop_indices:
+            u, v = src_uv[li].uv
+            uvd[li].uv = (STRIP + 0.01 + u * EYE_PATCH, SOLID_H + 0.01 + v * EYE_PATCH)
+    elif pg.material_index in solid:
         k = solid.index(pg.material_index)
         col, row = k % 2, k // 2
-        x0, y0 = STRIP + 0.01 + col * (1 - STRIP - 0.02) / 2, row / rows
-        w, h = (1 - STRIP - 0.02) / 2 - 0.01, 1 / rows - 0.01
+        x0, y0 = STRIP + 0.01 + col * (1 - STRIP - 0.02) / 2, row / rows * SOLID_H
+        w, h = (1 - STRIP - 0.02) / 2 - 0.01, SOLID_H / rows - 0.01
         corners = [(x0, y0), (x0 + w, y0), (x0, y0 + h), (x0 + w, y0 + h)]
         for j, li in enumerate(pg.loop_indices):
             uvd[li].uv = corners[j % 4]

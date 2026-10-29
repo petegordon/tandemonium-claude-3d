@@ -157,10 +157,14 @@ node -e "require(process.env.TEMP+'/gv/node_modules/gltf-validator').validateByt
    so the whole goose is one mesh, welds the garment builders' split vertices (`remove_doubles`, without which the
    decimator cannot collapse across them and the result was 2.7x the vertices), splits by material and decimates
    each piece (Decimate collapse, vertex groups kept) to a per-piece target solved from the 8k budget: head 0.6,
-   eyes/lids 0.3, feather 0.15, brass details floored at 60 tris, cloth shares the rest by area^0.6.
+   eyeball 1.0 (its hidden back half is cut first), lids 0.75, feather 0.15, brass details floored at 60 tris,
+   cloth shares the rest by area^0.6. The head skin within 4.5 cm of each eye centre is protected from the
+   decimator (vertex-group weight 0 there), so the socket keeps the almond opening (#41: at eyes/lids 0.3 the
+   opening went polygonal and no longer fitted the eyeball, which showed on the full-size geese in SandHands).
 3. Joins everything, smart-UV-projects the textured faces into the left 79 % of one atlas; every solid-colour
    material gets a flat patch in the right-hand strip (no UV seams on brass/boots/lids, patches big enough for
-   mipmaps). Bakes every material's base colour with Cycles (colour pass only) into a 1024 atlas, then one
+   mipmaps). Both eyeballs share one square patch at the top of that strip (0.19 of the atlas, ~97 px at 512),
+   mapped straight from the eye asset's planar iris UV, so the iris stays round and sharp. Bakes every material's base colour with Cycles (colour pass only) into a 1024 atlas, then one
    material. The hat feather stays a separate alpha-masked piece (second draw call).
 4. Imports `out/show/<goose>_clips.glb` (armature only, identical rest pose, checked bone by bone), re-targets its
    actions onto the delivery rig by bone name (NLA tracks + action slots, Blender 5.2), composes `Pedal_<seat>`
