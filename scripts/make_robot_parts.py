@@ -489,6 +489,18 @@ def make_hat():
     export(ob, "hat", {"center": c.round(4).tolist(), "radii": r.round(4).tolist()})
 
 
+def fin_mat(F):
+    """The fin's colour: "white" (the shell), or an RGB list + glow (the lady: deep cobalt, a soft glow, so it stays
+    saturated under the game's lights instead of washing out to pale cyan)."""
+    col = F.get("color", "white")
+    if col == "white":
+        return WHITE()
+    rgb = tuple(c_ / 255 for c_ in col)
+    m = mat("robot_fin", rgb, F.get("metallic", 0.3), F.get("rough", 0.3), F.get("glow", 0.35))
+    m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (*rgb, 1)   # glows its own blue
+    return m
+
+
 def helmet_fin(c, r, F):
     """A thin blade on the helmet's centre line from over the brow to the back of the head: it rises toward the
     back and its tip sweeps back past the shell, like a ponytail. White, chrome root, a light line on its edge."""
@@ -513,7 +525,7 @@ def helmet_fin(c, r, F):
                 continue
             bm.faces.new([rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]])
     bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
-    fin = new_obj("fin", bm, WHITE())
+    fin = new_obj("fin", bm, fin_mat(F))   # (orb: the chest orb's glowing blue)
     solidify(fin, F.get("t", 0.006), offset=0.0)
     out = [fin]
     out.append(tube_along(outer[1:-1], 0.0022, LIGHT(), closed=False, step=1))
