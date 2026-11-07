@@ -44,6 +44,24 @@ and `..._only_<piece>_dressed.glb`.
 - `make_robot_parts.py`: the modelled parts. Caps are sphere segments centred on the joint, sized to clear the body
   near it (an earlier per-vertex push followed the garments' inward linings and threw spikes).
 
+## Round 2 (Pete: better chest orb, pack and helmet, silver chrome), v12
+- **3D orbs** (`orb_module`): dark housing, two chrome bezel rings, 4 clamps, 12 light segments, a glowing dome with a
+  white-hot centre, 3 chrome spokes. On the chest plate (`make_robot_parts.py --pieces vest`, built from
+  `versions/waistcoat_preorb.glb`; the painted core is now a dark recess) and on the power pack.
+- **Power pack:** chrome body, black seam, white face panel, the orb, 4 vent slats, corner bolts, framed side light
+  strips, antenna in a collar, two exhaust ports.
+- **Helmet:** clean plane cuts (bottom, and a slant under the visor for the beak) with chrome trim on every edge,
+  black inner lining, framed visor with a scan line, a crest with a light line, ear discs (housing, black face, light
+  ring, bolt) and vents.
+- **Caps** (shoulder, elbow, knee): clean cut edges, chrome trim and a light line.
+- **Collar:** two rings (a gorget band) so no feathers show between it and the chest plate.
+- **Silver chrome:** a pure mirror rendered nearly black in the game's RoomEnvironment (and the game's 'lean' riders
+  light has no env map at all), so chrome = base 0.96, metallic 0.75, roughness 0.24: bright silver in every mode.
+  `docs/img/robot/robot_game_v12.jpg` is the game-lit check (`tools/threejs_check/prop_check.mjs`; it shows every body
+  part, so the tail and feet poke out there but not in the game).
+- The chest plate: no cloth-fold normal map, 8k tris, Laplacian-smoothed; `join(unwrap=False)` (re-unwrapping had
+  scrambled its painted texture).
+
 ## Open
 - The chest plate's back shows faint dents in reflections (it follows the body's back too closely).
 - Boots are ~19.6k tris (the knee-boot last is 11.4k); the rings could drop segments.

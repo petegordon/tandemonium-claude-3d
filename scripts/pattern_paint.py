@@ -799,7 +799,10 @@ def robotplate(P, N, boundary=None):
         ring = front & (d >= cr["r"]) & (d < cr["r"] + cr.get("ring", 0.006))
         c = np.where(ring[:, None], rgb(PR.get("ring_color", [40, 42, 48]))[None], c)
         core = front & (d < cr["r"])
-        line = np.maximum(line, np.where(core, 1.0 - 0.35 * (d / cr["r"]) ** 2, 0.0))
+        if cr.get("glow", True):
+            line = np.maximum(line, np.where(core, 1.0 - 0.35 * (d / cr["r"]) ** 2, 0.0))
+        else:                                # (a modelled orb sits here: a dark recess under it)
+            c = np.where(core[:, None], rgb(PR.get("ring_color", [40, 42, 48]))[None], c)
     if PR.get("edge_glow") and boundary is not None and len(boundary):
         from mathutils.kdtree import KDTree
         kd = KDTree(len(boundary))
