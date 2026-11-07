@@ -83,7 +83,8 @@ grip = {s: {k: bl(v) for k, v in m["ride_grip"].items()} if m else
 R_MAX = math.hypot(CRANK_DOWN - HIP_UP - SADDLE_DEPTH - TYRE_CLEAR, CRANK_FWD)   # tyre just clears the saddle
 # big wheel: Pete's pick C = 0.852 m (34 in). With the corrected leg reach, up to 2 * R_MAX (~1.26 m / 50 in) fits
 # (--wheel-r auto; long skirts then cross the tyre under the saddle, and --stagger keeps the small wheels apart)
-R = R_MAX if "--wheel-r" in argv and argv[argv.index("--wheel-r") + 1] == "auto" else arg("--wheel-r", 0.426)
+R = arg("--wheel-r", 0.0) if "--wheel-r" in argv and argv[argv.index("--wheel-r") + 1] != "auto" else R_MAX
+# Pete 2026-11-06: the 50 in wheel (auto = the most that fits, 1.26 m)
 print(f"FIT hub {CRANK_DOWN:.3f} below the hips, wheel max {2 * R_MAX:.3f} m, using {2 * R:.3f} m")
 D = 2 * R
 SR = arg("--small-r", 0.12 * D)             # art: small wheel ~0.24 D across
@@ -98,7 +99,7 @@ BAR_ART = 2 * (0.885 * D - math.sqrt(1 - _c * _c) * BB_R)
 BAR_LEN = arg("--bar-len", 0.40)            # Pete 2026-11-06
 HUB_F = BAR_LEN / 2 + math.sqrt(1 - _c * _c) * BB_R
 SMALL_F = HUB_F - 0.615 * D                 # art: small hub this far in from its big hub
-STAGGER = arg("--stagger", 0.0)              # small wheels side by side: each half's sits this far to its rider's left
+STAGGER = arg("--stagger", 0.045)              # small wheels side by side: each half's sits this far to its rider's left
 if SMALL_F - SR < 0.012 and STAGGER < 0.035:
     print(f"WARNING: small wheels overlap (gap {2 * (SMALL_F - SR):.3f} m); lengthen --bar-len")
 

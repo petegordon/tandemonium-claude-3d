@@ -20,10 +20,10 @@ one straight black-and-gold cross bar with a goose medallion.
 (`pf_paint`, `pf_gold`).
 
 ```
-blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.40] [--stagger 0] [--wheel-r auto]
+blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.40] [--stagger 0.045] [--wheel-r auto]
 ```
 
-- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.16 m long) and `pf_tandem_info.json`. `--sheet` writes
+- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.96 m long, 1.26 m / 50 in big wheels) and `pf_tandem_info.json`. `--sheet` writes
   `renders/pf_tandem/build_sheet.png`, with both geese seated (it needs `out/sandquest/{winston,victoria}{.glb,_clips.json}`).
 - Khronos validator: 0 errors, 0 warnings. The 2 infos are the empty seat-socket nodes.
 - **Rider fit:** the contact points come from the geese's own Ride numbers (saddle under the hip, the `ride_grip`
@@ -74,9 +74,14 @@ plus a one-triangle anchor skinned to Hips so it loads as an armature). It runs 
 | `outfit_female_georgian_pf` | goose_stoker_georgian, goose_captain_georgian_f |
 
 ## Decided (Pete 2026-11-06)
+- **50 in big wheels** (the most that fits with the 9 cm crank). The 0.40 m bar puts the small wheels side by side
+  (`--stagger 0.045`).
+- Long skirts meet the tyre just under the saddle. Riding hems for this bike only: fancy and Victorian 0.45/0.6/0.55,
+  Georgian 0.25/0.35/0.35 (`docs/img/pf_tandem/georgian_hems_50in.jpg`), cyclist none (her knee-length skirt reads
+  fine). The vertex counts overstate what shows at game scale.
+- Name: **Time Warp**.
 - The stoker pedals backwards when the bike rolls forward. That's intended.
 - Both riders steer and pedal as built. A reverse-lean option for the stoker may come later.
 
 ## Open
-- Wheel size after the leg-reach fix: 34 in (as picked, taller saddle post) or 50 in (true penny-farthing; skirts cross the tyre).
 - Hooking it into the game (the garage, the bike swap, the unlock rule) waits on #611's design questions.

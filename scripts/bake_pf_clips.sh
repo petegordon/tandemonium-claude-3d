@@ -19,7 +19,7 @@ declare -A ARGS=(
   [outfit_female]="$CAP --riding-hem 0.45,0.6,0.55 --hem-axis y --bustle 0.3"   # tighter than the tandem: the big wheel runs between the legs
   [outfit_female_cyclist]="--dressed-tag full $CAP --riding-hem 1,1,1"
   [outfit_female_victorian]="--dressed-tag full $CAP --riding-hem 0.45,0.6,0.55 --hem-axis y"
-  [outfit_female_georgian]="--dressed-tag full $CAP --riding-hem 0.38,0.55,0.62 --hem-axis y"
+  [outfit_female_georgian]="--dressed-tag full $CAP --riding-hem 0.25,0.35,0.35 --hem-axis y"   # 50 in wheel: the long gown rides up over the tyre
 )
 NAMES="${*:-outfit_male outfit_male_cyclist outfit_male_victorian outfit_male_georgian outfit_female outfit_female_cyclist outfit_female_victorian outfit_female_georgian}"
 mkdir -p renders/riders out/pf_tandem/clips
