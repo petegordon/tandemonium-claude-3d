@@ -72,6 +72,11 @@ LEAN = arg("--lean", 15.0)   # torso forward lean, deg (Spine + Spine1 + Spine2)
 TOE_DOWN = 12.0        # deg: foot pitched toes-down about the ball of the foot
 SIDE_LEAN = arg("--side-lean", 35.0)   # deg: Lean_L / Lean_R torso roll (Spine, Spine1, Spine2 a third each; neck gives some back)
 CLIPS = "--clips" in argv
+# Penny-Farthing (Tandemonium #611): --bike pf --clip-name Pedal_PF --pedal-only --clip-pack <glb> bakes just the legs
+# clip under its own name and exports the armature + that clip alone (the game plays it on the goose it already has)
+CLIP_NAME = arg("--clip-name", "")
+PEDAL_ONLY = "--pedal-only" in argv
+CLIP_PACK = arg("--clip-pack", "")
 HEM = [float(x) for x in arg("--riding-hem", "").split(",")] if "--riding-hem" in argv else None
 # --hem-axis y: the riding hem shortens each chain along its length only (bone Y) -- the panels keep their width, so
 # neighbouring chains don't pull apart (scaling all axes shrank each back panel toward its own root: a crease + lump)
@@ -341,12 +346,15 @@ BAR_AXIS = {"C": _sv.normalized(), "S": Vector((0, 0, 1))}          # captain: q
 BAR_PARTS = {"C": ["NurbsPath", "Cylinder.012", "Tee Joint.001", "Cylinder.017"],
              "S": ["NurbsPath.009", "Cylinder.019"]}
 BAR_BASE = {"C": Vector(BIKE_REP["pivots"]["steer_hi"]), "S": None}
-BAR_ORIG = {n: bpy.data.objects[n + "_cycle_0"].data.copy() for g in BAR_PARTS.values() for n in g}
+BAR_ORIG = {n: bpy.data.objects[n + "_cycle_0"].data.copy() for g in BAR_PARTS.values() for n in g
+            if n + "_cycle_0" in bpy.data.objects}     # (the Penny-Farthing has none of the tandem's bar meshes)
 
 
 def raise_bars(gr, d_bike):
     """Fit the bars: move bar + grips + stem up the stem axis by d_bike (bike units), riser tube in the gap."""
     for n in BAR_PARTS[gr]:
+        if n not in BAR_ORIG:
+            continue
         o = bpy.data.objects[n + "_cycle_0"]
         name = o.data.name
         o.data = BAR_ORIG[n].copy()
@@ -661,7 +669,8 @@ if CLIPS:
             skirt_rep[f] = skirt_in_wheel("F" if SEAT == "Captain" else "R")
         return go
 
-    bake(f"Pedal_{SEAT}", [pedal_frame(f) for f in range(NCLIP + 1)], LOWER)
+    pedal_name = CLIP_NAME or f"Pedal_{SEAT}"
+    bake(pedal_name, [pedal_frame(f) for f in range(NCLIP + 1)], LOWER)
 
     def still(roll):
         def go():
@@ -670,9 +679,12 @@ if CLIPS:
             clip_rep[f"roll{roll}"] = max(r["grip_err_mm_L"], r["grip_err_mm_R"])
         return go
 
-    bake(f"Ride_{SEAT}", [still(0.0)] * 2, UPPER)
-    bake(f"Lean_L_{SEAT}", [still(SIDE_LEAN)] * 2, UPPER)
-    bake(f"Lean_R_{SEAT}", [still(-SIDE_LEAN)] * 2, UPPER)
+    if not PEDAL_ONLY:
+        bake(f"Ride_{SEAT}", [still(0.0)] * 2, UPPER)
+        bake(f"Lean_L_{SEAT}", [still(SIDE_LEAN)] * 2, UPPER)
+        bake(f"Lean_R_{SEAT}", [still(-SIDE_LEAN)] * 2, UPPER)
+    else:
+        still(0.0)()
     report["clips"] = {"contact_err_mm_max": max(clip_rep.values()), "frames": NCLIP + 1, "side_lean_deg": SIDE_LEAN,
                        "riding_hem": HEM, "bustle": BUSTLE, f"skirt_verts_in_{'front' if SEAT == 'Captain' else 'rear'}_wheel": [skirt_rep[f] for f in range(NCLIP + 1)]}
     print("CLIPS", json.dumps(report["clips"]))
@@ -747,13 +759,34 @@ if CLIPS:
     for o in goose_objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = rig
-    out_glb = ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_rider.glb"
-    bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
-                              export_tangents=True, export_animations=True, export_animation_mode="NLA_TRACKS",
-                              export_yup=True)
-    sys.path.insert(0, str(Path(__file__).parent))
-    from glb_fix_tangents import main as fix_tangents  # noqa: E402
-    fix_tangents(str(out_glb))
+    if CLIP_PACK:                             # armature + the new clip only
+        for tr in list(rig.animation_data.nla_tracks):
+            if tr.name != pedal_name:
+                rig.animation_data.nla_tracks.remove(tr)
+        # a one-triangle mesh skinned to Hips keeps the armature a skin, so the pack re-imports as an armature
+        # (unskinned, the bones come back as loose empties); three.js only reads the bone-named tracks
+        hz = bones["Hips"].head_local
+        am = bpy.data.meshes.new("pf_clip_anchor")
+        am.from_pydata([hz + Vector(d) for d in ((0, 0, 0), (0.001, 0, 0), (0, 0.001, 0))], [], [(0, 1, 2)])
+        anchor = bpy.data.objects.new("pf_clip_anchor", am)
+        sc.collection.objects.link(anchor)
+        anchor.vertex_groups.new(name="Hips").add([0, 1, 2], 1.0, "REPLACE")
+        anchor.modifiers.new("Armature", "ARMATURE").object = rig
+        bpy.ops.object.select_all(action="DESELECT")
+        rig.select_set(True)
+        anchor.select_set(True)
+        out_glb = Path(CLIP_PACK) if Path(CLIP_PACK).is_absolute() else ROOT / CLIP_PACK
+        out_glb.parent.mkdir(parents=True, exist_ok=True)
+        bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
+                                  export_animations=True, export_animation_mode="NLA_TRACKS", export_yup=True)
+    else:
+        out_glb = ROOT / "out" / f"{CHAR}-goose" / f"{CHAR}_rider.glb"
+        bpy.ops.export_scene.gltf(filepath=str(out_glb), export_format="GLB", use_selection=True, export_skins=True,
+                                  export_tangents=True, export_animations=True, export_animation_mode="NLA_TRACKS",
+                                  export_yup=True)
+        sys.path.insert(0, str(Path(__file__).parent))
+        from glb_fix_tangents import main as fix_tangents  # noqa: E402
+        fix_tangents(str(out_glb))
     for o in hidden:
         o.hide_viewport = True
     set_crank(0.0)                            # back on the bike for the saved scene (--base for the next rider)

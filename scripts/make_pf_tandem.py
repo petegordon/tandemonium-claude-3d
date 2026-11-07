@@ -60,8 +60,13 @@ def bl(v):                                              # three.js (x, y, z) -> 
 
 
 # ---- the geese's contact numbers (same as make_watercycle.py) --------------------------------------------------------
-HIP_UP = 0.11
-CLIP_FWD, CLIP_DOWN, CLIP_R = 0.197 - 0.004, 0.78 - 0.262, 0.162   # the geese's Pedal clips (game tandem crank)
+HIP_UP = arg("--hip-up", 0.0)   # game riders: hip joints at the saddle top (ride_fit.py / goose-rider-clips.js HIP_UP 0)
+# Grips: the game tandem's captain grips relative to his seat socket (bike_rig_goosefit26: Seat_Captain -> Grip_C_*),
+# the same on both halves, so a goose's Ride / Lean clips fit either seat and one Pedal_PF clip serves both.
+GRIP_X, GRIP_FWD, GRIP_UP = 0.167, 0.444, 0.143
+# the geese's Pedal clips (game tandem, goosefit26 as baked): crank 0.193 ahead of and 0.628 below the hip joints
+# (saddle 0.78, hips 0.11 above it, crank axle 0.262), 0.162 crank
+CLIP_FWD, CLIP_DOWN, CLIP_R = 0.197 - 0.004, 0.78 + 0.11 - 0.262, 0.162
 # Shorter cranks (a smaller pedal circle): keep the leg's reach at the bottom of the stroke, so the hub drops further
 # below the hip and the big wheel can grow until the tyre would touch the saddle (Pete, 2026-11-06: try examples).
 CRANK_FWD = arg("--crank-fwd", CLIP_FWD)
@@ -76,7 +81,10 @@ grip = {s: {k: bl(v) for k, v in m["ride_grip"].items()} if m else
 
 # ---- layout, in "half" coordinates: x = that rider's left, f = forward from the bike centre, z up -------------------
 R_MAX = math.hypot(CRANK_DOWN - HIP_UP - SADDLE_DEPTH - TYRE_CLEAR, CRANK_FWD)   # tyre just clears the saddle
-R = arg("--wheel-r", R_MAX)                 # big wheel (to the tyre's outside)
+# big wheel: Pete's pick C = 0.852 m (34 in). With the corrected leg reach, up to 2 * R_MAX (~1.26 m / 50 in) fits
+# (--wheel-r auto; long skirts then cross the tyre under the saddle, and --stagger keeps the small wheels apart)
+R = R_MAX if "--wheel-r" in argv and argv[argv.index("--wheel-r") + 1] == "auto" else arg("--wheel-r", 0.426)
+print(f"FIT hub {CRANK_DOWN:.3f} below the hips, wheel max {2 * R_MAX:.3f} m, using {2 * R:.3f} m")
 D = 2 * R
 SR = arg("--small-r", 0.12 * D)             # art: small wheel ~0.24 D across
 TYRE_R = 0.022                              # tyre section radius (solid rubber, fat as in the art)
@@ -111,7 +119,7 @@ def half_points(s):
     hm = hip_mid[seat]                                 # Blender, forward = -Y
     origin = Vector((0, hip.y - (-hm.y), hip.z - hm.z))  # rig origin: hm.y > 0 means the hip is behind the origin
     saddle = Vector((0, hip.y, hip.z - HIP_UP))
-    g = {k: Vector((v.x, origin.y - v.y, origin.z + v.z)) for k, v in grip[seat].items()}   # -v.y = forward
+    g = {k: Vector((sx * GRIP_X, hip.y + GRIP_FWD, hip.z + GRIP_UP)) for k, sx in (("Left", 1), ("Right", -1))}
     gz = sum(v.z for v in g.values()) / 2
     head = Vector((0, HUB_F - 0.03, gz - 0.11))        # fork top: a tall fork, so the bars sit just over the saddle
     return dict(seat=seat, hub=hub, hip=hip, origin=origin, saddle=saddle, grip=g, head=head)
@@ -373,7 +381,7 @@ for s, tag in ((1, "F"), (-1, "R")):
 
     # -- hub crank + pedals (rider-left pedal at the top at rest) --------------------------------------------------------
     cr = Part(f"Crank_{tag}")
-    PIN_X = 0.075
+    PIN_X = 0.062                                                 # crank arm just outside the fork
     for sx_half, top in ((1, True), (-1, False)):                 # sx_half = that rider's left (+) / right (-)
         z = CRANK_R if top else -CRANK_R
         base = Vector((sx_half * PIN_X, HUB_F, R))
@@ -441,7 +449,7 @@ sockets = {}
 for seat, s in (("Captain", 1), ("Stoker", -1)):
     e = bpy.data.objects.new("Seat_" + seat, None)
     e.empty_display_size = 0.1
-    e.location = W(s, info_half[seat]["origin"])
+    e.location = W(s, info_half[seat]["hip"])          # game contract: the goose's hips go on the socket
     e.rotation_euler = (0, 0, 0 if s > 0 else math.pi)
     sc.collection.objects.link(e)
     parent_keep(e, frame_ob)
@@ -516,13 +524,65 @@ for seat, s in (("Captain", 1), ("Stoker", -1)):
     H = info_half[seat]
     info["halves"][seat] = {
         "faces": "+Z (forward)" if s > 0 else "-Z (backward)",
-        "seat_socket": yup(W(s, H["origin"])), "saddle_top": yup(W(s, H["saddle"])),
+        "seat_socket": yup(W(s, H["hip"])), "saddle_top": yup(W(s, H["saddle"])),
         "hub": yup(W(s, H["hub"])), "grips": {k: yup(W(s, v)) for k, v in H["grip"].items()},
         "steer_axis": yup(W(s, H["steer_axis"])), "small_hub": yup(W(s, H["small_hub"]))}
 info["clips"] = {"Ride": {"duration": 1.0, "loop": True, "nodes": list(spin),
                           "note": "rolling forward; stoker's cranks turn backwards for her (Pedal_Stoker reversed)"}}
 (OUT / "pf_tandem_info.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
 print("PF_TANDEM", OUT_GLB, "tris", tris, "size", [round(x, 3) for x in size])
+
+# ---- bake rig for ride_fit.py (out/bike/bike_rigged_pf.blend + bike_rig_pf.json), the game tandem's bone contract -----
+OUT_BIKE = ROOT / "out" / "bike"
+OUT_BIKE.mkdir(parents=True, exist_ok=True)
+PEDAL_X = 0.062 + 0.035                                          # pedal centre (ball of the foot), rider's side
+arm_d = bpy.data.armatures.new("bike_rig")
+arm = bpy.data.objects.new("bike_rig", arm_d)
+sc.collection.objects.link(arm)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode="EDIT")
+eb = arm_d.edit_bones
+
+
+def bone(name, head, ydir, parent=None):
+    b = eb.new(name)
+    b.head = Vector(head)
+    b.tail = Vector(head) + Vector(ydir).normalized() * 0.08
+    b.roll = 0.0
+    if parent:
+        b.parent = eb[parent]
+    return b
+
+
+X, Z = (1, 0, 0), (0, 0, 1)
+bone("Bike_root", (0, 0, 0), Z)
+for s, tag, gtag, seat in ((1, "F", "C", "Captain"), (-1, "R", "S", "Stoker")):
+    H = info_half[seat]
+    hubw = W(s, H["hub"])
+    if s > 0:
+        bone("Steer", W(s, H["head"]), W(s, H["head"]) - hubw, "Bike_root")
+    bone(f"Wheel_{tag}", hubw, X, "Steer" if s > 0 else "Bike_root")
+    bone(f"Crank_{tag}", hubw, X, "Bike_root")
+    for side, sx, dz in (("L", 1, CRANK_R), ("R", -1, -CRANK_R)):          # rider-left pedal up at theta 0, both seats
+        pc = W(s, H["hub"] + Vector((sx * PEDAL_X, 0, dz)))
+        bone(f"Pedal_{tag}{side}", pc, X, f"Crank_{tag}")
+        bone(f"PedalPin_{tag}{side}", pc + Vector((0, 0, 0.011)), Z, f"Pedal_{tag}{side}")
+    bone(f"Seat_{seat}", W(s, H["hip"]), Z, "Bike_root")
+    for side, key in (("L", "Left"), ("R", "Right")):
+        bone(f"Grip_{gtag}_{side}", W(s, H["grip"][key]), Z, "Steer" if s > 0 else "Bike_root")
+bpy.ops.object.mode_set(mode="OBJECT")
+for pb in arm.pose.bones:
+    pb.rotation_mode = "XYZ"
+Hc, Hs = info_half["Captain"], info_half["Stoker"]
+rig_rep = {"source": "make_pf_tandem.py", "wheel_m": round(D, 4), "length_m": round(size[1], 3),
+           "pivots": {"hub_F": list(W(1, Hc["hub"])), "hub_R": list(W(-1, Hs["hub"])),
+                      "crank_F": list(W(1, Hc["hub"])), "crank_R": list(W(-1, Hs["hub"])),
+                      "steer_lo": list(W(1, Hc["hub"])), "steer_hi": list(W(1, Hc["head"])),
+                      "crank_len_m": {n: round(CRANK_R, 4) for n in ("Pedal_FL", "Pedal_FR", "Pedal_RL", "Pedal_RR")}},
+           "phase": "theta 0 = rider-left pedal up, both seats (the stoker's half is turned 180 deg)"}
+(OUT_BIKE / "bike_rig_pf.json").write_text(json.dumps(rig_rep, indent=1), encoding="utf-8")
+bpy.ops.wm.save_as_mainfile(filepath=str(OUT_BIKE / "bike_rigged_pf.blend"), copy=True)
+print("BAKE_RIG", OUT_BIKE / "bike_rigged_pf.blend")
 
 # ---- review sheet ------------------------------------------------------------------------------------------------------
 if SHEET:
@@ -539,7 +599,7 @@ if SHEET:
             if o.parent is None:
                 o.parent = sockets[seat]
                 o.matrix_parent_inverse = Matrix.Identity(4)
-                o.location = (0, 0, 0)
+                o.location = -hip_mid[seat]               # toy rig origin below its hips (socket = hips)
                 o.rotation_euler = (0, 0, 0)
         ad = rig.animation_data
         for t in ad.nla_tracks:
