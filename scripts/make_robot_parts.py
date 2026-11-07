@@ -495,6 +495,8 @@ def fin_mat(F):
     col = F.get("color", "white")
     if col == "white":
         return WHITE()
+    if col == "chrome":
+        return CHROME()
     rgb = tuple(c_ / 255 for c_ in col)
     m = mat("robot_fin", rgb, F.get("metallic", 0.3), F.get("rough", 0.3), F.get("glow", 0.35))
     m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (*rgb, 1)   # glows its own blue
