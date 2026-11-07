@@ -33,6 +33,8 @@ D = ROOT / "out" / f"{CHAR}-goose"
 SHD = D / "shells"
 cfg = json.loads((ROOT / "chars" / f"{CHAR}.json").read_text(encoding="utf-8"))
 RP = cfg.get("robot_parts", {})
+if "--pieces" not in argv:          # the lady robot's extra pieces (Pete 2026-11-07): hip plates, flared glove cuffs
+    PIECES += [k for k in ("peplum", "gloves") if (RP.get(k) or {}).get("on")]
 GLOW_RGB = [c / 255 for c in RP.get("glow", [40, 215, 255])]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -365,7 +367,7 @@ def join(obs, name, unwrap=True):
     return ob
 
 
-BUDGET = {"hat": 6000, "collar": 1600, "jacket": 8000, "boots": 7000, **RP.get("budget", {})}   # triangles per piece
+BUDGET = {"hat": 6000, "collar": 1600, "jacket": 8000, "boots": 7000, "peplum": 3000, **RP.get("budget", {})}   # triangles per piece
 
 
 def export(ob, piece, meta):
@@ -475,12 +477,191 @@ def make_hat():
             zz = eye[2] - 0.004
             dx = r[0] * math.sqrt(max(0.0, 1 - ((yy - c[1]) / r[1]) ** 2 - ((zz - c[2]) / r[2]) ** 2))
             parts.append(rounded_box((c[0] + sx * (dx + 0.001), yy, zz), (0.006, 0.005, 0.026), 0.002, BLACK(), segs=1))
-    top = Vector(c) + Vector((r[0] * 0.38, r[1] * 0.3, r[2] * 0.86))
-    parts.append(cylinder(top - Vector((0, 0, 0.012)), top + Vector((0, 0, 0.006)), 0.007, CHROME(), 16))
-    parts.append(cylinder(top, top + Vector((0, 0.01, H.get("antenna", 0.07))), 0.0028, CHROME(), 10))
-    parts.append(sphere(top + Vector((0, 0.01, H.get("antenna", 0.07) + 0.005)), 0.0075, ORB()))
+    F = H.get("fin")
+    if F:                                   # the lady: a swept-back fin along the crest (a "ponytail"), light on its edge
+        parts += helmet_fin(c, r, F)
+    else:
+        top = Vector(c) + Vector((r[0] * 0.38, r[1] * 0.3, r[2] * 0.86))
+        parts.append(cylinder(top - Vector((0, 0, 0.012)), top + Vector((0, 0, 0.006)), 0.007, CHROME(), 16))
+        parts.append(cylinder(top, top + Vector((0, 0.01, H.get("antenna", 0.07))), 0.0028, CHROME(), 10))
+        parts.append(sphere(top + Vector((0, 0.01, H.get("antenna", 0.07) + 0.005)), 0.0075, ORB()))
     ob = smooth_by_angle(join(parts, "hat"), 50)
     export(ob, "hat", {"center": c.round(4).tolist(), "radii": r.round(4).tolist()})
+
+
+def helmet_fin(c, r, F):
+    """A thin blade on the helmet's centre line from over the brow to the back of the head: it rises toward the
+    back and its tip sweeps back past the shell, like a ponytail. White, chrome root, a light line on its edge."""
+    a0, a1, n = math.radians(F.get("from_deg", 40)), math.radians(F.get("to_deg", 165)), 28
+    Hh, sweep, drop = F.get("h", 0.05), F.get("sweep", 0.035), F.get("drop", 0.01)
+    base, outer = [], []
+    for i in range(n):
+        s_ = i / (n - 1)
+        a = a0 + (a1 - a0) * s_
+        d = Vector((0, -math.cos(a), math.sin(a)))
+        p = Vector(c) + Vector((0, d.y * r[1], d.z * r[2]))
+        nrm = (p - Vector(c)).normalized()
+        p = p + nrm * 0.004
+        h = Hh * (s_ ** F.get("rise_pow", 0.7)) * ((1 - s_) ** F.get("fall_pow", 0.3))
+        base.append(p)
+        outer.append(p + nrm * h + Vector((0, 1, 0)) * sweep * s_ ** 2 - Vector((0, 0, 1)) * drop * s_ ** 3)
+    bm = bmesh.new()
+    rows = [[bm.verts.new(b + (o - b) * t) for b, o in zip(base, outer)] for t in (0.0, 0.35, 0.7, 1.0)]
+    for j in range(len(rows) - 1):
+        for i in range(n - 1):
+            if (rows[j][i].co - rows[j + 1][i].co).length + (rows[j][i + 1].co - rows[j + 1][i + 1].co).length < 1e-5:
+                continue
+            bm.faces.new([rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]])
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
+    fin = new_obj("fin", bm, WHITE())
+    solidify(fin, F.get("t", 0.006), offset=0.0)
+    out = [fin]
+    out.append(tube_along(outer[1:-1], 0.0022, LIGHT(), closed=False, step=1))
+    out.append(tube_along(base, 0.0035, CHROME(), closed=False, step=1))
+    return out
+
+
+# ------------------------------------------------------------------ peplum: the lady's hip plates
+def make_peplum():
+    """White plates with chrome edges hanging from a chrome belt round the hips, open in front (the thighs come
+    forward on the bike), flaring out; a light line along each hem, a small light-orb buckle. Rigid on Hips."""
+    Pc = RP["peplum"]
+    z0, z1 = Pc.get("z_top", 0.935), Pc.get("z_bot", 0.83)
+    dom = np.array(GN)[BW.argmax(1)]
+    torso = ~np.array([("Arm" in d) or ("Hand" in d) or ("Shoulder" in d) for d in dom])
+    sl = torso & (BV[:, 2] > z1 - 0.02) & (BV[:, 2] < z0 + 0.01)
+    cx, cy = 0.0, float(np.median(BV[sl, 1]))
+    th_v = np.arctan2(BV[sl, 0] - cx, -(BV[sl, 1] - cy))          # 0 = front (-y), +pi/2 = left (+x)
+    rv = np.hypot(BV[sl, 0] - cx, BV[sl, 1] - cy)
+    nb = 72
+    bins = ((th_v + math.pi) / (2 * math.pi) * nb).astype(int) % nb
+
+    def profile(mask):                                               # max radius per azimuth bin, gaps filled, smoothed
+        r_ = np.zeros(nb)
+        np.maximum.at(r_, bins[mask], rv[mask])
+        for _ in range(6):
+            r_ = np.maximum(r_, 0.5 * (np.roll(r_, 1) + np.roll(r_, -1)) * (r_ == 0))
+        for _ in range(4):
+            r_ = 0.25 * np.roll(r_, 1) + 0.5 * r_ + 0.25 * np.roll(r_, -1)
+        return r_
+    zs = BV[sl, 2]
+    # the lady's sliders slim the body AFTER this (dress_goose, shells_on_base) but a rigid piece keeps its size:
+    # build to the shaped body (waist by torso_girth, hips by hip_girth)
+    shp = cfg.get("shape", {})
+    r_belt = profile(np.abs(zs - z0) < 0.012) * shp.get("torso_girth", 1.0)
+    r_hem = np.maximum(profile(np.ones(len(zs), bool)) * shp.get("hip_girth", 1.0), r_belt)
+
+    def interp_bins(r_, th):
+        x = ((th + math.pi) % (2 * math.pi)) / (2 * math.pi) * nb
+        return float(np.interp(x, np.arange(nb + 1), np.append(r_, r_[0])))
+    clear, flare = Pc.get("clear", 0.016), Pc.get("flare", 0.03)
+    open_deg, n_pl, gap = Pc.get("open_deg", 70), Pc.get("plates", 6), math.radians(Pc.get("gap_deg", 1.5))
+    th_a, th_b = math.radians(open_deg), 2 * math.pi - math.radians(open_deg)
+    back_short = Pc.get("back_short", 0.015)
+
+    def P(th, v):                                                    # v 0 = belt, 1 = hem
+        zz = z0 + (z1 + back_short * max(0.0, -math.cos(th)) - z0) * v
+        rb, rh = interp_bins(r_belt, th), interp_bins(r_hem, th)
+        rr = rb + clear + (rh - rb) * min(1.0, 2.0 * v) + flare * v ** 1.3
+        return Vector((cx + math.sin(th) * rr, cy - math.cos(th) * rr, zz))
+    parts = []
+    for k in range(n_pl):
+        ta = th_a + (th_b - th_a) * k / n_pl + gap / 2
+        tb = th_a + (th_b - th_a) * (k + 1) / n_pl - gap / 2
+        nu, nv = 7, 5
+        bm = bmesh.new()
+        G = [[bm.verts.new(P(ta + (tb - ta) * i / (nu - 1), 0.04 + 0.96 * j / (nv - 1))) for i in range(nu)] for j in range(nv)]
+        for j in range(nv - 1):
+            for i in range(nu - 1):
+                bm.faces.new([G[j][i], G[j + 1][i], G[j + 1][i + 1], G[j][i + 1]])
+        pl = new_obj("plate", bm, WHITE())
+        solidify(pl, 0.003, offset=1.0)
+        parts.append(pl)
+        hem = [P(ta + (tb - ta) * i / 10, 1.0) for i in range(11)]
+        parts.append(tube_along(hem, 0.0022, LIGHT(), closed=False, step=1))
+        for t_ in (ta, tb):                                          # chrome edge strips
+            parts.append(tube_along([P(t_, v) for v in np.linspace(0.04, 1.0, 5)], 0.0024, CHROME(), closed=False, step=1))
+    belt = [P(2 * math.pi * i / 64, 0.0) + Vector((0, 0, 0.004)) for i in range(64)]
+    parts.append(tube_along(belt, Pc.get("belt_r", 0.006), CHROME(), closed=True, step=1, tseg=8))
+    front = P(0.0, 0.0) + Vector((0, -0.006, 0.004))
+    parts += orb_module(front, (0, -1, 0), Pc.get("buckle_r", 0.012), back_depth=0.004)
+    ob = smooth_by_angle(join(parts, "peplum"), 50)
+    export(ob, "peplum", {"z_top": z0, "z_bot": z1, "open_deg": open_deg, "plates": n_pl})
+
+
+# ------------------------------------------------------------------ gloves: the lady's flared chrome cuffs
+def make_gloves():
+    """A flared chrome gauntlet cuff at each wrist (wide end toward the elbow, a light ring on its rim), added to
+    the designed glove; rigid on the forearm."""
+    import shutil
+    Gc = RP["gloves"]
+    src = D / "versions" / "gloves_precuff.glb"
+    meta_f = SHD / "gloves.json"
+    meta = json.loads(meta_f.read_text(encoding="utf-8"))
+    if not meta.get("cuffs"):
+        shutil.copy(SHD / "gloves.glb", src)
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(src))
+    gl = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in gl:
+        o.hide_set(False)
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = gl[0]
+    if len(gl) > 1:
+        bpy.ops.object.join()
+    go = bpy.context.view_layer.objects.active
+    go.data.transform(go.matrix_world)
+    go.matrix_world = Matrix.Identity(4)
+    GV = np.array([v.co[:] for v in go.data.vertices])
+    parts, rigid = [go], []
+    L_, flare, s0 = Gc.get("len", 0.05), Gc.get("flare", 0.016), Gc.get("start", -0.012)
+    for sx, side in ((1, "Left"), (-1, "Right")):
+        w = J(f"{side}Hand")
+        ax = J(f"{side}ForeArm") - J(f"{side}Hand")
+        ax /= np.linalg.norm(ax)
+        u = np.cross(ax, [0, 1.0, 0])
+        u /= np.linalg.norm(u)
+        v_ = np.cross(ax, u)
+        side_v = np.vstack([GV[(GV[:, 0] * sx) > 0.15], BV[(BV[:, 0] * sx) > 0.15]])
+
+        def rad(s):                                                  # glove / arm radius about the axis at s
+            rel = side_v - w
+            al = rel @ ax
+            perp = np.linalg.norm(rel - np.outer(al, ax), axis=1)
+            near = (np.abs(al - s) < 0.008) & (perp < 0.08)
+            return float(np.percentile(perp[near], 95)) if near.sum() > 5 else 0.03
+        r0 = max(rad(s0), rad(0.0), rad(s0 + L_ * 0.5) - 0.004) + Gc.get("clear", 0.004)
+        seg, nr = 28, 6
+        bm = bmesh.new()
+        rows = []
+        for j in range(nr):
+            t = j / (nr - 1)
+            s = s0 + L_ * t
+            rr = r0 + flare * t ** 1.6
+            rows.append([bm.verts.new(Vector(w + ax * s + (u * math.cos(2 * math.pi * i / seg) + v_ * math.sin(2 * math.pi * i / seg)) * rr))
+                         for i in range(seg)])
+        for j in range(nr - 1):
+            for i in range(seg):
+                bm.faces.new([rows[j][i], rows[j][(i + 1) % seg], rows[j + 1][(i + 1) % seg], rows[j + 1][i]])
+        ring_hi = [v.co.copy() for v in rows[-1]]
+        ring_lo = [v.co.copy() for v in rows[0]]
+        cuff = new_obj("cuff", bm, CHROME())
+        solidify(cuff, 0.0025, offset=-1.0)
+        parts.append(cuff)
+        parts.append(tube_along(ring_hi, 0.0022, LIGHT(), closed=True, step=1))
+        parts.append(tube_along(ring_lo, 0.002, CHROME(), closed=True, step=1))
+        cc = w + ax * (s0 + L_ / 2)
+        rigid.append({"bone": f"{side}ForeArm", "center": [round(float(x), 4) for x in cc], "radius": 0.035})
+        print("CUFF", side, "r0", round(r0, 4))
+    ob = join(parts, "gloves", unwrap=False)
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=str(SHD / "gloves.glb"), export_format="GLB", use_selection=True)
+    meta["cuffs"] = {"len": L_, "flare": flare}
+    meta["rigid_parts"] = rigid
+    meta_f.write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    print("PART gloves + flared cuffs", rigid)
 
 
 # ------------------------------------------------------------------ collar (neckwear)
@@ -669,4 +850,5 @@ def make_boots():
 
 
 for p in PIECES:
-    {"hat": make_hat, "collar": make_collar, "jacket": make_jacket, "boots": make_boots, "vest": make_vest}[p]()
+    {"hat": make_hat, "collar": make_collar, "jacket": make_jacket, "boots": make_boots, "vest": make_vest,
+     "peplum": make_peplum, "gloves": make_gloves}[p]()
