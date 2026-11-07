@@ -39,6 +39,12 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(ROOT / "out" / "base-goose" / "base_goose_rigged.glb"))
 body = bpy.data.objects["base_goose_game"]
 BV = np.array([(body.matrix_world @ v.co)[:] for v in body.data.vertices])
+_GB = ROOT / "out" / "base-goose" / "garment_body.npz"          # the garment body (no tail, human-like seat)
+if cfg.get("garment_body", True) and _GB.exists() and len(np.load(_GB)["pos"]) == len(BV):
+    BV = np.load(_GB)["pos"].astype(float)
+    _Mi = np.linalg.inv(np.array(body.matrix_world))
+    body.data.vertices.foreach_set("co", (BV @ _Mi[:3, :3].T + _Mi[:3, 3]).ravel())
+    body.data.update()
 GN = [g.name for g in body.vertex_groups]
 BW = np.zeros((len(BV), len(GN)))
 for v in body.data.vertices:
@@ -177,7 +183,7 @@ def sphere(c, r, material):
     return new_obj("sph", bm, material)
 
 
-def ring(center, rx, ry, tube, material, normal=(0, 0, 1), seg=64, tseg=10):
+def ring(center, rx, ry, tube, material, normal=(0, 0, 1), seg=36, tseg=6):
     """Elliptic torus round `center` in the plane normal to `normal`."""
     bm = bmesh.new()
     verts = []
@@ -223,7 +229,7 @@ def smooth_by_angle(ob, deg=40):
     return ob
 
 
-def cut_dome(center, radii, planes, seg=64, rings=40):
+def cut_dome(center, radii, planes, seg=44, rings=26):
     """Ellipsoid surface cut by planes (in unit-sphere space: (point, normal), the side the normal points to is KEPT):
     clean conic edges, unlike deleting faces. Returns bmesh in world space + the boundary loops (lists of Vectors)."""
     bm = bmesh.new()
@@ -260,9 +266,9 @@ def boundary_loops(bm):
     return loops
 
 
-def tube_along(points, r, material, closed=True, tseg=8, push=None):
+def tube_along(points, r, material, closed=True, tseg=6, push=None, step=2):
     """A round tube swept along a polyline (trim round an edge). push: (center, dist) moves each point away from center."""
-    P = [Vector(p) for p in points]
+    P = [Vector(p) for p in points][::max(1, step)]       # (every other edge point: plenty for a trim)
     if push is not None:
         c0, dd = Vector(push[0]), push[1]
         P = [p + (p - c0).normalized() * dd for p in P]
@@ -307,9 +313,9 @@ def orb_module(center, normal, R, back_depth=0.006):
     def L(p):
         return M @ Vector(p)
     nrm = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
-    parts.append(cylinder(L((0, 0, -back_depth)), L((0, 0, 0.002)), R * 1.32, BLACK(), 40))          # housing
+    parts.append(cylinder(L((0, 0, -back_depth)), L((0, 0, 0.002)), R * 1.32, BLACK(), 24))          # housing
     for rr, tb, z in ((R * 1.32, R * 0.16, 0.003), (R * 1.0, R * 0.07, 0.004)):                      # bezel rings
-        o = ring((0, 0, 0), rr, rr, tb, CHROME(), seg=56, tseg=10)
+        o = ring((0, 0, 0), rr, rr, tb, CHROME(), seg=32, tseg=6)
         o.matrix_world = M @ Matrix.Translation((0, 0, z))
         parts.append(o)
     for k in range(12):                                                                               # light segments
@@ -325,7 +331,7 @@ def orb_module(center, normal, R, back_depth=0.006):
             Matrix.Rotation(a, 4, "Z")
         parts.append(o)
     bm = bmesh.new()                                                                                  # glowing dome
-    bmesh.ops.create_uvsphere(bm, u_segments=40, v_segments=24, radius=1.0)
+    bmesh.ops.create_uvsphere(bm, u_segments=28, v_segments=14, radius=1.0)
     bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, -0.2), plane_no=(0, 0, 1), clear_inner=True)
     bm.transform(M @ Matrix.Translation((0, 0, 0.002)) @ Matrix.Diagonal((R * 0.92, R * 0.92, R * 0.62, 1)))
     parts.append(new_obj("orb_dome", bm, ORB()))
@@ -359,7 +365,20 @@ def join(obs, name, unwrap=True):
     return ob
 
 
+BUDGET = {"hat": 6000, "collar": 1600, "jacket": 8000, "boots": 7000, **RP.get("budget", {})}   # triangles per piece
+
+
 def export(ob, piece, meta):
+    tris0 = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+    if piece in BUDGET and tris0 > BUDGET[piece]:          # over budget: collapse-decimate the whole piece, keep UV seams
+        bpy.context.view_layer.objects.active = ob
+        ob.hide_set(False)
+        dm = ob.modifiers.new("dec", "DECIMATE")
+        dm.ratio = BUDGET[piece] / tris0
+        dm.use_collapse_triangulate = True
+        bpy.ops.object.modifier_apply(modifier="dec")
+        smooth_by_angle(ob, 50)
+        print("DECIMATE", piece, tris0, "->", sum(len(p.vertices) - 2 for p in ob.data.polygons))
     bpy.ops.object.select_all(action="DESELECT")
     ob.hide_set(False)
     ob.select_set(True)
@@ -426,7 +445,7 @@ def make_hat():
         parts.append(tube_along(lp, 0.0028, CHROME(), push=(c, 0.002)))
     mid = (vb + vt) / 2
     bm, _ = cut_dome(c, [x + 0.0032 for x in rv], [((0, 0, mid - 0.022), (0, 0, 1)), ((0, 0, mid + 0.022), (0, 0, -1)),
-                                                   ((0, vback - 0.1, 0), (0, -1, 0))], seg=96, rings=72)
+                                                   ((0, vback - 0.1, 0), (0, -1, 0))], seg=64, rings=40)
     parts.append(new_obj("scan", bm, LIGHT()))
     # crest: a raised white ridge from above the visor over the top to the back, a light line along it
     crest = []
@@ -445,9 +464,9 @@ def make_hat():
     for sx in (1, -1):
         y0 = c[1] + H.get("ear_y", 0.02)
         x0 = c[0] + sx * r[0] * math.sqrt(max(0.0, 1 - ((y0 - c[1]) / r[1]) ** 2 - ez ** 2))
-        parts.append(cylinder((x0 - sx * 0.006, y0, eye[2]), (x0 + sx * 0.010, y0, eye[2]), H.get("ear_r", 0.026), CHROME(), 40))
-        parts.append(cylinder((x0 + sx * 0.010, y0, eye[2]), (x0 + sx * 0.0115, y0, eye[2]), 0.018, BLACK(), 32))
-        o = ring((0, 0, 0), 0.0135, 0.0135, 0.0025, LIGHT(), seg=40, tseg=8)
+        parts.append(cylinder((x0 - sx * 0.006, y0, eye[2]), (x0 + sx * 0.010, y0, eye[2]), H.get("ear_r", 0.026), CHROME(), 24))
+        parts.append(cylinder((x0 + sx * 0.010, y0, eye[2]), (x0 + sx * 0.0115, y0, eye[2]), 0.018, BLACK(), 20))
+        o = ring((0, 0, 0), 0.0135, 0.0135, 0.0025, LIGHT(), seg=24, tseg=6)
         o.data.transform(frame_to((x0 + sx * 0.0125, y0, eye[2]), (sx, 0, 0)))
         parts.append(o)
         parts.append(cylinder((x0 + sx * 0.011, y0, eye[2]), (x0 + sx * 0.016, y0, eye[2]), 0.006, CHROME(), 16))
@@ -491,13 +510,13 @@ def make_collar():
 def dome_cap(c, r_vec, nd, keep, mat_, thick, trim=0.0028):
     """A clean cap: ellipsoid cut by the plane `keep` along nd (unit-sphere space), solid, chrome trim round its edge and
     a light line a little inside it."""
-    bm, loops = cut_dome(c, r_vec, [(tuple(Vector(nd) * keep), tuple(nd))], seg=40, rings=26)
+    bm, loops = cut_dome(c, r_vec, [(tuple(Vector(nd) * keep), tuple(nd))], seg=32, rings=18)
     ob = new_obj("cap", bm, mat_)
     solidify(ob, thick, offset=-1.0)
     out = [ob]
     for lp in loops:
         out.append(tube_along(lp, trim, CHROME(), push=(c, 0.0005)))
-    bm2, loops2 = cut_dome(c, [x + 0.0015 for x in r_vec], [(tuple(Vector(nd) * (keep + 0.12)), tuple(nd))], seg=40, rings=26)
+    bm2, loops2 = cut_dome(c, [x + 0.0015 for x in r_vec], [(tuple(Vector(nd) * (keep + 0.12)), tuple(nd))], seg=32, rings=18)
     bm2.free()
     for lp in loops2:
         out.append(tube_along(lp, 0.0016, LIGHT()))
@@ -638,7 +657,7 @@ def make_boots():
         x0 = sx * bd["centre_x"]
         for (zz, hw, hd, yc), tube, material, grow in ((Bc.get("ankle", [0.14, 0.038, 0.045, 0.04]), 0.008, CHROME(), 0.004),
                                                        (Bc.get("top", [0.425, 0.079, 0.085, 0.043]), 0.0035, LIGHT(), 0.0)):
-            parts.append(ring((x0, yc, zz), hw + grow, hd + grow, tube, material, seg=40, tseg=8))
+            parts.append(ring((x0, yc, zz), hw + grow, hd + grow, tube, material, seg=24, tseg=6))
         kc = Bc.get("knee", {})
         c = np.array([x0, kc.get("y", -0.012), kc.get("z", 0.372)])
         parts += dome_cap(c, kc.get("radii", [0.05, 0.05, 0.058]), Vector((0, -1, 0)), kc.get("keep", 0.45), CHROME(), 0.005, trim=0.0026)

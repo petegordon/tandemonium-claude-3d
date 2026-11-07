@@ -62,6 +62,13 @@ and `..._only_<piece>_dressed.glb`.
 - The chest plate: no cloth-fold normal map, 8k tris, Laplacian-smoothed; `join(unwrap=False)` (re-unwrapping had
   scrambled its painted texture).
 
+## Round 3 (Pete: foundational tail fix, cut triangles), v17
+- Built on the **garment body** ([garment-body.md](garment-body.md)): human-like seat, tail hidden; no feathers through
+  the seat (`docs/img/robot/robot_seat_v17.jpg`), game-lit check `docs/img/robot/robot_game_v18.jpg`.
+- **Triangles: 83.7k -> 41.9k visible** (the cyclist is 57k). Fewer segments in every generated part (rings, trims,
+  domes, orbs), per-piece budgets in `make_robot_parts.py` (hat 6k, collar 1.6k, jacket 8k, boots 7k; collapse-
+  decimated when over), chest plate 4.5k, boot last `--tris 4500`. Full GLB 20 MB, validator 0 errors / 0 warnings.
+
 ## Open
 - The chest plate's back shows faint dents in reflections (it follows the body's back too closely).
 - Boots are ~19.6k tris (the knee-boot last is 11.4k); the rings could drop segments.

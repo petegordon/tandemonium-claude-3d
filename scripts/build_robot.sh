@@ -8,7 +8,7 @@ B="${BLENDER:-/c/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
 C=${CHAR:-outfit_male_robot}
 mkdir -p out/$C-goose/shells out/$C-goose/versions
 CHAR=$C bash scripts/build_cyclist.sh breeches shirt waistcoat gloves
-"$B" -b --factory-startup --python scripts/make_boot.py -- --char $C 2>&1 | grep -E "^BOOT|Error" || true
+"$B" -b --factory-startup --python scripts/make_boot.py -- --char $C --tris 4500 2>&1 | grep -E "^BOOT|Error" || true
 "$B" -b --factory-startup --python scripts/make_robot_parts.py -- --char $C 2>&1 | grep -E "^(PART|CAP)|Error" || true
 "$B" -b --factory-startup --python scripts/dress_goose.py -- --char $C --tag full 2>&1 | grep -E "^RENDER|RIGID_PART|Error" || true
 CHAR=$C RDIR=renders/robot bash scripts/review_cyclist.sh ${TAG:-latest}

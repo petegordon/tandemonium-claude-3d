@@ -216,8 +216,13 @@ for k, meta_ in designed.items():
         for i_, q_ in enumerate(cp):
             kdc.insert(Vector(q_), i_)
         kdc.balance()
+        # garments built on the garment body (make_garment_body.py) list its moved rump positions: match those too
+        _gbf = ROOT / "out" / "base-goose" / "garment_body.npz"
+        Vg_ = np.load(_gbf)["pos"] if _gbf.exists() else None
+        if Vg_ is not None and len(Vg_) != len(V):
+            Vg_ = None
         for i in range(len(V)):
-            if kdc.find(Vector(V[i]))[2] < 0.002:
+            if kdc.find(Vector(V[i]))[2] < 0.002 or (Vg_ is not None and kdc.find(Vector(Vg_[i]))[2] < 0.002):
                 hid_by[i].add(k)
     else:
         cv = meta_["covers"]
@@ -243,8 +248,8 @@ ed_ = np.array([e.vertices[:] for e in me.edges])
 for piece, bones in FORCE.items():
     if piece in shells:
         sel = np.array([d.endswith(bones) for d in dom])
-        if "Tail" in bones:                  # (the rump feathers around the tail stick out too: 2 more rings)
-            for _ in range(2):
+        if "Tail" in bones:                  # (the rump feathers around the tail stick out too: more rings; 7 since the
+            for _ in range(cfg.get("tail_rings", 7)):   # garment body flattens the tail into the seat, 2026-11-07)
                 nb = sel.copy()
                 nb[ed_[:, 0]] |= sel[ed_[:, 1]]
                 nb[ed_[:, 1]] |= sel[ed_[:, 0]]
