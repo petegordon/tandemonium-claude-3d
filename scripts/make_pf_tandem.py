@@ -61,15 +61,22 @@ def bl(v):                                              # three.js (x, y, z) -> 
 
 # ---- the geese's contact numbers (same as make_watercycle.py) --------------------------------------------------------
 HIP_UP = 0.11
-CRANK_FWD, CRANK_DOWN = 0.197 - 0.004, 0.78 - 0.262
-CRANK_R = 0.162
+CLIP_FWD, CLIP_DOWN, CLIP_R = 0.197 - 0.004, 0.78 - 0.262, 0.162   # the geese's Pedal clips (game tandem crank)
+# Shorter cranks (a smaller pedal circle): keep the leg's reach at the bottom of the stroke, so the hub drops further
+# below the hip and the big wheel can grow until the tyre would touch the saddle (Pete, 2026-11-06: try examples).
+CRANK_FWD = arg("--crank-fwd", CLIP_FWD)
+CRANK_R = arg("--crank-r", CLIP_R)
+REACH = math.hypot(CLIP_FWD, CLIP_DOWN + CLIP_R)              # hip to the bottom pedal in the clip
+CRANK_DOWN = math.sqrt(REACH ** 2 - CRANK_FWD ** 2) - CRANK_R
+SADDLE_DEPTH, TYRE_CLEAR = 0.08, 0.02
 meta = {"Captain": goose_meta("winston"), "Stoker": goose_meta("victoria")}
 hip_mid = {s: bl(m["hip_mid_rest"]) if m else Vector((0, 0.0247, 0.8135)) for s, m in meta.items()}
 grip = {s: {k: bl(v) for k, v in m["ride_grip"].items()} if m else
         {"Left": Vector((0.19, -0.44, 0.94)), "Right": Vector((-0.19, -0.44, 0.94))} for s, m in meta.items()}
 
 # ---- layout, in "half" coordinates: x = that rider's left, f = forward from the bike centre, z up -------------------
-R = arg("--wheel-r", 0.36)                  # big wheel (to the tyre's outside)
+R_MAX = math.hypot(CRANK_DOWN - HIP_UP - SADDLE_DEPTH - TYRE_CLEAR, CRANK_FWD)   # tyre just clears the saddle
+R = arg("--wheel-r", R_MAX)                 # big wheel (to the tyre's outside)
 D = 2 * R
 HUB_F = arg("--hub-f", 0.885 * D)           # art: hubs 1.77 wheel diameters apart
 SR = arg("--small-r", 0.12 * D)             # art: small wheel ~0.24 D across
@@ -495,7 +502,7 @@ size = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
 info = {"style": "penny-farthing tandem (Time Warp bike)", "origin": "ground centre", "up": "+Y", "forward": "+Z",
         "units": "metres", "length_m": round(size[1], 3), "width_m": round(size[0], 3), "height_m": round(size[2], 3),
         "tris": tris, "big_wheel_diameter_m": round(D, 3), "small_wheel_diameter_m": round(2 * SR, 3),
-        "crank_radius_m": CRANK_R, "hip_up_above_saddle": HIP_UP, "cross_bar_height_m": round(BAR_Z, 3),
+        "crank_radius_m": round(CRANK_R, 3), "hub_below_hip_m": round(CRANK_DOWN, 3), "hip_up_above_saddle": HIP_UP, "cross_bar_height_m": round(BAR_Z, 3),
         "halves": {}}
 for seat, s in (("Captain", 1), ("Stoker", -1)):
     H = info_half[seat]
@@ -536,6 +543,19 @@ if SHEET:
                 ad.action_slot = act.slots[0]
             except Exception:                              # noqa: BLE001
                 pass
+        # legs onto this bike's pedals (IK on the shin, chain 2), using the clip's frame-0 ankle-to-pedal offsets:
+        # top (rider-left) pedal: ankle 0.033 behind / 0.037 above; bottom: 0.117 behind / 0.048 above.
+        s = 1 if seat == "Captain" else -1
+        hub_h = info_half[seat]["hub"]
+        for bone, sx, dz, back, up in (("LeftLeg", 1, CRANK_R, 0.033, 0.037), ("RightLeg", -1, -CRANK_R, 0.117, 0.048)):
+            tgt = bpy.data.objects.new(f"IK_{seat}_{bone}", None)
+            tgt.location = W(s, hub_h + Vector((sx * 0.10, -back, dz + up)))
+            sc.collection.objects.link(tgt)
+            pb = rig.pose.bones.get(bone)
+            if pb:
+                ik = pb.constraints.new("IK")
+                ik.target = tgt
+                ik.chain_count = 2
     sc.frame_set(1)
     bpy.ops.mesh.primitive_plane_add(size=14, location=(0, 0, 0))
     ground = bpy.context.active_object
