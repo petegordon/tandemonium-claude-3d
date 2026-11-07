@@ -20,10 +20,10 @@ one straight black-and-gold cross bar with a goose medallion.
 (`pf_paint`, `pf_gold`).
 
 ```
-blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.37] [--stagger 0] [--wheel-r auto]
+blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.40] [--stagger 0] [--wheel-r auto]
 ```
 
-- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.13 m long) and `pf_tandem_info.json`. `--sheet` writes
+- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.16 m long) and `pf_tandem_info.json`. `--sheet` writes
   `renders/pf_tandem/build_sheet.png`, with both geese seated (it needs `out/sandquest/{winston,victoria}{.glb,_clips.json}`).
 - Khronos validator: 0 errors, 0 warnings. The 2 infos are the empty seat-socket nodes.
 - **Rider fit:** the contact points come from the geese's own Ride numbers (saddle under the hip, the `ride_grip`
@@ -32,7 +32,7 @@ blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--cr
   - crank **9 cm** (option C in `docs/img/pf_tandem/crank_lineup.jpg`): a shorter crank keeps the clip's
     bottom-of-stroke reach, so the hub drops lower and the wheel auto-sizes to just clear the saddle, giving a
     **0.85 m (34 in)** big wheel and a 0.21 m small wheel;
-  - cross bar **0.37 m** (`docs/img/pf_tandem/bar_lineup.jpg`), the shortest with the small wheels in line;
+  - cross bar **0.40 m** (`docs/img/pf_tandem/bar_lineup.jpg`; 0.37 m is the shortest with the small wheels in line);
     `--stagger` sets them side by side for shorter bars.
 - **Pedal clip still needed:** the geese's Pedal clips are built for the game tandem's 0.162 m crank. The sheet poses
   the legs onto the 9 cm pedals with IK, but the game needs a Penny-Farthing pedal clip.

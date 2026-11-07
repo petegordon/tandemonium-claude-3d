@@ -87,7 +87,7 @@ BAR_Z = arg("--bar-z", 0.65 * D)            # cross bar height (art: mid backbon
 # hubs 1.77 D apart (bar ~0.70 D). The small wheels move with their halves and limit how short it can go.
 _c = (BAR_Z - R) / BB_R
 BAR_ART = 2 * (0.885 * D - math.sqrt(1 - _c * _c) * BB_R)
-BAR_LEN = arg("--bar-len", 0.37)
+BAR_LEN = arg("--bar-len", 0.40)            # Pete 2026-11-06
 HUB_F = BAR_LEN / 2 + math.sqrt(1 - _c * _c) * BB_R
 SMALL_F = HUB_F - 0.615 * D                 # art: small hub this far in from its big hub
 STAGGER = arg("--stagger", 0.0)              # small wheels side by side: each half's sits this far to its rider's left
