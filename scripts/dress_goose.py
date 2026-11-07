@@ -397,6 +397,29 @@ for k, o in shells.items():
         Wv = np.zeros_like(Wv)
         Wv[:, names.index(RIGID[k])] = 1.0
         tl = np.zeros(len(X))
+    isl_ = None
+    for rp in meta.get("rigid_parts", []):   # modelled hard parts (robot caps, power pack): each on its own bone
+        if isl_ is None:                     # mesh islands (UV-seam copies merged by position) and their centroids
+            _, pg_ = np.unique(np.round(X, 5), axis=0, return_inverse=True)
+            pg_ = pg_.ravel()
+            par_ = np.arange(pg_.max() + 1)
+            def _f(a):
+                while par_[a] != a:
+                    par_[a] = par_[par_[a]]
+                    a = par_[a]
+                return a
+            for e_ in o.data.edges:
+                a_, b_ = _f(pg_[e_.vertices[0]]), _f(pg_[e_.vertices[1]])
+                if a_ != b_:
+                    par_[a_] = b_
+            isl_ = np.array([_f(g_) for g_ in pg_])
+            cen_ = {i_: X[isl_ == i_].mean(0) for i_ in np.unique(isl_)}
+        # whole islands whose centroid lies within the part's radius (never a piece of the big shell under it)
+        sel_ = np.array([np.linalg.norm(cen_[i_] - np.array(rp["center"])) < rp["radius"] for i_ in isl_])
+        Wv[sel_] = 0.0
+        Wv[sel_, names.index(rp["bone"])] = 1.0
+        tl[sel_] = 0.0
+        print("RIGID_PART", k, rp["bone"], int(sel_.sum()), "verts")
     skin[k] = (Wv, X, tl)
 bpy.data.objects.remove(src)
 
