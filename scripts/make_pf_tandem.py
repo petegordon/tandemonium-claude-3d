@@ -65,7 +65,7 @@ CLIP_FWD, CLIP_DOWN, CLIP_R = 0.197 - 0.004, 0.78 - 0.262, 0.162   # the geese's
 # Shorter cranks (a smaller pedal circle): keep the leg's reach at the bottom of the stroke, so the hub drops further
 # below the hip and the big wheel can grow until the tyre would touch the saddle (Pete, 2026-11-06: try examples).
 CRANK_FWD = arg("--crank-fwd", CLIP_FWD)
-CRANK_R = arg("--crank-r", CLIP_R)
+CRANK_R = arg("--crank-r", 0.09)            # Pete 2026-11-06 picked C: 9 cm crank (~34 in wheel)
 REACH = math.hypot(CLIP_FWD, CLIP_DOWN + CLIP_R)              # hip to the bottom pedal in the clip
 CRANK_DOWN = math.sqrt(REACH ** 2 - CRANK_FWD ** 2) - CRANK_R
 SADDLE_DEPTH, TYRE_CLEAR = 0.08, 0.02
@@ -78,13 +78,21 @@ grip = {s: {k: bl(v) for k, v in m["ride_grip"].items()} if m else
 R_MAX = math.hypot(CRANK_DOWN - HIP_UP - SADDLE_DEPTH - TYRE_CLEAR, CRANK_FWD)   # tyre just clears the saddle
 R = arg("--wheel-r", R_MAX)                 # big wheel (to the tyre's outside)
 D = 2 * R
-HUB_F = arg("--hub-f", 0.885 * D)           # art: hubs 1.77 wheel diameters apart
 SR = arg("--small-r", 0.12 * D)             # art: small wheel ~0.24 D across
-SMALL_F = 0.27 * D                          # art: small hubs ~0.54 D apart
 TYRE_R = 0.022                              # tyre section radius (solid rubber, fat as in the art)
 BB_R = R + 0.045                            # backbone arc radius about the hub
 TUBE = 0.019
 BAR_Z = arg("--bar-z", 0.65 * D)            # cross bar height (art: mid backbone)
+# Cross bar length sets how far apart the halves are (Pete 2026-11-06: shorter bar, shorter bike). The art had
+# hubs 1.77 D apart (bar ~0.70 D). The small wheels move with their halves and limit how short it can go.
+_c = (BAR_Z - R) / BB_R
+BAR_ART = 2 * (0.885 * D - math.sqrt(1 - _c * _c) * BB_R)
+BAR_LEN = arg("--bar-len", 0.37)
+HUB_F = BAR_LEN / 2 + math.sqrt(1 - _c * _c) * BB_R
+SMALL_F = HUB_F - 0.615 * D                 # art: small hub this far in from its big hub
+STAGGER = arg("--stagger", 0.0)              # small wheels side by side: each half's sits this far to its rider's left
+if SMALL_F - SR < 0.012 and STAGGER < 0.035:
+    print(f"WARNING: small wheels overlap (gap {2 * (SMALL_F - SR):.3f} m); lengthen --bar-len")
 
 BLACK = (0.02, 0.02, 0.025, 1)
 RUBBER = (0.03, 0.03, 0.03, 1)
@@ -262,8 +270,8 @@ for s, tag in ((1, "F"), (-1, "R")):
     neck = Vector((0, head.y - 0.06, head.z - 0.05))
     th0 = math.atan2(-(neck.y - hub.y), neck.z - hub.z)
     pts = [neck] + [arc_pt(th0 + (math.radians(100) - th0) * i / 9) for i in range(1, 10)]
-    small_hub = Vector((0, SMALL_F, SR))
-    small_top = Vector((0, SMALL_F + 0.005, SR + 0.11))
+    small_hub = Vector((STAGGER, SMALL_F, SR))
+    small_top = Vector((STAGGER, SMALL_F + 0.005, SR + 0.11))
     pts.append(small_top)
     frame.tube([w(p) for p in pts], r=TUBE * 1.1, n=8)
     frame.cyl(w(neck), w(head + Vector((0, -0.005, 0.005))), TUBE * 1.0, BLACK, n=8)  # neck to the head bearing
@@ -405,7 +413,7 @@ for dz in (-0.022, 0.022):                                      # gold pinstripe
     for sx in (-1, 1):
         frame.box((sx * 0.0185, 0, BAR_Z + dz), (0.002, L * 0.92, 0.004), GOLD, 1)
 for sx in (-1, 1):                                              # scroll panels: short gold dashes either side of the medallion
-    for k in range(5):
+    for k in range(5 if bar_f > 0.16 else 0):
         y0 = 0.07 + k * (bar_f - 0.11) / 5
         for sy in (-1, 1):
             frame.box((sx * 0.0185, sy * y0, BAR_Z + (0.006 if k % 2 else -0.006)), (0.002, 0.025, 0.008), GOLD, 1)
@@ -502,7 +510,7 @@ size = [max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)]
 info = {"style": "penny-farthing tandem (Time Warp bike)", "origin": "ground centre", "up": "+Y", "forward": "+Z",
         "units": "metres", "length_m": round(size[1], 3), "width_m": round(size[0], 3), "height_m": round(size[2], 3),
         "tris": tris, "big_wheel_diameter_m": round(D, 3), "small_wheel_diameter_m": round(2 * SR, 3),
-        "crank_radius_m": round(CRANK_R, 3), "hub_below_hip_m": round(CRANK_DOWN, 3), "hip_up_above_saddle": HIP_UP, "cross_bar_height_m": round(BAR_Z, 3),
+        "crank_radius_m": round(CRANK_R, 3), "hub_below_hip_m": round(CRANK_DOWN, 3), "hip_up_above_saddle": HIP_UP, "cross_bar_height_m": round(BAR_Z, 3), "cross_bar_length_m": round(BAR_LEN, 3),
         "halves": {}}
 for seat, s in (("Captain", 1), ("Stoker", -1)):
     H = info_half[seat]
