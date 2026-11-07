@@ -1562,9 +1562,10 @@ if KIND == "breeches":
     disp += groove(np.abs(zh - (Z_BOT + kb)), 0.0016, 0.0012) + groove(np.abs(zh - (Z_BOT + 0.007)), 0.0009, 0.0004)
     # fly placket (front, character's left of centre), J-curve into the centre seam
     fly_bot = Z_TOP - R.get("fly_len", 0.15)
-    fz = (zh < ZT - wb) & (zh > fly_bot) & front
+    TAIL_ = R.get("tailoring", True)     # False: no fly / pockets / placket (a robot suit)
+    fz = (zh < ZT - wb) & (zh > fly_bot) & front & TAIL_
     dfly = np.where(fz, np.abs(x - 0.022), 9.0)
-    jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front
+    jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front & TAIL_
     jx = 0.022 * np.clip((zh - (fly_bot - 0.03)) / 0.03, 0, 1) ** 0.6
     dfly = np.minimum(dfly, np.where(jz, np.abs(x - jx), 9.0))
     disp += groove(dfly, 0.0016, 0.0011)
@@ -1572,7 +1573,7 @@ if KIND == "breeches":
     pelvis = zh > CROTCH_Z - 0.02
     disp += groove(np.where(pelvis & (zh < ZT - wb) & ((~front) | (zh < fly_bot - 0.02)), np.abs(x), 9.0), 0.0015, 0.0009)
     # slit pockets: slanted lines on the front hips
-    for s in (1, -1):
+    for s in ((1, -1) if TAIL_ else ()):
         a0, a1 = np.array([0.085 * s, Z_TOP - wb]), np.array([0.135 * s, Z_TOP - wb - 0.11])
         q = np.stack([x, zh], 1)
         u = np.clip(((q - a0) @ (a1 - a0)) / ((a1 - a0) @ (a1 - a0)), 0, 1)
@@ -1612,7 +1613,7 @@ elif KIND == "shirt":
     torso = armh < 0.25
     front = (y < 0.0) & torso
     # button placket: raised strip with stitch lines, buttons every 6.5 cm
-    plk = front & (zh < Z_NECK - 0.004)
+    plk = front & (zh < Z_NECK - 0.004) & bool(R.get("tailoring", True))
     disp += np.where(plk & (np.abs(x) < 0.0125), 0.0008, 0.0)
     disp += groove(np.where(plk, np.abs(np.abs(x) - 0.0125), 9.0), 0.0011, 0.0008)
     tintm = np.ones(len(Ph))
