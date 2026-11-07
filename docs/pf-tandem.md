@@ -20,23 +20,30 @@ one straight black-and-gold cross bar with a goose medallion.
 (`pf_paint`, `pf_gold`).
 
 ```
-blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--wheel-r 0.36]
+blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.37] [--stagger 0] [--wheel-r auto]
 ```
 
-- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB) and `pf_tandem_info.json`. `--sheet` writes
+- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.13 m long) and `pf_tandem_info.json`. `--sheet` writes
   `renders/pf_tandem/build_sheet.png`, with both geese seated (it needs `out/sandquest/{winston,victoria}{.glb,_clips.json}`).
 - Khronos validator: 0 errors, 0 warnings. The 2 infos are the empty seat-socket nodes.
-- **Rider fit:** the contact points come from the geese's own Ride/Pedal numbers (hip over the crank, saddle under
-  the hip, the `ride_grip` grips), and the look is scaled to fit them. With hub cranks, the hub height *is* the wheel
-  radius, so the legs set the big wheel at 0.72 m (28 in). A bigger, more dramatic wheel means the feet no longer
-  reach the pedals.
+- **Rider fit:** the contact points come from the geese's own Ride numbers (saddle under the hip, the `ride_grip`
+  grips) and from the leg reach of their Pedal clip. With hub cranks, the hub height *is* the wheel radius.
+- **Picked by Pete 2026-11-06:**
+  - crank **9 cm** (option C in `docs/img/pf_tandem/crank_lineup.jpg`): a shorter crank keeps the clip's
+    bottom-of-stroke reach, so the hub drops lower and the wheel auto-sizes to just clear the saddle, giving a
+    **0.85 m (34 in)** big wheel and a 0.21 m small wheel;
+  - cross bar **0.37 m** (`docs/img/pf_tandem/bar_lineup.jpg`), the shortest with the small wheels in line;
+    `--stagger` sets them side by side for shorter bars.
+- **Pedal clip still needed:** the geese's Pedal clips are built for the game tandem's 0.162 m crank. The sheet poses
+  the legs onto the 9 cm pedals with IK, but the game needs a Penny-Farthing pedal clip.
 - **Nodes** (glTF: +Y up, +Z forward): `Frame` › `Steer_F` / `Steer_R` (local +Y = steer axis) › `Wheel_F|R` and
   `Crank_F|R`; `Wheel_SF|SR`; `Seat_Captain` (identity rotation) and `Seat_Stoker` (turned 180° about +Y).
 - **Clip `Ride`:** one big-wheel turn in 1.0 s, rolling forward. The small wheels turn R/r times faster. The
   rider-left pedal is at the top at t = 0.
 
-## Open (Pete)
-- The stoker faces backwards. When the bike rolls forward her pedals turn backwards for her, so the game would play
-  `Pedal_Stoker` reversed. Is that the intended joke, or should the bike roll the stoker's way when she pedals?
-- Who steers? Each half has its own bars and fork, and both steer nodes exist.
+## Decided (Pete 2026-11-06)
+- The stoker pedals backwards when the bike rolls forward. That's intended.
+- Both riders steer and pedal as built. A reverse-lean option for the stoker may come later.
+
+## Open
 - Hooking it into the game (the garage, the bike swap, the unlock rule) waits on #611's design questions.
