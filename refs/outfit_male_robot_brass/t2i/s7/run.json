@@ -1,0 +1,24 @@
+{
+ "seed": 7,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-11-07: robot outfit for the geese (player bots' Canada Goose bot, Tandemonium #611); look 'brass'.",
+  "outfit": "a Victorian clockwork automaton suit: a riveted polished brass chest plate with a small round glass window showing turning gears, and a big wind-up key sticking out of the back; a brass collar ring around the base of the neck; copper shoulder caps with rivets; brass upper-arm and forearm plates with leather straps; brass mechanical mitten gauntlets with hinged knuckles; a dark leather waist section; brass thigh plates and domed copper knee caps; brass shin guards; heavy riveted brass boots; a small pressure gauge on the chest",
+  "style": "Photorealistic 3D character render, soft studio lighting, real materials. The goose wears a fitted robot suit like armour over its body: every plate follows the goose's own body shape closely, with dark flexible joints at the shoulders, elbows, knees and waist so it could ride a bicycle. No weapons, no wings added, no cape, no jetpack. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged, not covered. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the back plate with its power pack close to the body, the backs of the arm and leg plates and the boots.",
+   "left": "Side profile: plates close to the body, the power pack flat against the back (no bulk). Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: plates close to the body, the power pack flat against the back (no bulk). Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Dress the goose in picture 1 in this outfit: a Victorian clockwork automaton suit: a riveted polished brass chest plate with a small round glass window showing turning gears, and a big wind-up key sticking out of the back; a brass collar ring around the base of the neck; copper shoulder caps with rivets; brass upper-arm and forearm plates with leather straps; brass mechanical mitten gauntlets with hinged knuckles; a dark leather waist section; brass thigh plates and domed copper knee caps; brass shin guards; heavy riveted brass boots; a small pressure gauge on the chest. Photorealistic 3D character render, soft studio lighting, real materials. The goose wears a fitted robot suit like armour over its body: every plate follows the goose's own body shape closely, with dark flexible joints at the shoulders, elbows, knees and waist so it could ride a bicycle. No weapons, no wings added, no cape, no jetpack. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged, not covered. The goose has NO tail. Keep the goose's body, head, beak, eyes, pose, proportions, the camera (front view), the lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. Keep the arms and legs exactly where they are in picture 1.",
+   "seconds": 58,
+   "peak_gb": 11.5
+  }
+ }
+}
