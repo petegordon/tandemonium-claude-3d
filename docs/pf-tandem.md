@@ -20,10 +20,10 @@ one straight black-and-gold cross bar with a goose medallion.
 (`pf_paint`, `pf_gold`).
 
 ```
-blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.40] [--stagger 0.045] [--wheel-r auto]
+blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--crank-r 0.09] [--bar-len 0.60] [--stagger 0] [--wheel-r auto]
 ```
 
-- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 2.96 m long, 1.26 m / 50 in big wheels) and `pf_tandem_info.json`. `--sheet` writes
+- Output: `out/pf_tandem/pf_tandem.glb` (~11.4k tris, ~300 KB, 3.16 m long, 1.26 m / 50 in big wheels) and `pf_tandem_info.json`. `--sheet` writes
   `renders/pf_tandem/build_sheet.png`, with both geese seated (it needs `out/sandquest/{winston,victoria}{.glb,_clips.json}`).
 - Khronos validator: 0 errors, 0 warnings. The 2 infos are the empty seat-socket nodes.
 - **Rider fit:** the contact points come from the geese's own Ride numbers (saddle under the hip, the `ride_grip`
@@ -32,7 +32,7 @@ blender -b --factory-startup --python scripts/make_pf_tandem.py -- --sheet [--cr
   - crank **9 cm** (option C in `docs/img/pf_tandem/crank_lineup.jpg`): a shorter crank keeps the clip's
     bottom-of-stroke reach, so the hub drops lower and the wheel auto-sizes to just clear the saddle, giving a
     **0.85 m (34 in)** big wheel and a 0.21 m small wheel;
-  - cross bar **0.40 m** (`docs/img/pf_tandem/bar_lineup.jpg`; 0.37 m is the shortest with the small wheels in line);
+  - cross bar 0.40 m on the 34 in wheel (`docs/img/pf_tandem/bar_lineup.jpg`), back to 0.60 m with the 50 in wheel;
     `--stagger` sets them side by side for shorter bars.
 - **Leg-reach fix (2026-11-06):** the earlier lineups used 0.52 m from hip to crank, which left out the 11 cm the
   geese's hips sit above the saddle; the correct figure is 0.63 m (goosefit26 as baked). With a 9 cm crank the hub
@@ -74,8 +74,8 @@ plus a one-triangle anchor skinned to Hips so it loads as an armature). It runs 
 | `outfit_female_georgian_pf` | goose_stoker_georgian, goose_captain_georgian_f |
 
 ## Decided (Pete 2026-11-06)
-- **50 in big wheels** (the most that fits with the 9 cm crank). The 0.40 m bar puts the small wheels side by side
-  (`--stagger 0.045`).
+- **50 in big wheels** (the most that fits with the 9 cm crank), cross bar back to **0.60 m**, small wheels in line
+  (4 cm apart; `--stagger` sets them side by side for shorter bars).
 - Long skirts meet the tyre just under the saddle. Riding hems for this bike only: fancy and Victorian 0.45/0.6/0.55,
   Georgian 0.25/0.35/0.35 (`docs/img/pf_tandem/georgian_hems_50in.jpg`), cyclist none (her knee-length skirt reads
   fine). The vertex counts overstate what shows at game scale.
