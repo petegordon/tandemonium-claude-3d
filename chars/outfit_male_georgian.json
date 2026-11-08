@@ -1,7 +1,6 @@
 {
  "char": "outfit_male_georgian",
- "garment_body": false,
- "notes": "Pete 2026-10-15: 18th-century English gentleman (1770s) from his references (refs/outfit_male_georgian/pete_refs: Poldark tricorne + museum suits) via t2i views (refs/outfit_male_georgian/t2i). Navy frock coat with gold braid + deep cuffs, ivory embroidered waistcoat, lace jabot, navy knee breeches with buckles, white stockings, black buckle shoes, black tricorne. Started from the cyclist recipe (same base body + leg slider).",
+ "notes": "Pete 2026-10-15: 18th-century English gentleman (1770s) from his references (refs/outfit_male_georgian/pete_refs: Poldark tricorne + museum suits) via t2i views (refs/outfit_male_georgian/t2i). Navy frock coat with gold braid + deep cuffs, ivory embroidered waistcoat, lace jabot, navy knee breeches with buckles, white stockings, black buckle shoes, black tricorne. Started from the cyclist recipe (same base body + leg slider). 2026-11-08 (Tandemonium #635): rebuilt on the garment body -- breeches seat_shape dropped (the garment body fills the hollow under the tail root and adds the cheeks; the old bulge 0.022 made up for the caved seat).",
  "body_shape": "sliders",
  "shape": {
   "leg_length": 1.15
@@ -75,23 +74,6 @@
    "outer_min": 0.005,
    "base_smooth": 20,
    "outer_keep_gap": 0.06,
-   "seat_shape": {
-    "cleft": 0.0,
-    "cleft_w": 0.018,
-    "fold": 0.0,
-    "fold_w": 0.016,
-    "fold_rise": 0.015,
-    "y0": 0.03,
-    "z1": 0.83,
-    "fold_x": 0.11,
-    "bulge": 0.022,
-    "bulge_x": 0.06,
-    "bulge_z": 0.8,
-    "bulge_sx": 0.065,
-    "bulge_sz": 0.06,
-    "fill_z0": 0.74,
-    "relax": 14
-   },
    "normal_tilt": 10,
    "relax_folds": false
   },
