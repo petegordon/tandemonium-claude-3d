@@ -140,7 +140,15 @@ if cfg.get("garment_body", True) and _GB.exists():
 T = bodyshape.body_transforms(ROOT, CHAR, arm) if cfg.get("body_shape", "base") != "base" and     not cfg.get("shells_on_base") else None
 if T:
     V0 = np.array([v.co[:] for v in body.data.vertices])
-    body.data.vertices.foreach_set("co", bodyshape.deform(V0, Wb, gn, arm, T).ravel())
+    _Wg = Wb
+    if "_BP0" in globals() and "Tail" in gn and "Hips" in gn:
+        # the garment body pressed the tail into the rump: those vertices are seat now, so they take the slider shape
+        # with the hips (on the Tail bone they moved apart from the seat round them: lumps and folds, grandpa 2026-11-08)
+        _Wg = Wb.copy()
+        _mv = np.load(_GB)["moved"].astype(bool)
+        _Wg[_mv, gn.index("Hips")] += _Wg[_mv, gn.index("Tail")]
+        _Wg[_mv, gn.index("Tail")] = 0
+    body.data.vertices.foreach_set("co", bodyshape.deform(V0, _Wg, gn, arm, T).ravel())
     body.data.update()
     if "_BP0" in globals():               # covers are matched on the SHAPED body by dress_goose: shape the real rump too
         _BP0 = bodyshape.deform(_BP0, Wb, gn, arm, T)
