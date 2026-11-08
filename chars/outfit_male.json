@@ -1,6 +1,5 @@
 {
   "char": "outfit_male",
-  "garment_body": false,
   "sheet": {
     "file": "refs/v3/male-character-turnaround.png",
     "grid": [
@@ -368,7 +367,7 @@
       "z_bot": 0.32,
       "tris": 2600,
       "ease_min": 0.008,
-      "ease_max": 0.05,
+      "ease_max": 0.035,
       "colors": {
         "tan": [
           165,
@@ -592,7 +591,7 @@
         "clear": 0.006,
         "under_max": 0.03,
         "waist": 0.01,
-        "skirt": 0.026
+        "skirt": 0.034
       },
       "over": [
         "shirt",
@@ -621,6 +620,7 @@
         ]
       },
       "seat_fit": true,
+      "final_clear": 0.016,
       "under_max": 0.03,
       "thickness": 0,
       "offset_smooth": 12,

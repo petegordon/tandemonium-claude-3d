@@ -50,3 +50,18 @@ The robot outfit (`docs/robot-outfit.md`): no seat_shape hacks, no tail poking t
 - Review renders: `outfit_beauty.py --pose riding` (a `rig_poses.Poser` pose instead of the first clip) for seated
   close-ups of the seat.
 
+
+## Original gent (outfit_male, 2026-11-08)
+- `garment_body` flag dropped; breeches, shirt, waistcoat and coat rebuilt; dressed with no tag (`outfit_male_dressed`,
+  the riders' source).
+- Breeches `ease_max` 0.05 -> 0.035: on the garment body the old ease made a seat fuller than the shipped one, and the
+  thighs broke through the coat skirt in the pedal clips.
+- Coat: new opt-in `"final_clear"` (make_garment.py, coat kind) -- a last pass after the hang / relax / offset steps
+  that pushes torso vertices radially out to at least that far beyond the outermost `"over"` shell (rays from 6 cm
+  outside straight in to the body axis; deeper "needs" than `"final_clear_max"` (0.025) are ignored as sleeve / far-side
+  hits). outfit_male uses 0.016, and skirt ease 0.026 -> 0.034, so the fuller seat stays inside the coat standing and
+  pedalling.
+- Still there (also in the shipped build, not caused by the garment body): a wavy crease and a few dark specks across
+  the breeches seat where the tail-hole cap meets the waist (`back_rise` 0.3 makes the cap touch the waistline).
+  Keeping the pressed tail surface instead of capping it, a stronger cap relax and outer smoothing were tried; all
+  three looked worse.
