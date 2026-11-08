@@ -220,13 +220,10 @@ for k, meta_ in designed.items():
         for i_, q_ in enumerate(cp):
             kdc.insert(Vector(q_), i_)
         kdc.balance()
-        # garments built on the garment body (make_garment_body.py) list its moved rump positions: match those too
-        _gbf = ROOT / "out" / "base-goose" / "garment_body.npz"
-        Vg_ = np.load(_gbf)["pos"] if GARMENT_BODY and _gbf.exists() else None
-        if Vg_ is not None and len(Vg_) != len(V):
-            Vg_ = None
+        # (garment-body garments write their covers on the real rump too -- make_garment.py; matching the npz's moved
+        # positions here by index was wrong: base_goose.blend's vertex order is not the rigged glb's)
         for i in range(len(V)):
-            if kdc.find(Vector(V[i]))[2] < 0.002 or (Vg_ is not None and kdc.find(Vector(Vg_[i]))[2] < 0.002):
+            if kdc.find(Vector(V[i]))[2] < 0.002:
                 hid_by[i].add(k)
     else:
         cv = meta_["covers"]
