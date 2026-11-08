@@ -1346,6 +1346,39 @@ if KIND == "coat":
         Pm = np.where(zone[:, None] & ~hem_b[:, None], smooth_field(Pm, ed, 2, pin=hem_b | ~zone), Pm)
     log("coat hem verts pinned", int(hem_b.sum()))
     log("coat hang verts", int(hang.sum()), "max push mm", round(float(np.max((target - rr_) * hang)) * 1000, 1))
+    FC = R.get("final_clear")
+    if FC:
+        # opt-in last pass: the hang / relax / offset smoothing above work on body normals and radii, so a fuller
+        # under layer (garment-body breeches with seat cheeks) can still end up outside the coat. Per torso vertex
+        # below the chest, a ray from 6 cm outside it straight in toward the body axis finds the outermost "over"
+        # shell; the vertex goes out radially to at least FC beyond it. The push is smoothed over the mesh (never
+        # below the needed push) so the cloth bulges instead of tenting (Tandemonium #635)
+        trees_ = []
+        for nm in R.get("over", []):
+            uo_ = next(o for o in load(OUT / f"{nm}.glb") if o.type == "MESH")
+            trees_.append(BVHTree.FromObject(uo_, bpy.context.evaluated_depsgraph_get()))
+            bpy.data.objects.remove(uo_)
+        yc_ = ycf(Pm[:, 2])
+        rel_ = np.stack([Pm[:, 0], Pm[:, 1] - yc_], 1)
+        rr_ = np.linalg.norm(rel_, axis=1)
+        dirs_ = rel_ / np.maximum(rr_, 1e-6)[:, None]
+        cand = (armw < 0.3) & (Pm[:, 2] < V_["hang_top"] + 0.1) & (rr_ > 0.02)
+        need_r = np.zeros(len(Pm))
+        for i in np.flatnonzero(cand):
+            d3 = Vector((dirs_[i, 0], dirs_[i, 1], 0.0))
+            o3 = Vector((Pm[i, 0], Pm[i, 1], Pm[i, 2])) + d3 * 0.06
+            for t_ in trees_:
+                h_ = t_.ray_cast(o3, -d3, 0.12)
+                if h_[0] is not None:
+                    rb_ = rr_[i] + 0.06 - h_[3]
+                    need_r[i] = max(need_r[i], rb_ + FC - rr_[i])
+        need_r[need_r > R.get("final_clear_max", 0.025)] = 0.0   # (a deeper "need" is a ray that hit a sleeve or
+                                                                  #  the far side, not a layer just beneath)
+        push_ = np.maximum(need_r, 0.0)
+        push_ = np.maximum(push_, smooth_field(push_, ed, 4))
+        Pm[:, 0] = Pm[:, 0] + dirs_[:, 0] * push_
+        Pm[:, 1] = Pm[:, 1] + dirs_[:, 1] * push_
+        log("coat final clearance verts pushed", int((need_r > 0).sum()), "max mm", round(float(need_r.max()) * 1000, 1))
 if KIND == "shirt":
     # cuffs are round tubes around the wrist, not shrink-wrapped over the hand: inside the cuff band each
     # vertex goes to the forearm axis + one radius per side (largest wrist radius + clearance), blended
