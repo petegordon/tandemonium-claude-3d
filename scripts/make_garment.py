@@ -126,9 +126,10 @@ for v in body.data.vertices:
         Wb[v.index, g.group] = g.weight
 Wb /= np.maximum(Wb.sum(1, keepdims=True), 1e-9)
 # the GARMENT body (make_garment_body.py): tail flattened into the rump, a human-like seat; clothes build on it unless
-# the chars json says "garment_body": false (outfits built before 2026-11-07 were tuned on the real rump)
+# the chars json says "garment_body": false (outfits built before 2026-11-07 were tuned on the real rump); a piece's
+# recipe can opt out alone ("garment_body": false in garment_design.<piece>: a shipped piece kept as it is)
 _GB = ROOT / "out" / "base-goose" / "garment_body.npz"
-if cfg.get("garment_body", True) and _GB.exists():
+if cfg.get("garment_body", True) and R.get("garment_body", True) and _GB.exists():
     _gp = np.load(_GB)["pos"].astype(float)
     if len(_gp) == len(body.data.vertices):
         _BP0 = np.array([v.co[:] for v in body.data.vertices])    # the real rump (covers are written in it, below)
