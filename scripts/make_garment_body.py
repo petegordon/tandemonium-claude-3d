@@ -94,8 +94,20 @@ for sx in (1, -1):
     g = np.exp(-(dx ** 2 + dz ** 2)) * (V[:, 1] > 0.02) * zone
     V[:, 1] += BULGE * g
     moved |= g > 0.05
-# relax the moved zone (Laplacian over mesh edges, the rest pinned)
-ed = np.array([e.vertices[:] for e in me.edges])
+# relax the moved zone (Laplacian over mesh edges, the rest pinned). The glTF mesh is split at UV seams (duplicate
+# vertices, no shared edge): relax on the WELDED mesh -- relaxed apart, the duplicates opened the seams into cracks
+# through the seat (make_garment.py welds them back at 0.2 mm: holes, fragments, crumpled breeches; 2026-11-08)
+from mathutils import Vector as _V
+from mathutils.kdtree import KDTree as _KD
+_kd = _KD(len(V0w))
+for i_, p_ in enumerate(V0w):
+    _kd.insert(_V(p_), i_)
+_kd.balance()
+rep = np.array([min(j_ for _, j_, _ in _kd.find_range(_V(p_), 2e-4)) for p_ in V0w])
+moved = np.bincount(rep, weights=moved.astype(float), minlength=len(V))[rep] > 0
+V = V[rep]
+ed = np.unique(np.sort(rep[np.array([e.vertices[:] for e in me.edges])], 1), axis=0)
+ed = ed[ed[:, 0] != ed[:, 1]]
 deg = np.maximum(np.bincount(ed.ravel(), minlength=len(V)), 1)[:, None]
 free = moved.copy()
 for _ in range(opt("--relax", 12)):
@@ -103,6 +115,7 @@ for _ in range(opt("--relax", 12)):
     np.add.at(acc, ed[:, 0], V[ed[:, 1]])
     np.add.at(acc, ed[:, 1], V[ed[:, 0]])
     V = np.where(free[:, None], 0.5 * V + 0.5 * acc / deg, V)
+V = V[rep]
 # never inside the real body: smoothing shrank convex spots, and clothes built there let the real rump poke through.
 # Only the back moves, only backwards (y), and only the tail itself may go in (the game hides it under the clothes).
 V[:, 0], V[:, 2] = V0w[:, 0], V0w[:, 2]
