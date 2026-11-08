@@ -74,3 +74,13 @@ and `..._only_<piece>_dressed.glb`.
 - Boots are ~19.6k tris (the knee-boot last is 11.4k); the rings could drop segments.
 - The female body version (fit the same recipe to `outfit_female`'s sliders).
 - In the game: the Canada Goose bot on the back of Solo Flight (Penny-Farthing) needs this outfit's rider clips.
+
+## Round 4 (Tandemonium #635): rebuilt on the fixed garment body, v19
+- Rebuilt both bodies (`build_robot.sh`) on main's garment body. The #45 relax on the welded mesh and the #46 covers
+  written on the real rump remove the cracks the v17 shells had: a crumpled seat, a crease at the back waist, and body
+  specks through the suit at the hips.
+- `tuck.push_in` 0.045 (as the cyclists and the Victorian gent use): the shirt's back is pushed inside the breeches'
+  high waist, so the band's clean top edge makes the waistline. Without it, the masked shirt left a sawtooth step
+  across the back.
+- Before/after: `docs/img/robot/robot_gbody_m_v19.jpg`, `robot_gbody_f_v19.jpg`. Riders in both seats bake at 0 mm
+  contact. The Penny-Farthing `Pedal_PF` clips and the show clips re-bake identical, so only the 4 rider GLBs change.

@@ -45,7 +45,7 @@
     "y0": -0.15,
     "margin": 0.005,
     "hide": true,
-    "push_in": 0.0,
+    "push_in": 0.045,
     "push_depth": 0.004,
     "push_above": 0.02
    },
