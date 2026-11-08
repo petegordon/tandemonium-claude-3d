@@ -1,5 +1,6 @@
 {
  "char": "outfit_female_georgian",
+ "garment_body": false,
  "notes": "Pete 2026-10-15: 18th-century English lady (1770s robe a l'anglaise), partner to outfit_male_georgian; t2i seed 21 (refs/outfit_female_georgian/t2i/key1; the rear view came out as a front -- shapes from front + left). Pete: add a neck accessory (like seed 42's) as its own recolourable / swappable piece -> 'bowtie' = pale blue silk ribbon choker with a bow (collar dropped). Built from the Victorian lady's recipe (same slider body).",
  "body_shape": "sliders",
  "shape": {

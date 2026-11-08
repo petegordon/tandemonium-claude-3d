@@ -1,6 +1,6 @@
 {
  "char": "outfit_male_cyclist",
- "notes": "Pete 2026-10-13: 1920s gentleman cyclist from text (t2i reference views refs/outfit_male_cyclist/t2i/key1, Qwen-Image-Edit-2511 on the naked base goose in the calibrated key cameras). Garments DESIGNED on the base body (make_garment / make_cap / make_accessory / make_boot) from recipes measured off those views; patterns (herringbone, argyle, knit ribs) painted procedurally in 3D by pattern_paint.py.",
+ "notes": "Pete 2026-10-13: 1920s gentleman cyclist from text (t2i reference views refs/outfit_male_cyclist/t2i/key1, Qwen-Image-Edit-2511 on the naked base goose in the calibrated key cameras). Garments DESIGNED on the base body (make_garment / make_cap / make_accessory / make_boot) from recipes measured off those views; patterns (herringbone, argyle, knit ribs) painted procedurally in 3D by pattern_paint.py. 2026-11-08 (Tandemonium #635): rebuilt on the garment body -- breeches seat_shape dropped (the body fills the hollow; the old bulge 0.022 made up for the caved seat), breeches no longer cut under the sweater vest (layer_ignore waistcoat: riding, the vest rides up and showed the cut-out holes).",
  "body_shape": "sliders",
  "shape": {
   "leg_length": 1.15
@@ -78,23 +78,6 @@
    "outer_min": 0.005,
    "base_smooth": 20,
    "outer_keep_gap": 0.06,
-   "seat_shape": {
-    "cleft": 0.0,
-    "cleft_w": 0.018,
-    "fold": 0.0,
-    "fold_w": 0.016,
-    "fold_rise": 0.015,
-    "y0": 0.03,
-    "z1": 0.83,
-    "fold_x": 0.11,
-    "bulge": 0.022,
-    "bulge_x": 0.06,
-    "bulge_z": 0.8,
-    "bulge_sx": 0.065,
-    "bulge_sz": 0.06,
-    "fill_z0": 0.74,
-    "relax": 14
-   },
    "normal_tilt": 10,
    "relax_folds": false
   },
@@ -815,7 +798,8 @@
  "layer_ignore": {
   "breeches": [
    "socks",
-   "boots"
+   "boots",
+   "waistcoat"
   ]
  }
 }

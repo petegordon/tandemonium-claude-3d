@@ -1,5 +1,6 @@
 {
   "char": "outfit_female",
+  "garment_body": false,
   "sheet": {
     "file": "refs/v3/female-character-turnaround.png",
     "grid": [

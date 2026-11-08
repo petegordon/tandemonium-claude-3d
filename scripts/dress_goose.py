@@ -100,6 +100,10 @@ for k_, v_ in cfg.get("layer_ignore", {}).items():
     LAYER_IGNORE[k_] = tuple(LAYER_IGNORE.get(k_, ())) + tuple(v_)
 FOLLOW.update(cfg.get("chain_follow", {}))          # chars json: per-character cloth-chain follow / drape (the
 DRAPE_BY.update(cfg.get("chain_drape", {}))          # female cyclist's skirt rides the thighs seated, back too)
+# garment body (make_garment_body.py, 2026-11-07): on unless the chars json says "garment_body": false (older outfits,
+# tuned on the real rump, keep their old masks: their covers match the base rump and 2 tail rings)
+GARMENT_BODY = cfg.get("garment_body", True)
+TAIL_RINGS = cfg.get("tail_rings", 7 if GARMENT_BODY else 2)
 for k_, v_ in cfg.get("force_hide", {}).items():     # chars json "force_hide" {piece: [bone substrings]} (skirt: Tail)
     FORCE[k_] = tuple(FORCE.get(k_, ())) + tuple(v_)
 LOOSE_PIECES |= set(cfg.get("loose_pieces", []))    # chars json: extra hanging pieces on cloth chains (a coat's skirts)
@@ -216,13 +220,10 @@ for k, meta_ in designed.items():
         for i_, q_ in enumerate(cp):
             kdc.insert(Vector(q_), i_)
         kdc.balance()
-        # garments built on the garment body (make_garment_body.py) list its moved rump positions: match those too
-        _gbf = ROOT / "out" / "base-goose" / "garment_body.npz"
-        Vg_ = np.load(_gbf)["pos"] if _gbf.exists() else None
-        if Vg_ is not None and len(Vg_) != len(V):
-            Vg_ = None
+        # (garment-body garments write their covers on the real rump too -- make_garment.py; matching the npz's moved
+        # positions here by index was wrong: base_goose.blend's vertex order is not the rigged glb's)
         for i in range(len(V)):
-            if kdc.find(Vector(V[i]))[2] < 0.002 or (Vg_ is not None and kdc.find(Vector(Vg_[i]))[2] < 0.002):
+            if kdc.find(Vector(V[i]))[2] < 0.002:
                 hid_by[i].add(k)
     else:
         cv = meta_["covers"]
@@ -248,8 +249,8 @@ ed_ = np.array([e.vertices[:] for e in me.edges])
 for piece, bones in FORCE.items():
     if piece in shells:
         sel = np.array([d.endswith(bones) for d in dom])
-        if "Tail" in bones:                  # (the rump feathers around the tail stick out too: more rings; 7 since the
-            for _ in range(cfg.get("tail_rings", 7)):   # garment body flattens the tail into the seat, 2026-11-07)
+        if "Tail" in bones:                  # (the rump feathers around the tail stick out too: more rings -- 7 on the
+            for _ in range(TAIL_RINGS):      # garment body, which flattens the tail into the seat; 2 on the real rump)
                 nb = sel.copy()
                 nb[ed_[:, 0]] |= sel[ed_[:, 1]]
                 nb[ed_[:, 1]] |= sel[ed_[:, 0]]
