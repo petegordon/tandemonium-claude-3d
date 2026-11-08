@@ -1,5 +1,6 @@
 {
  "char": "outfit_male_georgian",
+ "garment_body": false,
  "notes": "Pete 2026-10-15: 18th-century English gentleman (1770s) from his references (refs/outfit_male_georgian/pete_refs: Poldark tricorne + museum suits) via t2i views (refs/outfit_male_georgian/t2i). Navy frock coat with gold braid + deep cuffs, ivory embroidered waistcoat, lace jabot, navy knee breeches with buckles, white stockings, black buckle shoes, black tricorne. Started from the cyclist recipe (same base body + leg slider).",
  "body_shape": "sliders",
  "shape": {

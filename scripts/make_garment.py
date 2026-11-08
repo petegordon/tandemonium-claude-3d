@@ -125,6 +125,16 @@ for v in body.data.vertices:
     for g in v.groups:
         Wb[v.index, g.group] = g.weight
 Wb /= np.maximum(Wb.sum(1, keepdims=True), 1e-9)
+# the GARMENT body (make_garment_body.py): tail flattened into the rump, a human-like seat; clothes build on it unless
+# the chars json says "garment_body": false (outfits built before 2026-11-07 were tuned on the real rump)
+_GB = ROOT / "out" / "base-goose" / "garment_body.npz"
+if cfg.get("garment_body", True) and _GB.exists():
+    _gp = np.load(_GB)["pos"].astype(float)
+    if len(_gp) == len(body.data.vertices):
+        _Mi = np.linalg.inv(np.array(body.matrix_world))
+        body.data.vertices.foreach_set("co", (_gp @ _Mi[:3, :3].T + _Mi[:3, 3]).ravel())
+        body.data.update()
+        log("garment body", _GB.name)
 # shells_on_base: the garments are built on the BASE body; dress_goose.py applies the shape last (as it does)
 T = bodyshape.body_transforms(ROOT, CHAR, arm) if cfg.get("body_shape", "base") != "base" and     not cfg.get("shells_on_base") else None
 if T:

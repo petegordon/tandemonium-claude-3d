@@ -1,5 +1,6 @@
 {
  "char": "outfit_male_victorian",
+ "garment_body": false,
  "sheet": "refs/outfit_male_victorian/sheet.png",
  "worn_sheets": [
   "refs/outfit_male_victorian/worn/sheet_front_side.png",

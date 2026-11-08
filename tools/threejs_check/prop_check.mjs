@@ -33,10 +33,12 @@ try {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9a9ea6);
   scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
   const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(1, 2, 2); scene.add(key);
+  // like the game (goose-actor.js): "<piece>__<a+b>" sub-meshes hide while a, b is worn -- all of them in a full outfit
+  gltf.scene.traverse(o => { if (o.name && o.name.includes("__")) o.visible = false; });
   scene.add(gltf.scene);
   const box = new THREE.Box3().setFromObject(gltf.scene), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
   let tris = 0; const mats = new Set();
-  gltf.scene.traverse(o => { if (o.isMesh) { tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; mats.add(o.material.name); } });
+  gltf.scene.traverse(o => { if (o.isMesh && o.visible && (!o.parent || o.parent.visible)) { tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; mats.add(o.material.name); } });
   Object.assign(out, { tris, materials: [...mats], size_m: s.toArray().map(v => +v.toFixed(4)),
     extensions: gltf.parser.json.extensionsUsed || [] });
   const cam = new THREE.PerspectiveCamera(30, W / H, 0.01, 10);
