@@ -1,7 +1,6 @@
 {
  "char": "outfit_grandpa",
- "garment_body": false,
- "notes": "Pete 2026-10-22: Victorian grandfather at home (picked concept A: flat cap, round spectacles, mustard cardigan, green waistcoat + pocket watch, collarless shirt, corduroy trousers (no braces: Pete 2026-10-23 found the dropped ones confusing), carpet slippers). Shorter and wider than the young gent; refs/outfit_grandpa/t2i/pick (tail-free).",
+ "notes": "Pete 2026-10-22: Victorian grandfather at home (picked concept A: flat cap, round spectacles, mustard cardigan, green waistcoat + pocket watch, collarless shirt, corduroy trousers (no braces: Pete 2026-10-23 found the dropped ones confusing), carpet slippers). Shorter and wider than the young gent; refs/outfit_grandpa/t2i/pick (tail-free). 2026-11-08 (Tandemonium #635): rebuilt on the garment body -- breeches seat_shape bulge dropped (0.02 made up for the caved seat; the garment body fills the hollow and adds the cheeks); the seat fill + relax stay, they smooth the slider-shaped seat.",
  "body_shape": "sliders",
  "shape": {
   "arm_girth": 1.1,
@@ -95,7 +94,7 @@
     "y0": 0.03,
     "z1": 0.77,
     "fold_x": 0.11,
-    "bulge": 0.02,
+    "bulge": 0.0,
     "bulge_x": 0.065,
     "bulge_z": 0.745,
     "bulge_sx": 0.07,

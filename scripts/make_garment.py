@@ -126,9 +126,10 @@ for v in body.data.vertices:
         Wb[v.index, g.group] = g.weight
 Wb /= np.maximum(Wb.sum(1, keepdims=True), 1e-9)
 # the GARMENT body (make_garment_body.py): tail flattened into the rump, a human-like seat; clothes build on it unless
-# the chars json says "garment_body": false (outfits built before 2026-11-07 were tuned on the real rump)
+# the chars json says "garment_body": false (outfits built before 2026-11-07 were tuned on the real rump); a piece's
+# recipe can opt out alone ("garment_body": false in garment_design.<piece>: a shipped piece kept as it is)
 _GB = ROOT / "out" / "base-goose" / "garment_body.npz"
-if cfg.get("garment_body", True) and _GB.exists():
+if cfg.get("garment_body", True) and R.get("garment_body", True) and _GB.exists():
     _gp = np.load(_GB)["pos"].astype(float)
     if len(_gp) == len(body.data.vertices):
         _BP0 = np.array([v.co[:] for v in body.data.vertices])    # the real rump (covers are written in it, below)
@@ -140,8 +141,18 @@ if cfg.get("garment_body", True) and _GB.exists():
 T = bodyshape.body_transforms(ROOT, CHAR, arm) if cfg.get("body_shape", "base") != "base" and     not cfg.get("shells_on_base") else None
 if T:
     V0 = np.array([v.co[:] for v in body.data.vertices])
-    body.data.vertices.foreach_set("co", bodyshape.deform(V0, Wb, gn, arm, T).ravel())
+    _Wg = Wb
+    if "_BP0" in globals() and "Tail" in gn and "Hips" in gn:
+        # the garment body pressed the tail into the rump: those vertices are seat now, so they take the slider shape
+        # with the hips (on the Tail bone they moved apart from the seat round them: lumps and folds, grandpa 2026-11-08)
+        _Wg = Wb.copy()
+        _mv = np.load(_GB)["moved"].astype(bool)
+        _Wg[_mv, gn.index("Hips")] += _Wg[_mv, gn.index("Tail")]
+        _Wg[_mv, gn.index("Tail")] = 0
+    body.data.vertices.foreach_set("co", bodyshape.deform(V0, _Wg, gn, arm, T).ravel())
     body.data.update()
+    if "_BP0" in globals():               # covers are matched on the SHAPED body by dress_goose: shape the real rump too
+        _BP0 = bodyshape.deform(_BP0, Wb, gn, arm, T)
 bone = {b.name: (np.array(arm.matrix_world @ b.head_local), np.array(arm.matrix_world @ b.tail_local)) for b in arm.data.bones}
 if T:
     bone = {k: (np.array(T[k]["head"]) if k in T else h, t) for k, (h, t) in bone.items()}
@@ -1606,9 +1617,10 @@ if KIND == "breeches":
     disp += groove(np.abs(zh - (Z_BOT + kb)), 0.0016, 0.0012) + groove(np.abs(zh - (Z_BOT + 0.007)), 0.0009, 0.0004)
     # fly placket (front, character's left of centre), J-curve into the centre seam
     fly_bot = Z_TOP - R.get("fly_len", 0.15)
-    fz = (zh < ZT - wb) & (zh > fly_bot) & front
+    TAIL_ = R.get("tailoring", True)     # False: no fly / pockets / placket (a robot suit)
+    fz = (zh < ZT - wb) & (zh > fly_bot) & front & TAIL_
     dfly = np.where(fz, np.abs(x - 0.022), 9.0)
-    jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front
+    jz = (zh <= fly_bot) & (zh > fly_bot - 0.03) & front & TAIL_
     jx = 0.022 * np.clip((zh - (fly_bot - 0.03)) / 0.03, 0, 1) ** 0.6
     dfly = np.minimum(dfly, np.where(jz, np.abs(x - jx), 9.0))
     disp += groove(dfly, 0.0016, 0.0011)
@@ -1616,7 +1628,7 @@ if KIND == "breeches":
     pelvis = zh > CROTCH_Z - 0.02
     disp += groove(np.where(pelvis & (zh < ZT - wb) & ((~front) | (zh < fly_bot - 0.02)), np.abs(x), 9.0), 0.0015, 0.0009)
     # slit pockets: slanted lines on the front hips
-    for s in (1, -1):
+    for s in ((1, -1) if TAIL_ else ()):
         a0, a1 = np.array([0.085 * s, Z_TOP - wb]), np.array([0.135 * s, Z_TOP - wb - 0.11])
         q = np.stack([x, zh], 1)
         u = np.clip(((q - a0) @ (a1 - a0)) / ((a1 - a0) @ (a1 - a0)), 0, 1)
@@ -1656,7 +1668,7 @@ elif KIND == "shirt":
     torso = armh < 0.25
     front = (y < 0.0) & torso
     # button placket: raised strip with stitch lines, buttons every 6.5 cm
-    plk = front & (zh < Z_NECK - 0.004)
+    plk = front & (zh < Z_NECK - 0.004) & bool(R.get("tailoring", True))
     disp += np.where(plk & (np.abs(x) < 0.0125), 0.0008, 0.0)
     disp += groove(np.where(plk, np.abs(np.abs(x) - 0.0125), 9.0), 0.0011, 0.0008)
     tintm = np.ones(len(Ph))

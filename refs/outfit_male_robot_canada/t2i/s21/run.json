@@ -1,0 +1,24 @@
+{
+ "seed": 21,
+ "steps": 4,
+ "unet": "qwen-image-edit-2511-Q4_K_S.gguf",
+ "lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+ "spec": {
+  "note": "Pete 2026-11-07: robot outfit for the geese (player bots' Canada Goose bot, Tandemonium #611); look 'canada'.",
+  "outfit": "a Canada Goose robot suit in the goose's own colours: a satin-finish chest plate in warm grey-brown with a cream lower belly plate and a round glowing amber core; a glossy black collar ring around the base of the neck with a white stripe; grey-brown shoulder caps with dark seams; grey-brown upper-arm and forearm plates; black mechanical mitten gauntlets with visible knuckle joints; a black flexible waist section; cream thigh plates and black knee caps; grey-brown shin guards; heavy black robot boots; thin glowing amber light strips along the plate edges",
+  "style": "Photorealistic 3D character render, soft studio lighting, real materials. The goose wears a fitted robot suit like armour over its body: every plate follows the goose's own body shape closely, with dark flexible joints at the shoulders, elbows, knees and waist so it could ride a bicycle. No weapons, no wings added, no cape, no jetpack. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged, not covered. The goose has NO tail.",
+  "view_hint": {
+   "front": "Keep the arms and legs exactly where they are in picture 1.",
+   "rear": "From the back: the back plate with its power pack close to the body, the backs of the arm and leg plates and the boots.",
+   "left": "Side profile: plates close to the body, the power pack flat against the back (no bulk). Keep the feet and legs exactly where they are in picture 1.",
+   "right": "Side profile: plates close to the body, the power pack flat against the back (no bulk). Keep the feet and legs exactly where they are in picture 1."
+  }
+ },
+ "views": {
+  "front": {
+   "prompt": "Dress the goose in picture 1 in this outfit: a Canada Goose robot suit in the goose's own colours: a satin-finish chest plate in warm grey-brown with a cream lower belly plate and a round glowing amber core; a glossy black collar ring around the base of the neck with a white stripe; grey-brown shoulder caps with dark seams; grey-brown upper-arm and forearm plates; black mechanical mitten gauntlets with visible knuckle joints; a black flexible waist section; cream thigh plates and black knee caps; grey-brown shin guards; heavy black robot boots; thin glowing amber light strips along the plate edges. Photorealistic 3D character render, soft studio lighting, real materials. The goose wears a fitted robot suit like armour over its body: every plate follows the goose's own body shape closely, with dark flexible joints at the shoulders, elbows, knees and waist so it could ride a bicycle. No weapons, no wings added, no cape, no jetpack. The goose keeps its own head exactly: black head and neck, white cheek patch, eyes and beak unchanged, not covered. The goose has NO tail. Keep the goose's body, head, beak, eyes, pose, proportions, the camera (front view), the lighting and the plain light-grey background exactly as in picture 1. Full body, nothing cropped. Keep the arms and legs exactly where they are in picture 1.",
+   "seconds": 58,
+   "peak_gb": 11.5
+  }
+ }
+}

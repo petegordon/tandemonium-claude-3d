@@ -65,3 +65,33 @@ The robot outfit (`docs/robot-outfit.md`): no seat_shape hacks, no tail poking t
   the breeches seat where the tail-hole cap meets the waist (`back_rise` 0.3 makes the cap touch the waistline).
   Keeping the pressed tail surface instead of capping it, a stronger cap relax and outer smoothing were tried; all
   three looked worse.
+
+## Victorian gent (2026-11-08)
+- Only the **coat** is rebuilt on the garment body (`bash scripts/build_victorian_coat.sh <tag>`, then
+  `dress_goose --tag full --variant jacket`): it is the garment over the rump in every pose (tails to the knee).
+- Breeches, shirt and waistcoat stay as shipped: the coat covers their seat, and their finishing (projected textures,
+  modelled buttons, pin-tucks, collar studs, smudge fixes) was hand-run, not scripted. They carry a per-piece
+  `"garment_body": false` in `garment_design` (new in `make_garment.py`), so a rebuild of one of them reproduces the
+  shipped piece until someone retunes it (its `seat_bump` was tuned on the real rump).
+- The coat's projection bake put a dark smudge on the new rump back; `build_victorian_coat.sh` now fills a sphere
+  there (0, 0.14, 0.80, r 0.14) with the cloth tile (`--tile-near`).
+- The coat's cloth-chain bones follow the new coat, so the riders, the Penny-Farthing `Pedal_PF` clip and the Goose
+  Studio show clips all re-bake.
+
+## Georgian gent (2026-11-08)
+`outfit_male_georgian`: `garment_body` flag and the breeches `seat_shape` (bulge 0.022) dropped; breeches, shirt,
+waistcoat and the frock coat + coatskirt (`build_georgian_coat.sh`) rebuilt, `dress_goose --tag full --variant withshoes`.
+`force_hide` (Tail under breeches + coatskirt) kept: harmless next to the 7 tail rings. The coatskirt no longer caves
+into the hollow under the tail root; in the game the skirt covers the seat, so riders look nearly the same. The
+coatskirt chain bones re-fit to the new skirt, so riders, Pedal_PF and show clips ship together.
+
+## Grandpa (2026-11-08): the garment body on a slider-shaped body
+`outfit_grandpa` (slider body, garments built on the shaped body, no `shells_on_base`): `garment_body` flag dropped,
+breeches `seat_shape` bulge 0.02 -> 0 (the cleft and fold were already 0; the seat `fill` + `relax` stay: they smooth
+the shaped seat), breeches, shirt, waistcoat and cardigan rebuilt (`CHAR=outfit_grandpa build_cyclist.sh`, trims
+included), `dress_goose --tag full`. Sheet: `img/garment_body/grandpa_contact_sheet.jpg`.
+Two `make_garment.py` fixes, both only for a garment-body garment on a slider body:
+- the real-rump cover positions get the same slider shape as the body (PR #47); without it the masks missed
+  everywhere the sliders move vertices (body through the trousers, cardigan, ankles);
+- the garment body's moved vertices take their slider shape from Hips instead of Tail (the pressed-in tail is seat
+  now). On the Tail bone they moved apart from the seat round them, so the seat came out lumpy and folded.

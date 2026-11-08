@@ -667,8 +667,160 @@ def knit_relief_normals(P, N, T4):
     n = np.stack([-amp * dt, -amp * db, np.ones(len(P))], 1)
     return n / np.linalg.norm(n, axis=1, keepdims=True)
 
+GLOW = None                                # per-texel light-line mask (0-1) -> the material's emission (robotsuit)
+
+
+def arm_s(P):
+    """Per point: distance to the nearer arm polyline (shoulder -> elbow -> wrist) and the arc length s along it from
+    the shoulder, with the elbow's and wrist's s (metres)."""
+    js = joints()
+    best = np.full(len(P), 9.0)
+    s = np.zeros(len(P))
+    se = sw = 0.0
+    for s_ in ("Left", "Right"):
+        pts = [np.array(js[f"{s_}Arm"]["head"]), np.array(js[f"{s_}ForeArm"]["head"]), np.array(js[f"{s_}Hand"]["head"])]
+        acc = 0.0
+        for k, (q0, q1) in enumerate(zip(pts[:-1], pts[1:])):
+            dq = q1 - q0
+            L = float(np.linalg.norm(dq))
+            t_ = np.clip(((P - q0) @ dq) / (L * L), -0.3, 1.0)
+            d_ = np.linalg.norm(P - (q0 + np.clip(t_, 0, 1)[:, None] * dq), axis=1)
+            take = d_ < best
+            best = np.where(take, d_, best)
+            s = np.where(take, acc + t_ * L, s)
+            acc += L
+            if k == 0:
+                se = acc
+        sw = acc
+    return best, s, se, sw
+
+
+def robotsuit(P, N):
+    """Robot bodysuit: black base, white plates on the limbs (upper arm, forearm, thigh -- a high-cut black 'leotard'
+    over the torso and seat), thin light lines along every plate edge and two curved lines down the front and back.
+    The light lines go to GLOW (emission). Recipe: "black", "white", "glow" colours; "line_w"; "arm_x"; "elbow_band";
+    "wrist_band"; "yoke_z" (white above it on the shirt, under the chest plate); "cut" {front, back: [[|x|, z], ..]}."""
+    global GLOW
+    blk, wht, glw = rgb(PR.get("black", [18, 18, 22])), rgb(PR.get("white", [236, 238, 242])), rgb(PR.get("glow", [40, 220, 255]))
+    lw = PR.get("line_w", 0.0035)
+    white = np.zeros(len(P), bool)
+    line = np.zeros(len(P))
+    ax_ = np.abs(P[:, 0])
+    # arms: white plates, black bands at the elbow and wrist
+    da, s, se, sw = arm_s(P)
+    on_arm = (da < 0.09) & (ax_ > PR.get("arm_x", 0.15)) & (s > 0.02)
+    eb, wb = PR.get("elbow_band", 0.022), PR.get("wrist_band", 0.03)
+    de = np.abs(s - se)
+    plate = on_arm & (de > eb) & (s < sw - wb)
+    white |= plate
+    for edge in (np.abs(de - eb), np.abs(s - (sw - wb)), np.abs(s - PR.get("shoulder_s", 0.05))):
+        line = np.maximum(line, (on_arm & (edge < lw)).astype(float))
+    white &= ~(on_arm & (s < PR.get("shoulder_s", 0.05)))
+    # legs / torso: the leotard cut, z_cut(|x|) front and back; white below it (the legs)
+    back = P[:, 1] > PR.get("back_y", 0.03)
+    def cut(pts):
+        q = np.asarray(pts, float)
+        return np.interp(ax_, q[:, 0], q[:, 1])
+    zc = np.where(back, cut(PR["cut"]["back"]), cut(PR["cut"]["front"]))
+    legs = ~on_arm & (P[:, 2] < zc)
+    white |= legs
+    line = np.maximum(line, (~on_arm & (np.abs(P[:, 2] - zc) < lw * 1.2)).astype(float))
+    # yoke: white chest / upper back above yoke_z (the chest plate covers it), light line along its edge
+    yz = PR.get("yoke_z")
+    if yz:
+        yzz = np.where(back, PR.get("yoke_z_back", yz), yz)
+        torso = ~on_arm
+        white |= torso & (P[:, 2] > yzz)
+        line = np.maximum(line, (torso & (np.abs(P[:, 2] - yzz) < lw)).astype(float))
+    # the two curved light lines down the torso: |x| = x0 + k (z_top - z)^2, between z_top and the leotard cut
+    for side_ in ("front", "back"):
+        cv = PR.get("curves", {}).get(side_)
+        if not cv:
+            continue
+        on_ = (back if side_ == "back" else ~back) & ~on_arm & (P[:, 2] < cv["z_top"]) & (P[:, 2] > zc)
+        xl = cv["x0"] + cv["k"] * (cv["z_top"] - P[:, 2]) ** 2
+        line = np.maximum(line, (on_ & (np.abs(ax_ - xl) < lw)).astype(float))
+    c = np.where(white[:, None], wht[None], blk[None])
+    c = c * (0.97 + 0.04 * value_noise(P, 0.01))[:, None]
+    c = np.where((line > 0)[:, None], glw[None], c)
+    GLOW = line
+    print("ROBOTSUIT white", round(float(white.mean()), 3), "glow", round(float(line.mean()), 4))
+    return c
+
+
+def robotglove(P, N):
+    """Chrome robot mitts: polished metal, dark joint grooves across the hand (segment plates), a black wrist band with
+    a light line and a small light on the back of the hand (GLOW). Frame as glove()."""
+    global GLOW
+    js = joints()
+    base = rgb(PR.get("metal", [205, 210, 218]))
+    c = np.tile(base, (len(P), 1)) * (0.96 + 0.06 * value_noise(P, 0.01))[:, None]
+    line = np.zeros(len(P))
+    lw = PR.get("line_w", 0.0025)
+    for s in ("Left", "Right"):
+        h0, h1 = np.array(js[f"{s}Hand"]["head"]), np.array(js[f"{s}Hand"]["tail"])
+        ax = (h1 - h0) / np.linalg.norm(h1 - h0)
+        on = (P[:, 0] > 0) if s == "Left" else (P[:, 0] < 0)
+        rel = P - h0
+        a = rel @ ax
+        rad = rel - a[:, None] * ax
+        outw = np.array([1.0 if s == "Left" else -1.0, 0, 0])
+        outw = outw - (outw @ ax) * ax
+        outw /= np.linalg.norm(outw)
+        fwd = np.cross(ax, outw)
+        phi = np.arctan2(rad @ fwd, rad @ outw)
+        r_ = np.linalg.norm(rad, axis=1)
+        w0 = PR.get("cuff_a", [-0.03, -0.008])
+        band = on & (a > w0[0]) & (a < w0[1])
+        c = np.where(band[:, None], rgb(PR.get("band", [30, 32, 38]))[None], c)
+        line = np.maximum(line, (on & (np.abs(a - w0[1]) < lw)).astype(float))
+        for g in PR.get("grooves", [0.035, 0.06, 0.08]):    # joint lines across the mitt
+            gr = on & (np.abs(a - g) < 0.0012)
+            c = np.where(gr[:, None], c * 0.35, c)
+        dot = on & (np.hypot(a - PR.get("dot_a", 0.018), phi * r_) < PR.get("dot_r", 0.005))
+        line = np.maximum(line, dot.astype(float))
+    c = np.where((line > 0)[:, None], rgb(PR.get("glow", [40, 215, 255]))[None], c)
+    GLOW = line
+    return c
+
+
+def robotplate(P, N, boundary=None):
+    """Chrome armour plate (the robot chest plate, caps): polished metal, a round light core on the front ("core" {z, r,
+    ring, x, back}) inside a dark ring, and a light line along the garment's open edges ("edge_glow" width; needs the
+    boundary points, set after rasterising). GLOW gets the core + edge lines."""
+    global GLOW
+    base = rgb(PR.get("metal", [205, 210, 218]))
+    c = np.tile(base, (len(P), 1)) * (0.95 + 0.07 * value_noise(P, 0.012))[:, None]
+    line = np.zeros(len(P))
+    cr = PR.get("core")
+    if cr:
+        front = P[:, 1] < 0 if not cr.get("back") else P[:, 1] > 0
+        d = np.hypot(P[:, 0] - cr.get("x", 0.0), P[:, 2] - cr["z"])
+        ring = front & (d >= cr["r"]) & (d < cr["r"] + cr.get("ring", 0.006))
+        c = np.where(ring[:, None], rgb(PR.get("ring_color", [40, 42, 48]))[None], c)
+        core = front & (d < cr["r"])
+        if cr.get("glow", True):
+            line = np.maximum(line, np.where(core, 1.0 - 0.35 * (d / cr["r"]) ** 2, 0.0))
+        else:                                # (a modelled orb sits here: a dark recess under it)
+            c = np.where(core[:, None], rgb(PR.get("ring_color", [40, 42, 48]))[None], c)
+    if PR.get("edge_glow") and boundary is not None and len(boundary):
+        from mathutils.kdtree import KDTree
+        kd = KDTree(len(boundary))
+        for k_, p_ in enumerate(boundary):
+            kd.insert(Vector(p_), k_)
+        kd.balance()
+        dist = np.array([kd.find(Vector(p_))[2] for p_ in P])
+        ew = PR["edge_glow"]
+        off = PR.get("edge_off", 0.004)
+        line = np.maximum(line, ((dist > off) & (dist < off + ew)).astype(float))
+    c = np.where((line > 0)[:, None], rgb(PR.get("glow", [40, 215, 255]))[None] * np.maximum(line, 0.6)[:, None], c)
+    GLOW = line
+    return c
+
+
 PATTERNS = {"herringbone": herringbone, "argyle": argyle, "rib": rib, "brogue": brogue, "glove": glove, "sprig": sprig,
-            "crochet": crochet, "chunky_knit": chunky_knit}
+            "crochet": crochet, "chunky_knit": chunky_knit, "robotsuit": robotsuit, "robotglove": robotglove,
+            "robotplate": robotplate}
 KNIT_S = None
 
 
@@ -822,7 +974,7 @@ print("TEXELS", int(mask.sum()), "boundary pts", len(boundary))
 
 P, N = pos[mask].astype(float), nrm[mask].astype(float)
 HOLE = None                                # (crochet with "alpha_holes": per-texel hole cover, 1 = open)
-col = PATTERNS[PR["type"]](P, N)
+col = PATTERNS[PR["type"]](P, N, boundary) if PR["type"] == "robotplate" else PATTERNS[PR["type"]](P, N)
 col = bands(P, col, boundary)
 
 
@@ -902,6 +1054,8 @@ dl = detail[dy, dx].mean(1)
 dmean = float(np.median(dl[dl > 0.05])) if (dl > 0.05).any() else 1.0
 shade = np.clip(dl / dmean, 0.55, 1.25) ** PR.get("detail_gamma", 1.0)
 shade = np.where(dl < 0.25 * dmean, 1.0, shade)        # (texels the detail bake missed are black: no shading, not a dark spot)
+if GLOW is not None:                       # (light lines are lit from inside: no fold shading on them)
+    shade = np.where(GLOW > 0, 1.0, shade)
 col = np.clip(col * shade[:, None], 0, 1)
 img = np.zeros((TEX, TEX, 3), np.float32)
 img[mask] = col
@@ -951,6 +1105,8 @@ for o in obs:
         bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
         if bs is not None and "roughness" in PR:
             bs.inputs["Roughness"].default_value = PR["roughness"]
+        if bs is not None and "metallic" in PR:     # (chrome / brass pieces: the game lights riders with an env map)
+            bs.inputs["Metallic"].default_value = PR["metallic"]
         if bs is not None and HOLE is not None:     # alpha clip (glTF alphaMode MASK: image alpha -> Round -> Alpha)
             tx_ = next(n for n in m.node_tree.nodes if n.type == "TEX_IMAGE" and n.image == out)
             rd_ = m.node_tree.nodes.new("ShaderNodeMath")
@@ -959,6 +1115,36 @@ for o in obs:
             m.node_tree.links.new(rd_.outputs[0], bs.inputs["Alpha"])
             m.use_backface_culling = False
             print("ALPHA clip", m.name)
+if GLOW is not None:
+    # light lines: an emission texture (glow colour where GLOW, black elsewhere), padded like the colour; glTF exports it
+    # as emissiveTexture (+ KHR_materials_emissive_strength when "glow_strength" > 1)
+    gimg = np.zeros((TEX, TEX, 3), np.float32)
+    gimg[mask] = GLOW[:, None] * rgb(PR.get("glow", [40, 220, 255]))[None]
+    fg = mask.copy()
+    for _ in range(12):
+        acc = np.zeros_like(gimg)
+        cntm = np.zeros((TEX, TEX), np.float32)
+        for sy, sx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            acc += np.roll(np.roll(gimg * fg[..., None], sy, 0), sx, 1)
+            cntm += np.roll(np.roll(fg.astype(np.float32), sy, 0), sx, 1)
+        new = (~fg) & (cntm > 0)
+        gimg[new] = acc[new] / cntm[new][:, None]
+        fg |= new
+    gi = bpy.data.images.new(f"{CHAR}_{PIECE}_glow", TEX, TEX, alpha=False)
+    gi.pixels = np.concatenate([gimg, np.ones((TEX, TEX, 1), np.float32)], -1).ravel().tolist()
+    gi.pack()
+    for o in obs:
+        for m in o.data.materials:
+            if not m or not m.node_tree or not any(n.type == "TEX_IMAGE" and n.image == out for n in m.node_tree.nodes):
+                continue
+            bs = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if bs is None:
+                continue
+            tg = m.node_tree.nodes.new("ShaderNodeTexImage")
+            tg.image = gi
+            m.node_tree.links.new(tg.outputs["Color"], bs.inputs["Emission Color"])
+            bs.inputs["Emission Strength"].default_value = PR.get("glow_strength", 2.0)
+            print("GLOW emission", m.name, "strength", PR.get("glow_strength", 2.0))
 if PR.get("relief") and KNIT_S is not None:
     # knit relief in the normal map: the stitch / rib height field's tangent-space normals, whiteout-blended with the
     # garment's own baked normal map (its folds, seams; weight "keep"), at the pattern's resolution

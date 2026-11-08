@@ -1,0 +1,613 @@
+{
+ "char": "outfit_male_robot",
+ "notes": "Pete 2026-11-07: robot outfit (chrome A2: black suit, white plates, blue light lines; visor helmet) for the player-bots Canada Goose bot (Tandemonium #611). Pieces: hat (visor helmet), neckwear (collar ring), shirt + breeches (the bodysuit; the shirt tucks into the breeches so no gap shows), waistcoat (chrome chest plate + core), jacket (shoulder + elbow caps, back power pack, antenna), gloves (chrome mitts), boots (knee-high with shin guards + knee caps). Refs: refs/outfit_male_robot/t2i/key1.",
+ "body_shape": "sliders",
+ "shape": {
+  "leg_length": 1.15
+ },
+ "shells_on_base": true,
+ "accessory_drop": {},
+ "garment_design": {
+  "shirt": {
+   "kind": "shirt",
+   "z_neck": 1.29,
+   "z_top": 0.88,
+   "z_bot": 0.88,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "tris": 7000,
+   "cuff": 0.0,
+   "wrist_offset": 0.0,
+   "cover_margin": 0.012,
+   "ease": {
+    "torso": 0.004,
+    "sleeve": 0.006,
+    "blouse": 0.003,
+    "cuff": 0.003,
+    "neck": 0.003,
+    "hem": 0.003
+   },
+   "mottle": 0.0,
+   "twill": 0.0,
+   "twill_scale": 520.0,
+   "roughness": 0.45,
+   "colors": {
+    "suit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "tuck": {
+    "into": "breeches",
+    "z_top": 0.93,
+    "rise": 0.0,
+    "y0": -0.15,
+    "margin": 0.005,
+    "hide": true,
+    "push_in": 0.045,
+    "push_depth": 0.004,
+    "push_above": 0.02
+   },
+   "hem_zone": 0.14,
+   "cuff_clear": 0.007,
+   "armpit_relax": 0,
+   "ease_post_smooth": 20,
+   "tailoring": false,
+   "normal_tilt": 4
+  },
+  "breeches": {
+   "kind": "breeches",
+   "note": "robot suit legs: snug black, full length into the knee-high boots",
+   "z_top": 0.95,
+   "z_bot": 0.22,
+   "tris": 3600,
+   "ease_min": 0.006,
+   "ease_max": 0.02,
+   "ease_z": [
+    [
+     0.95,
+     0.006
+    ],
+    [
+     0.8,
+     0.006
+    ],
+    [
+     0.6,
+     0.006
+    ],
+    [
+     0.4,
+     0.005
+    ],
+    [
+     0.22,
+     0.005
+    ]
+   ],
+   "ease_smooth": 30,
+   "ease_post_smooth": 10,
+   "knee_ramp": 0.0,
+   "kneeband": 0.0,
+   "waistband": 0.0,
+   "band_ease": 0.003,
+   "back_rise": 0.0,
+   "rise_y0": -0.1,
+   "seat_bump": 0.004,
+   "fly_len": 0.12,
+   "mottle": 0.0,
+   "twill": 0.0,
+   "roughness": 0.45,
+   "colors": {
+    "suit": [
+     255,
+     255,
+     255
+    ]
+   },
+   "outer_smooth": 70,
+   "outer_min": 0.005,
+   "base_smooth": 20,
+   "outer_keep_gap": 0.06,
+   "seat_shape": {
+    "cleft": 0.0,
+    "cleft_w": 0.018,
+    "fold": 0.0,
+    "fold_w": 0.016,
+    "fold_rise": 0.015,
+    "y0": 0.03,
+    "z1": 0.83,
+    "fold_x": 0.11,
+    "bulge": 0.006,
+    "bulge_x": 0.06,
+    "bulge_z": 0.8,
+    "bulge_sx": 0.065,
+    "bulge_sz": 0.06,
+    "fill_z0": 0.74,
+    "relax": 14
+   },
+   "normal_tilt": 4,
+   "relax_folds": false,
+   "tailoring": false
+  },
+  "gloves": {
+   "kind": "glove",
+   "z_top": 0.9,
+   "z_bot": 0.8,
+   "tris": 1600,
+   "cover_margin": 0.008,
+   "wrist_offset": -0.045,
+   "pre_cuts": 1,
+   "region_sub": 1,
+   "base_smooth": 24,
+   "ease": {
+    "hand": 0.004,
+    "cuff": 0.004
+   },
+   "mottle": 0.0,
+   "twill": 0.0,
+   "roughness": 0.22,
+   "weight_smooth": 6,
+   "colors": {
+    "chrome": [
+     255,
+     255,
+     255
+    ]
+   },
+   "plain_smooth": 70,
+   "top_r": 0.036,
+   "top_len": 0.085,
+   "round": 1.0
+  },
+  "waistcoat": {
+   "kind": "vest",
+   "knit": true,
+   "note": "robot chest plate: chrome, high round neck, front to below the chest, back to the shoulder blades; light core in the middle (pattern)",
+   "z_neck": 1.3,
+   "z_top": 1.08,
+   "z_bot": 1.04,
+   "tris": 4500,
+   "cover_margin": 0.02,
+   "outline": {
+    "z_notch": 1.04,
+    "z_point": 1.04,
+    "z_side": 1.06,
+    "z_back": 1.08,
+    "point_x": 0.0,
+    "side_x": 0.13,
+    "z_vbot": 1.262,
+    "v_top_w": 0.066,
+    "v_pow": 0.5,
+    "arm_r": 0.095,
+    "arm_off": [
+     -0.002,
+     0.0,
+     -0.03
+    ],
+    "lapel_w": 0.001,
+    "notch_down": 0.0,
+    "arm_iso": 0.88,
+    "arm_oval": [
+     1.155,
+     0.005,
+     0.105,
+     0.068,
+     0.112
+    ]
+   },
+   "rib": {
+    "hem": 0.0,
+    "v": 0.0,
+    "arm": 0.0,
+    "pitch": 0.0045,
+    "depth": 0.0
+   },
+   "ease": {
+    "torso": 0.016,
+    "lapel": 0.0,
+    "clear": 0.008
+   },
+   "over": [
+    "shirt"
+   ],
+   "mottle": 0.0,
+   "twill": 0.0,
+   "roughness": 0.2,
+   "lining_color": [
+    60,
+    62,
+    68
+   ],
+   "lining_roughness": 0.95,
+   "colors": {
+    "chrome": [
+     255,
+     255,
+     255
+    ]
+   },
+   "pre_cuts": 2,
+   "region_sub": 0,
+   "edge_iter": 0,
+   "edge_relax": 0,
+   "lo_edge_iter": 6,
+   "offset_smooth": 60,
+   "normal_tilt": 3,
+   "outer_smooth": 90,
+   "outer_min": 0.012
+  }
+ },
+ "skin_merge": {},
+ "layer_ignore": {
+  "breeches": [
+   "boots"
+  ]
+ },
+ "patterns": {
+  "breeches": {
+   "type": "robotsuit",
+   "tex": 2048,
+   "black": [
+    16,
+    17,
+    21
+   ],
+   "white": [
+    236,
+    238,
+    242
+   ],
+   "glow": [
+    40,
+    215,
+    255
+   ],
+   "glow_strength": 2.5,
+   "line_w": 0.0032,
+   "arm_x": 0.15,
+   "elbow_band": 0.024,
+   "wrist_band": 0.03,
+   "shoulder_s": -1.0,
+   "cut": {
+    "front": [
+     [
+      0.0,
+      0.7
+     ],
+     [
+      0.03,
+      0.7
+     ],
+     [
+      0.09,
+      0.78
+     ],
+     [
+      0.14,
+      0.88
+     ],
+     [
+      0.2,
+      0.93
+     ]
+    ],
+    "back": [
+     [
+      0.0,
+      0.42
+     ],
+     [
+      0.05,
+      0.42
+     ],
+     [
+      0.11,
+      0.56
+     ],
+     [
+      0.15,
+      0.84
+     ],
+     [
+      0.2,
+      0.92
+     ]
+    ]
+   },
+   "curves": {
+    "front": {
+     "z_top": 1.12,
+     "x0": 0.05,
+     "k": 1.0
+    },
+    "back": {
+     "z_top": 1.13,
+     "x0": 0.05,
+     "k": 1.0
+    }
+   },
+   "roughness": 0.62,
+   "detail_gamma": 0.2
+  },
+  "shirt": {
+   "type": "robotsuit",
+   "tex": 2048,
+   "black": [
+    16,
+    17,
+    21
+   ],
+   "white": [
+    236,
+    238,
+    242
+   ],
+   "glow": [
+    40,
+    215,
+    255
+   ],
+   "glow_strength": 2.5,
+   "line_w": 0.0032,
+   "arm_x": 0.15,
+   "elbow_band": 0.024,
+   "wrist_band": 0.03,
+   "shoulder_s": -1.0,
+   "cut": {
+    "front": [
+     [
+      0.0,
+      0.7
+     ],
+     [
+      0.03,
+      0.7
+     ],
+     [
+      0.09,
+      0.78
+     ],
+     [
+      0.14,
+      0.88
+     ],
+     [
+      0.2,
+      0.93
+     ]
+    ],
+    "back": [
+     [
+      0.0,
+      0.42
+     ],
+     [
+      0.05,
+      0.42
+     ],
+     [
+      0.11,
+      0.56
+     ],
+     [
+      0.15,
+      0.84
+     ],
+     [
+      0.2,
+      0.92
+     ]
+    ]
+   },
+   "curves": {
+    "front": {
+     "z_top": 1.12,
+     "x0": 0.05,
+     "k": 1.0
+    },
+    "back": {
+     "z_top": 1.13,
+     "x0": 0.05,
+     "k": 1.0
+    }
+   },
+   "roughness": 0.62,
+   "detail_gamma": 0.2,
+   "yoke_z": 1.12,
+   "yoke_z_back": 1.13
+  },
+  "gloves": {
+   "type": "robotglove",
+   "tex": 1024,
+   "metal": [
+    244,
+    246,
+    250
+   ],
+   "band": [
+    30,
+    32,
+    38
+   ],
+   "glow": [
+    40,
+    215,
+    255
+   ],
+   "glow_strength": 2.5,
+   "cuff_a": [
+    -0.03,
+    -0.008
+   ],
+   "grooves": [
+    0.035,
+    0.06,
+    0.08
+   ],
+   "roughness": 0.24,
+   "metallic": 0.75,
+   "detail_gamma": 0.0
+  },
+  "waistcoat": {
+   "type": "robotplate",
+   "tex": 1024,
+   "metal": [
+    244,
+    246,
+    250
+   ],
+   "glow": [
+    40,
+    215,
+    255
+   ],
+   "glow_strength": 3.0,
+   "core": {
+    "z": 1.15,
+    "r": 0.04,
+    "ring": 0.0,
+    "glow": false
+   },
+   "edge_glow": 0.003,
+   "roughness": 0.24,
+   "metallic": 0.75,
+   "detail_gamma": 0.0
+  }
+ },
+ "boot_design": {
+  "centre_x": 0.092,
+  "toe_y": -0.148,
+  "heel_y": 0.097,
+  "sole_w": [
+   [
+    0.0,
+    0.038
+   ],
+   [
+    0.25,
+    0.044
+   ],
+   [
+    0.55,
+    0.051
+   ],
+   [
+    0.8,
+    0.049
+   ],
+   [
+    1.0,
+    0.04
+   ]
+  ],
+  "top_line": [
+   [
+    0.0,
+    0.1
+   ],
+   [
+    0.15,
+    0.125
+   ],
+   [
+    0.35,
+    0.13
+   ],
+   [
+    0.5,
+    0.115
+   ],
+   [
+    0.7,
+    0.09
+   ],
+   [
+    0.88,
+    0.072
+   ],
+   [
+    1.0,
+    0.062
+   ]
+  ],
+  "shaft": [
+   [
+    0.1,
+    0.044,
+    0.053,
+    0.044
+   ],
+   [
+    0.14,
+    0.038,
+    0.045,
+    0.04
+   ],
+   [
+    0.22,
+    0.04,
+    0.045,
+    0.036
+   ],
+   [
+    0.2959,
+    0.05,
+    0.054,
+    0.038
+   ],
+   [
+    0.3465,
+    0.066,
+    0.072,
+    0.042
+   ],
+   [
+    0.3886,
+    0.075,
+    0.081,
+    0.043
+   ],
+   [
+    0.435,
+    0.079,
+    0.085,
+    0.043
+   ]
+  ],
+  "heel_h": 0.024,
+  "heel_len": 0.042,
+  "power": 2.3,
+  "shaft_power": 2.1,
+  "voxel": 0.004,
+  "smooth_iter": 8,
+  "roughness": 0.3,
+  "toe_cap": 0.04,
+  "toe_narrow": 1.8,
+  "toe_up": 0.008,
+  "sole_h": 0.013,
+  "welt": 0.0035,
+  "heel_round": 0.018,
+  "shaft_note": "robot: the Victorian knee boot last (round 8 shaft), recoloured + bands + knee caps by make_robot_parts.py"
+ },
+ "rigid": {
+  "collar": "Spine2"
+ },
+ "no_mask": [
+  "jacket",
+  "collar"
+ ],
+ "robot_parts": {
+  "glow": [
+   40,
+   215,
+   255
+  ],
+  "vest": {
+   "z": 1.15,
+   "orb_r": 0.03,
+   "smooth_iter": 20
+  }
+ }
+}

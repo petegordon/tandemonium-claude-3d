@@ -1,6 +1,5 @@
 {
  "char": "outfit_male_victorian",
- "garment_body": false,
  "sheet": "refs/outfit_male_victorian/sheet.png",
  "worn_sheets": [
   "refs/outfit_male_victorian/worn/sheet_front_side.png",
@@ -15,6 +14,7 @@
  "shells_on_base": true,
  "garment_design": {
   "breeches": {
+   "garment_body": false,
    "z_top": 0.98,
    "z_bot": 0.395,
    "tris": 2600,
@@ -81,6 +81,7 @@
    }
   },
   "shirt": {
+   "garment_body": false,
    "kind": "shirt",
    "z_neck": 1.28,
    "z_top": 0.83,
@@ -141,6 +142,7 @@
    "ease_post_smooth": 20
   },
   "waistcoat": {
+   "garment_body": false,
    "kind": "vest",
    "z_neck": 1.265,
    "z_top": 0.82,
