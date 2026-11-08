@@ -131,6 +131,7 @@ _GB = ROOT / "out" / "base-goose" / "garment_body.npz"
 if cfg.get("garment_body", True) and _GB.exists():
     _gp = np.load(_GB)["pos"].astype(float)
     if len(_gp) == len(body.data.vertices):
+        _BP0 = np.array([v.co[:] for v in body.data.vertices])    # the real rump (covers are written in it, below)
         _Mi = np.linalg.inv(np.array(body.matrix_world))
         body.data.vertices.foreach_set("co", (_gp @ _Mi[:3, :3].T + _Mi[:3, 3]).ravel())
         body.data.update()
@@ -2255,6 +2256,14 @@ for src, dst in R.get("weight_merge", {"Tail": "Hips"}).items():   # the tail is
         WL[:, vg_names.index(dst)] += WL[:, vg_names.index(src)]
         WL[:, vg_names.index(src)] = 0
 WL /= np.maximum(WL.sum(1, keepdims=True), 1e-9)
+if "_BP0" in globals() and len(COVERS_POS):
+    # covers are matched by rest position in dress_goose.py, on the REAL body (base_goose.blend, whose vertex order is
+    # not this glb's): write the covered vertices' real positions, not their moved garment-body ones
+    _kdc = KDTree(len(BPv))
+    for i_, p_ in enumerate(BPv):
+        _kdc.insert(Vector(p_), i_)
+    _kdc.balance()
+    COVERS_POS = np.array([_BP0[_kdc.find(Vector(q_))[1]] for q_ in COVERS_POS])
 np.savez_compressed(OUT / f"{PIECE}_covers.npz", pos=COVERS_POS.astype(np.float32))
 np.savez_compressed(OUT / f"{PIECE}_weights.npz", pos=np.array([v.co[:] for v in lo.data.vertices], np.float32),
                     W=WL, names=np.array(vg_names))
