@@ -142,6 +142,8 @@ if T:
     V0 = np.array([v.co[:] for v in body.data.vertices])
     body.data.vertices.foreach_set("co", bodyshape.deform(V0, Wb, gn, arm, T).ravel())
     body.data.update()
+    if "_BP0" in globals():               # covers are matched on the SHAPED body by dress_goose: shape the real rump too
+        _BP0 = bodyshape.deform(_BP0, Wb, gn, arm, T)
 bone = {b.name: (np.array(arm.matrix_world @ b.head_local), np.array(arm.matrix_world @ b.tail_local)) for b in arm.data.bones}
 if T:
     bone = {k: (np.array(T[k]["head"]) if k in T else h, t) for k, (h, t) in bone.items()}
