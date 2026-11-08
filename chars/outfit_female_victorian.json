@@ -1,5 +1,6 @@
 {
  "char": "outfit_female_victorian",
+ "garment_body": false,
  "notes": "Pete 2026-10-13: the 'Victorian' pair's lady, partner to the ORIGINAL male (outfit_male): a brown tweed walking dress -- dressier than the cyclist, plainer than the original female's red bustle dress -- in his style (brown tweed, dark red waistcoat, white collar + black bow tie, brown bowler). t2i seed 21 (refs/outfit_female_victorian/t2i/key1).",
  "body_shape": "sliders",
  "shape": {

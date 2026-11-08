@@ -1,5 +1,6 @@
 {
  "char": "outfit_male_cyclist",
+ "garment_body": false,
  "notes": "Pete 2026-10-13: 1920s gentleman cyclist from text (t2i reference views refs/outfit_male_cyclist/t2i/key1, Qwen-Image-Edit-2511 on the naked base goose in the calibrated key cameras). Garments DESIGNED on the base body (make_garment / make_cap / make_accessory / make_boot) from recipes measured off those views; patterns (herringbone, argyle, knit ribs) painted procedurally in 3D by pattern_paint.py.",
  "body_shape": "sliders",
  "shape": {

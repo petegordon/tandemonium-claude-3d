@@ -1,5 +1,6 @@
 {
  "char": "outfit_grandpa",
+ "garment_body": false,
  "notes": "Pete 2026-10-22: Victorian grandfather at home (picked concept A: flat cap, round spectacles, mustard cardigan, green waistcoat + pocket watch, collarless shirt, corduroy trousers (no braces: Pete 2026-10-23 found the dropped ones confusing), carpet slippers). Shorter and wider than the young gent; refs/outfit_grandpa/t2i/pick (tail-free).",
  "body_shape": "sliders",
  "shape": {
