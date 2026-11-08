@@ -62,3 +62,10 @@ The robot outfit (`docs/robot-outfit.md`): no seat_shape hacks, no tail poking t
   there (0, 0.14, 0.80, r 0.14) with the cloth tile (`--tile-near`).
 - The coat's cloth-chain bones follow the new coat, so the riders, the Penny-Farthing `Pedal_PF` clip and the Goose
   Studio show clips all re-bake.
+
+## Georgian gent (2026-11-08)
+`outfit_male_georgian`: `garment_body` flag and the breeches `seat_shape` (bulge 0.022) dropped; breeches, shirt,
+waistcoat and the frock coat + coatskirt (`build_georgian_coat.sh`) rebuilt, `dress_goose --tag full --variant withshoes`.
+`force_hide` (Tail under breeches + coatskirt) kept: harmless next to the 7 tail rings. The coatskirt no longer caves
+into the hollow under the tail root; in the game the skirt covers the seat, so riders look nearly the same. The
+coatskirt chain bones re-fit to the new skirt, so riders, Pedal_PF and show clips ship together.
