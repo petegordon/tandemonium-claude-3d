@@ -85,8 +85,9 @@ def mat(name, rgb, metallic=0.0, rough=0.5, emit=None, strength=0.0):
 
 
 M = {
-    # metallic kept below 1: full metal reads black under the game's lean-mode lighting (Time Warp lesson)
-    "gold": mat("gs_gold", (1.0, 0.6, 0.1), 0.5, 0.28),
+    # mirror gold (Pete: "more gold mirror shine"): full metal, nearly smooth. Full metal reads black with nothing to
+    # reflect, so the game gives this bike its own sky (Tandemonium js/mirror-env.js, metalness >= 0.95 only)
+    "gold": mat("gs_gold", (1.0, 0.68, 0.22), 1.0, 0.06),
     "gold_deep": mat("gs_gold_deep", (0.33, 0.145, 0.022), 0.75, 0.27),     # recessed emblem panel, ring backing
     "leather": mat("gs_leather", (0.30, 0.12, 0.045), 0.0, 0.62),
     "leather_dark": mat("gs_leather_dark", (0.12, 0.045, 0.015), 0.0, 0.6),
