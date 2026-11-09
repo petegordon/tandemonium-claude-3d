@@ -18,6 +18,8 @@ The side ref is close to the rig's scale (hub to hub 1110 px = 1.806 m); frame p
 art(px, py), which warps the art along the bike so its bottom brackets land on the rig's.
 
 Writes out/gold_standard/gold_standard_tandem.glb (+ _info.json, .blend) and with --sheet renders/gold_standard/*.png.
+Builds:  (default) full detail, ~140k tris   --game  the game asset (_game, ~88k tris -> Tandemonium
+tandem-3d/goose/gold_standard_tandem.glb)   --tag master --frame-tris 2000000  the full sculpt (~1.05M tris, Drive).
 """
 import json
 import math
@@ -35,6 +37,13 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 
 def arg(k, d=None):
     return argv[argv.index(k) + 1] if k in argv else d
+
+
+# --game: the in-game build (lighter frame, the engraving decimated, fewer saddle segments); --tag names the outputs
+# (gold_standard_tandem_<tag>.glb), e.g. --tag master --frame-tris 2000000 keeps the full-detail sculpt
+GAME = "--game" in argv
+TAG = arg("--tag", "game" if GAME else "")
+SFX = ("_" + TAG) if TAG else ""
 
 
 BASE = Path(arg("--base", str(ROOT.parent / "tandemonium-claude-3d" / "out" / "bike" / "bike_rigged_goosefit26.blend")))
@@ -1539,7 +1548,7 @@ def fuse(obs, name, voxel=0.0018, smooth_iter=12, tris=26000):
     return o
 
 
-FRAME = fuse(fr, "GS_frame", tris=int(arg("--frame-tris", "55000")), smooth_iter=int(arg("--smooth", "12")))
+FRAME = fuse(fr, "GS_frame", tris=int(arg("--frame-tris", "24000" if GAME else "55000")), smooth_iter=int(arg("--smooth", "12")))
 FRAME_PART = "GS_frame"                            # the whole frame: one mesh (tubes, web, inlays, emblem, rings)
 add("Bike_root", FRAME, name=FRAME_PART)
 # the sunken panel's floor: a thin deep-gold inlay cut to the panel's outline just inside its ramp (the ref's dark
@@ -1795,6 +1804,19 @@ em += filigree(_cx + _wrx + _gap, _front_end)
 em += filigree(_cx - _wrx - _gap, _rear_end)
 print(f"EMBLEM: crown x {_cx:.0f} (panel {_xl:.0f}-{_xr:.0f}, filigree to {_rear_end:.0f} / {_front_end:.0f}), "
       f"half height {_ch:.0f} px, {len(em)} parts")
+if GAME:                                          # game: one engraving mesh, collapsed (it is a few px on screen)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in em:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = em[0]
+    bpy.ops.object.join()
+    _emo = bpy.context.view_layer.objects.active
+    _n0 = len(_emo.data.polygons)
+    _dm = _emo.modifiers.new("dec", "DECIMATE")
+    _dm.ratio = float(arg("--emblem-ratio", "0.35"))
+    apply_mods(_emo)
+    print("EMBLEM game", _n0, "->", len(_emo.data.polygons), "faces")
+    em = [_emo]
 add("Bike_root", *em, name=FRAME_PART)
 
 
@@ -1855,7 +1877,7 @@ def saddle(sock, post_from, part, mounts=()):
     yn = sock.y - 0.26                            # nose
     ts = [0.0, 0.004, 0.012, 0.024, 0.04, 0.06, 0.085, 0.11, 0.14, 0.18, 0.23, 0.29, 0.36, 0.44, 0.52, 0.60, 0.68, 0.76,
           0.83, 0.89, 0.94, 0.975, 1.0]
-    seg = 32
+    seg = 20 if GAME else 32
     base = [2 * math.pi * j / seg for j in range(seg)]
     bm = bmesh.new()
     rings, mats = [], []
@@ -2137,19 +2159,19 @@ bpy.ops.object.select_all(action="DESELECT")
 RIG.select_set(True)
 for o in FINAL:
     o.select_set(True)
-glb = OUT / "gold_standard_tandem.glb"
+glb = OUT / f"gold_standard_tandem{SFX}.glb"
 bpy.ops.export_scene.gltf(filepath=str(glb), export_format="GLB", use_selection=True, export_animations=True,
                           export_animation_mode="NLA_TRACKS", export_yup=True, export_def_bones=False, export_tangents=False)
 info = {"glb": str(glb.relative_to(ROOT)), "tris": TRIS, "tris_total": sum(TRIS.values()), "frame_trace_px": SNAP_LOG,
         "clips": ["Pedal", "WheelSpin"], "base_rig": str(BASE), "refs": "refs/gold_standard/pete_refs"}
-(OUT / "gold_standard_tandem_info.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
-bpy.ops.wm.save_as_mainfile(filepath=str(OUT / "gold_standard_tandem.blend"))
+(OUT / f"gold_standard_tandem{SFX}_info.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
+bpy.ops.wm.save_as_mainfile(filepath=str(OUT / f"gold_standard_tandem{SFX}.blend"))
 print("EXPORT", glb, round(glb.stat().st_size / 1e6, 2), "MB")
 # the frame on its own (bike space, no rig): one component to review / hand on
 bpy.ops.object.select_all(action="DESELECT")
 _fo = bpy.data.objects[FRAME_PART]
 _fo.select_set(True)
-_fglb = OUT / "gold_standard_frame.glb"
+_fglb = OUT / f"gold_standard_frame{SFX}.glb"
 bpy.ops.export_scene.gltf(filepath=str(_fglb), export_format="GLB", use_selection=True, export_animations=False,
                           export_yup=True, export_tangents=False)
 print("EXPORT FRAME", _fglb, TRIS.get(FRAME_PART), "tris", len(_fo.data.materials), "materials",
@@ -2282,7 +2304,7 @@ if "--sheet" in argv:
             cd.ortho_scale = lens
         else:
             cd.lens = lens
-        SC.render.filepath = str(REN / f"gs_{_pre}{nm}.png")
+        SC.render.filepath = str(REN / f"gs_{_pre}{nm}{SFX}.png")
         bpy.ops.render.render(write_still=True)
         _im = bpy.data.images.load(SC.render.filepath, check_existing=False)    # composite onto a flat grey backdrop
         _w, _h = _im.size
